@@ -8,7 +8,7 @@ import { VERSION, createServer } from './server.js';
 const HELP = `hilvana-mcp ${VERSION}: MCP server for private, local PDF workflows.
 
 Usage:
-  hilvana-mcp --root <folder> [--root <folder> ...] [--lang es|en]
+  hilvana-mcp --root <folder> [--root <folder> ...] [--lang es|en] [--engine auto|native|libreoffice]
 
 Only files inside the given folders can be read or written.
 You can also set HILVANA_ROOTS (separated by "${path.delimiter}").
@@ -19,6 +19,7 @@ async function main() {
     options: {
       root: { type: 'string', multiple: true },
       lang: { type: 'string' },
+      engine: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -33,7 +34,8 @@ async function main() {
   }
   const lang = values.lang === 'en' ? 'en' : values.lang === 'es' ? 'es' : undefined;
   const guard = await FolderGuard.create(roots);
-  const server = createServer(guard, { lang });
+  const engine = values.engine === 'native' || values.engine === 'libreoffice' ? values.engine : 'auto';
+  const server = createServer(guard, { lang, engine });
   await server.connect(new StdioServerTransport());
   // stdout carries the protocol; diagnostics go to stderr.
   process.stderr.write(`hilvana-mcp ${VERSION} ready. Allowed folders: ${guard.roots.join(', ')}\n`);

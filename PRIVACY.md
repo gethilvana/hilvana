@@ -10,6 +10,7 @@ Hilvana está diseñado para que tus documentos no salgan de tu equipo.
 - El servidor MCP le devuelve al agente solo **estructura**: número de páginas, tamaños, rotación, si el archivo está protegido y qué campos de metadatos existen. Nunca devuelve el texto ni las imágenes de las páginas.
 - El servidor MCP solo lee y escribe dentro de las carpetas que autorizas con `--root`, después de resolver enlaces simbólicos.
 - Ningún archivo de entrada se modifica. Los resultados van a un archivo nuevo.
+- La conversión de Word a PDF también es local: con el motor propio, o con LibreOffice instalado en tu equipo si eliges ese motor. LibreOffice se ejecuta con un perfil temporal que se borra al terminar.
 - No hay analítica ni telemetría.
 
 **Lo que viene (y cómo se va a manejar)**

@@ -1,9 +1,30 @@
 import * as core from '@hilvana/core';
 import { HilvanaError, parsePageRange } from '@hilvana/core';
+import { DocxError, isDocx, wordToPdf } from '@hilvana/office';
 import { DESTRUCTIVE_OPS, Recipe, type Goals, type Step } from './schema.js';
 import { describeStep, formatBytes, localDate, t, type Lang } from './i18n.js';
 
-export type FileKind = 'pdf' | 'image' | 'other';
+export type FileKind = 'pdf' | 'word' | 'image' | 'other';
+
+/** Turns a .docx into PDF bytes. Surfaces choose the engine; the default is the built-in one. */
+export type WordConverter = (docx: Uint8Array) => Promise<{ pdf: Uint8Array; pageCount: number; warnings: string[]; engine?: string }>;
+
+export interface EngineOptions {
+  lang?: Lang;
+  word?: WordConverter;
+}
+
+const defaultWord: WordConverter = (docx) => wordToPdf(docx);
+
+// Each Word file is converted once per converter, even though plan() and run() both need it.
+const conversions = new WeakMap<WordConverter, WeakMap<Uint8Array, ReturnType<WordConverter>>>();
+function convertOnce(convert: WordConverter, bytes: Uint8Array): ReturnType<WordConverter> {
+  let byBytes = conversions.get(convert);
+  if (!byBytes) conversions.set(convert, (byBytes = new WeakMap()));
+  let p = byBytes.get(bytes);
+  if (!p) byBytes.set(bytes, (p = convert(bytes)));
+  return p;
+}
 
 /** An input file. Names are what recipes refer to; bytes never leave the caller's machine. */
 export interface InputFile {
@@ -28,6 +49,8 @@ export interface Plan {
   destructiveSteps: number[];
   /** Page count predicted after each step (when it could be computed). */
   predictedPages?: number[];
+  /** Simplifications made while converting Word files, in plain language. */
+  warnings: string[];
 }
 
 export interface GoalResult {
@@ -46,12 +69,14 @@ export interface RunResult {
   goals: GoalResult[];
   allGoalsMet: boolean;
   steps: string[];
+  warnings: string[];
 }
 
 export function kindOf(bytes: Uint8Array): FileKind {
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return 'pdf';
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image';
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image';
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b && isDocx(bytes)) return 'word';
   return 'other';
 }
 
@@ -72,25 +97,37 @@ function withSource(steps: Step[]): Step[] {
  * schema, file references, page ranges (by simulating page counts) and destructive steps.
  * Only file names, kinds and page counts are read.
  */
-export async function plan(raw: unknown, files: InputFile[], lang: Lang = 'es'): Promise<Plan> {
+export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | EngineOptions = 'es'): Promise<Plan> {
+  const opts: EngineOptions = typeof langOrOpts === 'string' ? { lang: langOrOpts } : langOrOpts;
+  const lang = opts.lang ?? 'es';
+  const convert = opts.word ?? defaultWord;
   const parsed = Recipe.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
-    return { ok: false, issues: [{ code: 'SCHEMA', message: t(lang, 'SCHEMA', { issues }) }], steps: [], goals: [], destructiveSteps: [] };
+    return { ok: false, issues: [{ code: 'SCHEMA', message: t(lang, 'SCHEMA', { issues }) }], steps: [], goals: [], destructiveSteps: [], warnings: [] };
   }
   const recipe = parsed.data;
   const issues: Issue[] = [];
   const byName = new Map(files.map((f) => [f.name, f]));
   const kinds = new Map(files.map((f) => [f.name, kindOf(f.bytes)]));
-  const pdfNames = files.filter((f) => kinds.get(f.name) === 'pdf').map((f) => f.name);
+  const docNames = files.filter((f) => ['pdf', 'word'].includes(kinds.get(f.name)!)).map((f) => f.name);
   const imageNames = files.filter((f) => kinds.get(f.name) === 'image').map((f) => f.name);
+  const hasWord = docNames.some((n) => kinds.get(n) === 'word');
 
   const pageCounts = new Map<string, number>();
-  for (const name of pdfNames) {
+  const warnings: string[] = [];
+  for (const name of docNames) {
     try {
-      pageCounts.set(name, (await core.inspect(byName.get(name)!.bytes)).pageCount);
+      if (kinds.get(name) === 'word') {
+        const res = await convertOnce(convert, byName.get(name)!.bytes);
+        pageCounts.set(name, res.pageCount);
+        for (const w of res.warnings) warnings.push(`${name}: ${t(lang, `word.${w}`)}`);
+      } else {
+        pageCounts.set(name, (await core.inspect(byName.get(name)!.bytes)).pageCount);
+      }
     } catch (err) {
-      issues.push(issueFromError(err, lang));
+      if (err instanceof DocxError) issues.push({ code: err.code, message: t(lang, err.code, { name }) });
+      else issues.push(issueFromError(err, lang));
     }
   }
 
@@ -108,12 +145,12 @@ export async function plan(raw: unknown, files: InputFile[], lang: Lang = 'es'):
     };
     switch (step.op) {
       case 'merge': {
-        const names = step.files ?? pdfNames;
+        const names = step.files ?? docNames;
         if (names.length === 0) issues.push({ code: 'NO_PDF_INPUTS', message: t(lang, 'NO_PDF_INPUTS'), step: n });
         let total = 0;
         for (const name of names) {
           if (!byName.has(name)) issues.push({ code: 'UNKNOWN_INPUT', message: t(lang, 'UNKNOWN_INPUT', { name }), step: n });
-          else if (kinds.get(name) !== 'pdf') issues.push({ code: 'NOT_A_PDF', message: t(lang, 'NOT_A_PDF', { name }), step: n });
+          else if (!['pdf', 'word'].includes(kinds.get(name)!)) issues.push({ code: 'NOT_A_PDF', message: t(lang, 'NOT_A_PDF', { name }), step: n });
           else total += pageCounts.get(name) ?? 0;
         }
         pages = total || undefined;
@@ -166,7 +203,16 @@ export async function plan(raw: unknown, files: InputFile[], lang: Lang = 'es'):
     ok: issues.length === 0,
     recipe,
     issues,
-    steps: steps.map((s, i) => `${i + 1}. ${describeStep(s, lang)}${DESTRUCTIVE_OPS.has(s.op) ? ' ' + t(lang, 'destructive') : ''}`),
+    steps: steps.map((s, i) => {
+      let text = describeStep(s, lang);
+      if (s.op === 'merge') {
+        const names = s.files ?? docNames;
+        if (names.length === 1 && kinds.get(names[0]!) === 'word') text = t(lang, 'step.convertWord', { file: names[0] });
+        else if (!s.files && hasWord) text = t(lang, 'step.mergeAllDocs');
+      }
+      return `${i + 1}. ${text}${DESTRUCTIVE_OPS.has(s.op) ? ' ' + t(lang, 'destructive') : ''}`;
+    }),
+    warnings,
     goals: describeGoals(recipe.goals, lang),
     destructiveSteps,
     predictedPages: predicted,
@@ -199,17 +245,26 @@ const today = () => localDate();
 export async function run(
   raw: unknown,
   files: InputFile[],
-  opts: { lang?: Lang; confirmed?: boolean } = {},
+  opts: EngineOptions & { confirmed?: boolean } = {},
 ): Promise<RunResult> {
   const lang = opts.lang ?? 'es';
-  const p = await plan(raw, files, lang);
+  const convert = opts.word ?? defaultWord;
+  const p = await plan(raw, files, { lang, word: convert });
   if (!p.ok || !p.recipe) throw new RecipeError(p.issues);
   if (p.destructiveSteps.length > 0 && !opts.confirmed) {
     throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) }]);
   }
   const recipe = p.recipe;
-  const byName = new Map(files.map((f) => [f.name, f.bytes]));
-  const pdfs = files.filter((f) => kindOf(f.bytes) === 'pdf');
+  // Word inputs become their converted PDF; everything downstream only sees PDFs.
+  const byName = new Map<string, Uint8Array>();
+  const docs: InputFile[] = [];
+  for (const f of files) {
+    const kind = kindOf(f.bytes);
+    const bytes = kind === 'word' ? (await convertOnce(convert, f.bytes)).pdf : f.bytes;
+    byName.set(f.name, bytes);
+    if (kind === 'pdf' || kind === 'word') docs.push({ name: f.name, bytes });
+  }
+  const pdfs = docs;
   const images = files.filter((f) => kindOf(f.bytes) === 'image');
 
   let doc: Uint8Array | undefined;
@@ -235,6 +290,7 @@ export async function run(
     goals,
     allGoalsMet: goals.every((g) => g.met),
     steps: p.steps,
+    warnings: p.warnings,
   };
 }
 
