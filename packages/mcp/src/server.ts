@@ -3,7 +3,8 @@ import path from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { inspect } from '@hilvana/core';
-import { RecipeError, kindOf, plan, recipeJsonSchema, run, type InputFile, type Lang } from '@hilvana/recipes';
+import { convertWord, type WordEngine } from '@hilvana/office';
+import { RecipeError, kindOf, plan, recipeJsonSchema, run, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
 
 export const VERSION = '0.1.0';
@@ -33,12 +34,20 @@ async function loadFiles(guard: FolderGuard, refs: { path: string; name?: string
   return { files, realPaths };
 }
 
-export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {}): McpServer {
+const engineInput = z.enum(['auto', 'native', 'libreoffice']).optional()
+  .describe('Word engine. native: built-in; libreoffice: local LibreOffice install; auto (default): built-in, falling back to LibreOffice if content had to be dropped. All local.');
+
+function converter(engine: WordEngine | undefined): WordConverter {
+  return (docx) => convertWord(docx, { engine: engine ?? 'auto' });
+}
+
+export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine?: WordEngine } = {}): McpServer {
   const server = new McpServer(
     { name: 'hilvana', version: VERSION },
     {
       instructions: [
         'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
+        'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
         'Workflow: 1) pdf_list or pdf_inspect to learn page counts; 2) recipe_plan to validate and show the user the steps; 3) recipe_run. Steps marked destructive (select, remove, stripMetadata, setMetadata) need confirm=true, and you should only set it after the user agrees.',
         'Inputs are never modified; results are written to a new file. ' + PRIVACY_NOTE,
         `Allowed folders: ${guard.roots.join(', ')}`,
@@ -57,7 +66,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
     'pdf_list',
     {
       title: 'List PDFs and images',
-      description: 'Lists PDF and image files (PNG/JPEG) in an allowed folder, with page counts for PDFs. Does not read content.',
+      description: 'Lists PDF, Word (.docx) and image files (PNG/JPEG) in an allowed folder, with page counts for PDFs. Does not read content.',
       inputSchema: { folder: z.string().optional().describe('Folder to list. Defaults to the first allowed folder.') },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -68,7 +77,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
         const rows: unknown[] = [];
         // Regular files only: symlinks are skipped so listing can never read outside the allowed folders.
         for (const e of entries.filter((x) => x.isFile()).sort((a, b) => a.name.localeCompare(b.name))) {
-          if (!/\.(pdf|png|jpe?g)$/i.test(e.name)) continue;
+          if (!/\.(pdf|docx|png|jpe?g)$/i.test(e.name) || e.name.startsWith('~$')) continue;
           const full = path.join(dir, e.name);
           const bytes = new Uint8Array(await fs.readFile(full));
           const kind = kindOf(bytes);
@@ -109,13 +118,13 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
     {
       title: 'Validate and explain a recipe',
       description: 'Checks a recipe against the actual files without changing anything: schema, file names, page ranges after each step, and which steps are destructive. Returns the steps in plain language to show the user before running.',
-      inputSchema: { recipe: recipeInput, files: z.array(fileRef).min(1), lang: langInput },
+      inputSchema: { recipe: recipeInput, files: z.array(fileRef).min(1), lang: langInput, engine: engineInput },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, lang }) => {
+    async ({ recipe, files: refs, lang, engine }) => {
       try {
         const { files } = await loadFiles(guard, refs);
-        const p = await plan(recipe, files, lang ?? defaults.lang ?? 'es');
+        const p = await plan(recipe, files, { lang: lang ?? defaults.lang ?? 'es', word: converter(engine ?? defaults.engine) });
         const { recipe: _ignored, ...rest } = p;
         return text(rest);
       } catch (err) {
@@ -137,15 +146,17 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
         confirm: z.boolean().optional().describe('Required when the recipe has destructive steps, after the user agreed.'),
         overwrite: z.boolean().optional().describe('Replace the output if it already exists (never an input).'),
         lang: langInput,
+        engine: engineInput,
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, output, confirm, overwrite, lang }) => {
+    async ({ recipe, files: refs, output, confirm, overwrite, lang, engine }) => {
       const l = lang ?? defaults.lang ?? 'es';
+      const word = converter(engine ?? defaults.engine);
       try {
         const { files, realPaths } = await loadFiles(guard, refs);
         const target = await guard.writable(output, { inputs: realPaths, overwrite });
-        const p = await plan(recipe, files, l);
+        const p = await plan(recipe, files, { lang: l, word });
         if (!p.ok) return fail(JSON.stringify({ ok: false, issues: p.issues }, null, 2));
         if (p.destructiveSteps.length > 0 && !confirm) {
           return text({
@@ -158,7 +169,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
             destructiveSteps: p.destructiveSteps,
           });
         }
-        const res = await run(recipe, files, { lang: l, confirmed: true });
+        const res = await run(recipe, files, { lang: l, confirmed: true, word });
         await fs.writeFile(target, res.bytes, { flag: overwrite ? 'w' : 'wx' });
         return text({
           ran: true,
@@ -168,10 +179,50 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang } = {})
           allGoalsMet: res.allGoalsMet,
           goals: res.goals.map((g) => g.message),
           steps: res.steps,
+          warnings: res.warnings,
         });
       } catch (err) {
         if (err instanceof RecipeError) return fail(JSON.stringify({ ok: false, issues: err.issues }, null, 2));
         return fail(String((err as Error).message));
+      }
+    },
+  );
+
+  server.registerTool(
+    'word_to_pdf',
+    {
+      title: 'Convert Word to PDF',
+      description: 'Converts a Word document (.docx) to a NEW PDF on this computer, with real, selectable text. Returns the page count and any simplifications made (e.g. skipped text boxes). Never uploads the file.',
+      inputSchema: {
+        path: z.string().describe('The .docx file, inside an allowed folder.'),
+        output: z.string().optional().describe('Path of the new PDF. Defaults to the same name with .pdf.'),
+        engine: engineInput,
+        overwrite: z.boolean().optional(),
+        lang: langInput,
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async ({ path: p, output, engine, overwrite, lang }) => {
+      const l = lang ?? defaults.lang ?? 'es';
+      try {
+        const input = await guard.readable(p);
+        const bytes = new Uint8Array(await fs.readFile(input));
+        if (kindOf(bytes) !== 'word') return fail(t(l, 'NOT_DOCX', { name: path.basename(input) }));
+        const target = await guard.writable(output ?? input.replace(/\.docx$/i, '.pdf'), { inputs: [input], overwrite });
+        const res = await converter(engine ?? defaults.engine)(bytes);
+        await fs.writeFile(target, res.pdf, { flag: overwrite ? 'w' : 'wx' });
+        return text({
+          output: target,
+          pageCount: res.pageCount,
+          bytes: res.pdf.byteLength,
+          engine: res.engine,
+          warnings: res.warnings.map((w) => t(l, `word.${w}`)),
+        });
+      } catch (err) {
+        const e = err as { name?: string; code?: string; message: string };
+        if (e.name === 'DocxError' && e.code) return fail(t(l, e.code, { name: path.basename(p) }));
+        if (e.message.startsWith('LIBREOFFICE_NOT_FOUND')) return fail(l === 'es' ? 'LibreOffice no está instalado en este equipo. Usa engine "native".' : 'LibreOffice is not installed on this computer. Use engine "native".');
+        return fail(e.message);
       }
     },
   );

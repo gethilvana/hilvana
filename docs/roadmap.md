@@ -9,7 +9,7 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Recetas v1: esquema JSON, validación con simulación de páginas, confirmación de pasos destructivos, verificación de objetivos, español e inglés
 - [x] CLI y servidor MCP local con carpetas autorizadas
 - [x] Política de licencias en CI (sin AGPL/GPL)
-- [ ] Word → PDF con texto seleccionable
+- [x] Word → PDF con texto seleccionable (motor propio + LibreOffice local opcional)
 - [ ] Compresión real (recompresión de imágenes) para cumplir `maxBytes`
 - [ ] Publicar `hilvana`, `hilvana-mcp`, `@hilvana/core` y `@hilvana/recipes` en npm
 - [ ] Uso propio durante 4 semanas sin Smallpdf
@@ -19,6 +19,7 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [ ] Web bilingüe en pdf.jorgegrajales.dev (procesamiento en el navegador, PWA)
 - [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima)
 - [ ] PDF → Word, imagen ↔ PDF en la web
+- [ ] Word → PDF: cuadros de texto, notas al pie, columnas, encabezado de primera página
 - [ ] Arnés de calidad v1: corpus de PDFs, fidelidad, compresión, acierto del agente
 - [ ] Listado en directorios de servidores MCP
 

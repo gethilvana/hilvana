@@ -8,7 +8,7 @@
 
 ## Español
 
-Hilvana une, divide, firma, numera y limpia PDFs **en tu equipo**. Ningún archivo se sube a un servidor y ningún modelo de IA ve su contenido.
+Hilvana une, divide, firma, numera y limpia PDFs, y convierte Word a PDF, **en tu equipo**. Ningún archivo se sube a un servidor y ningún modelo de IA ve su contenido.
 
 Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana encadena los pasos, los valida antes de tocar nada y comprueba al final que se cumplió el objetivo. Tu agente de IA (por ejemplo Claude) puede usarlo directamente a través de un servidor **MCP**.
 
@@ -18,7 +18,8 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 
 | Operación | CLI | Paso de receta |
 |---|---|---|
-| Unir PDFs | `hilvana merge` | `merge` |
+| Word (.docx) a PDF con texto seleccionable | `hilvana word` | `.docx` en `merge` |
+| Unir PDFs y documentos de Word | `hilvana merge` | `merge` |
 | Conservar, reordenar o eliminar páginas | `hilvana pages` | `select`, `remove` |
 | Girar páginas | `hilvana rotate` | `rotate` |
 | Firmar con una imagen | `hilvana sign` | `sign` |
@@ -60,7 +61,7 @@ $ hilvana run receta.json factura-enero.pdf factura-febrero.pdf firma.png --yes
   ✓ No contiene metadatos identificables
 ```
 
-Más en [docs/recipes.md](docs/recipes.md) y en la carpeta [examples](examples).
+Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word → PDF) y en la carpeta [examples](examples).
 
 ### Reglas de seguridad
 
@@ -98,13 +99,13 @@ En la configuración de Claude Desktop (`claude_desktop_config.json`), con la ru
 
 Luego puedes pedirle a Claude, por ejemplo: *"Une las facturas de la carpeta, numera las páginas, firma la última con firma.png y deja el resultado por debajo de 2 MB."*
 
-Herramientas: `pdf_list`, `pdf_inspect`, `recipe_plan`, `recipe_run`, y el recurso `hilvana://recipe-schema`.
+Herramientas: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, y el recurso `hilvana://recipe-schema`.
 
 ---
 
 ## English
 
-Hilvana merges, splits, signs, numbers and cleans PDFs **on your machine**. No file is uploaded and no AI model ever sees its content.
+Hilvana merges, splits, signs, numbers and cleans PDFs, and converts Word to PDF, **on your machine**. No file is uploaded and no AI model ever sees its content.
 
 What makes it different is **recipes**: you describe the result, Hilvana chains the steps, validates them before touching anything, and checks at the end that the goal was met. Your AI agent (Claude, for example) can use it directly through an **MCP** server.
 
@@ -121,6 +122,7 @@ node packages/cli/dist/main.js --help --lang en
 ```bash
 hilvana merge a.pdf b.pdf -o both.pdf
 hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
+hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
 hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 ```
 
@@ -137,7 +139,7 @@ hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 }
 ```
 
-Tools: `pdf_list`, `pdf_inspect`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Destructive steps require `confirm: true`, which the agent should only send after you agree.
+Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Destructive steps require `confirm: true`, which the agent should only send after you agree.
 
 ### Safety rules
 
@@ -153,6 +155,7 @@ Tools: `pdf_list`, `pdf_inspect`, `recipe_plan`, `recipe_run`, plus the `hilvana
 | Package | What it is |
 |---|---|
 | [`@hilvana/core`](packages/core) | PDF engine. Bytes in, bytes out; runs in Node and the browser. |
+| [`@hilvana/office`](packages/office) | Word (.docx) → PDF: own layout engine with embedded open fonts, plus an optional local LibreOffice engine. |
 | [`@hilvana/recipes`](packages/recipes) | Recipe schema (JSON Schema included), validator, runner and goal checks, in Spanish and English. |
 | [`hilvana`](packages/cli) | Command-line tool. |
 | [`hilvana-mcp`](packages/mcp) | MCP server for AI agents. |

@@ -5,7 +5,8 @@ import readline from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import * as core from '@hilvana/core';
 import { HilvanaError } from '@hilvana/core';
-import { RecipeError, localDate, plan, recipeJsonSchema, run, t, type Lang } from '@hilvana/recipes';
+import { convertWord, isDocx, type WordEngine } from '@hilvana/office';
+import { RecipeError, localDate, plan, recipeJsonSchema, run, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
 const VERSION = '0.1.0';
 
@@ -14,7 +15,8 @@ const HELP: Record<Lang, string> = {
 
 Uso:
   hilvana inspect <archivo.pdf> [--json]
-  hilvana merge <a.pdf> <b.pdf> ... -o <salida.pdf>
+  hilvana word <documento.docx> [-o <salida.pdf>] [--engine auto|native|libreoffice]
+  hilvana merge <a.pdf> <b.docx> ... -o <salida.pdf>
   hilvana pages <archivo.pdf> (--keep <rango> | --remove <rango>) -o <salida.pdf>
   hilvana rotate <archivo.pdf> --angle 90|180|270 [--pages <rango>] -o <salida.pdf>
   hilvana sign <archivo.pdf> --image <firma.png> [--pages last] [--anchor bottom-right] [--width 150] -o <salida.pdf>
@@ -28,13 +30,16 @@ Uso:
 
 Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Opciones: --lang es|en, --force (reemplaza la salida; nunca una entrada).
+Word: --engine native usa el motor integrado; libreoffice usa LibreOffice si está instalado;
+      auto (por defecto) usa el integrado y recurre a LibreOffice si tuvo que omitir contenido.
 Todo se procesa en tu equipo. Ningún archivo sale de él.
 `,
   en: `hilvana ${VERSION}: private PDF workflows, on your machine.
 
 Usage:
   hilvana inspect <file.pdf> [--json]
-  hilvana merge <a.pdf> <b.pdf> ... -o <out.pdf>
+  hilvana word <document.docx> [-o <out.pdf>] [--engine auto|native|libreoffice]
+  hilvana merge <a.pdf> <b.docx> ... -o <out.pdf>
   hilvana pages <file.pdf> (--keep <range> | --remove <range>) -o <out.pdf>
   hilvana rotate <file.pdf> --angle 90|180|270 [--pages <range>] -o <out.pdf>
   hilvana sign <file.pdf> --image <signature.png> [--pages last] [--anchor bottom-right] [--width 150] -o <out.pdf>
@@ -48,6 +53,8 @@ Usage:
 
 Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Options: --lang es|en, --force (replace the output; never an input).
+Word: --engine native uses the built-in engine; libreoffice uses a local LibreOffice install;
+      auto (default) uses the built-in one and falls back to LibreOffice if it had to drop content.
 Everything runs on your machine. No file leaves it.
 `,
 };
@@ -64,6 +71,7 @@ const options = {
   text: { type: 'string' },
   format: { type: 'string' },
   'page-size': { type: 'string' },
+  engine: { type: 'string' },
   lang: { type: 'string' },
   json: { type: 'boolean' },
   force: { type: 'boolean' },
@@ -100,7 +108,8 @@ async function write(out: string, bytes: Uint8Array, inputs: string[], force: bo
     throw err;
   }
   const info = await core.inspect(bytes);
-  process.stdout.write(`✓ ${out} · ${info.pageCount} ${lang === 'es' ? 'páginas' : 'pages'} · ${(bytes.byteLength / 1024).toFixed(1)} KB\n`);
+  const unit = lang === 'es' ? (info.pageCount === 1 ? 'página' : 'páginas') : info.pageCount === 1 ? 'page' : 'pages';
+  process.stdout.write(`✓ ${out} · ${info.pageCount} ${unit} · ${(bytes.byteLength / 1024).toFixed(1)} KB\n`);
 }
 
 function defaultOutput(input: string, suffix: string): string {
@@ -117,6 +126,30 @@ async function confirm(question: string): Promise<boolean> {
 }
 
 const num = (v?: string) => (v === undefined ? undefined : Number(v));
+
+function engineOf(v: Values, lang: Lang): WordEngine {
+  const e = v.engine ?? 'auto';
+  if (e === 'auto' || e === 'native' || e === 'libreoffice') return e;
+  throw new UsageError(lang === 'es' ? '--engine debe ser auto, native o libreoffice.' : '--engine must be auto, native or libreoffice.');
+}
+
+function wordConverter(v: Values, lang: Lang): WordConverter {
+  const engine = engineOf(v, lang);
+  return async (docx) => {
+    try {
+      return await convertWord(docx, { engine });
+    } catch (err) {
+      if (String((err as Error).message).startsWith('LIBREOFFICE_NOT_FOUND')) {
+        throw new UsageError(lang === 'es' ? 'No encuentro LibreOffice. Instálalo o usa --engine native.' : 'LibreOffice was not found. Install it or use --engine native.');
+      }
+      throw err;
+    }
+  };
+}
+
+function printWarnings(name: string, warnings: string[], lang: Lang) {
+  for (const w of warnings) process.stdout.write(`  ⚠ ${name}: ${t(lang, `word.${w}`)}\n`);
+}
 
 async function single(cmd: string, positionals: string[], v: Values, lang: Lang) {
   const [input] = positionals;
@@ -173,9 +206,31 @@ async function main(argv: string[]) {
         : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${info.encrypted ? 'yes' : 'no'}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`];
       return void process.stdout.write(lines.join('\n') + '\n');
     }
+    case 'word': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      const bytes = await read(input);
+      if (!isDocx(bytes)) throw new UsageError(`✗ ${t(lang, 'NOT_DOCX', { name: path.basename(input) })}`);
+      const res = await wordConverter(v, lang)(bytes);
+      const parsed = path.parse(input);
+      await write(v.output ?? path.join(parsed.dir, `${parsed.name}.pdf`), res.pdf, [input], v.force, lang);
+      if (res.engine) process.stdout.write(`  ${lang === 'es' ? 'Motor' : 'Engine'}: ${res.engine === 'native' ? 'Hilvana' : 'LibreOffice'}\n`);
+      printWarnings(path.basename(input), res.warnings, lang);
+      return;
+    }
     case 'merge': {
       if (rest.length < 1) throw new UsageError(HELP[lang]);
-      const out = await core.merge(await Promise.all(rest.map(read)));
+      const convert = wordConverter(v, lang);
+      const parts: Uint8Array[] = [];
+      for (const p of rest) {
+        const bytes = await read(p);
+        if (isDocx(bytes)) {
+          const res = await convert(bytes);
+          printWarnings(path.basename(p), res.warnings, lang);
+          parts.push(res.pdf);
+        } else parts.push(bytes);
+      }
+      const out = await core.merge(parts);
       return write(v.output ?? defaultOutput(rest[0]!, 'merged'), out, rest, v.force, lang);
     }
     case 'images': {
@@ -190,9 +245,11 @@ async function main(argv: string[]) {
       if (!recipePath || inputs.length === 0) throw new UsageError(HELP[lang]);
       const recipe = JSON.parse(await fs.readFile(recipePath, 'utf8'));
       const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p) })));
-      const p = await plan(recipe, files, lang);
+      const word = wordConverter(v, lang);
+      const p = await plan(recipe, files, { lang, word });
       process.stdout.write(p.steps.join('\n') + '\n');
       if (p.goals.length) process.stdout.write((lang === 'es' ? 'Objetivos:\n' : 'Goals:\n') + p.goals.map((g) => `  • ${g}`).join('\n') + '\n');
+      for (const w of p.warnings) process.stdout.write(`  ⚠ ${w}\n`);
       if (!p.ok) throw new RecipeError(p.issues);
       if (v['dry-run']) return;
       let confirmed = !!v.yes;
@@ -200,7 +257,7 @@ async function main(argv: string[]) {
         confirmed = await confirm(lang === 'es' ? '¿Ejecutar? Hay pasos que eliminan contenido [s/N] ' : 'Run it? Some steps remove content [y/N] ');
         if (!confirmed) throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) + (lang === 'es' ? ' (usa --yes)' : ' (use --yes)') }]);
       }
-      const res = await run(recipe, files, { lang, confirmed });
+      const res = await run(recipe, files, { lang, confirmed, word });
       const outPath = v.output ?? path.join(path.dirname(inputs[0]!), res.filename);
       await write(outPath, res.bytes, inputs, v.force, lang);
       for (const g of res.goals) process.stdout.write(`  ${g.message}\n`);
@@ -217,6 +274,7 @@ main(process.argv.slice(2)).catch((err) => {
   if (err instanceof UsageError) process.stderr.write(err.message + '\n');
   else if (err instanceof RecipeError) process.stderr.write(err.issues.map((i) => `✗ ${i.step ? `[${i.step}] ` : ''}${i.message}`).join('\n') + '\n');
   else if (err instanceof HilvanaError) process.stderr.write(`✗ ${t(lang, err.code, err.details)}\n`);
+  else if ((err as { name?: string }).name === 'DocxError') process.stderr.write(`✗ ${t(lang, (err as { code: string }).code, { name: 'docx' })}\n`);
   else if ((err as NodeJS.ErrnoException).code === 'ENOENT') process.stderr.write(`✗ ${(lang === 'es' ? 'No encuentro el archivo: ' : 'File not found: ') + (err as NodeJS.ErrnoException).path}\n`);
   else process.stderr.write(`✗ ${(err as Error).message}\n`);
   process.exit(err instanceof UsageError ? 2 : 1);

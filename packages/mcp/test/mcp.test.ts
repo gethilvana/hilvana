@@ -7,6 +7,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { FolderGuard } from '../src/fsguard.js';
 import { createServer } from '../src/server.js';
 import { TINY_PNG, makePdf } from '../../core/test/helpers.js';
+import { sampleContract } from '../../office/test/fixtures.js';
 
 let dir: string;
 let outside: string;
@@ -23,11 +24,12 @@ beforeAll(async () => {
   await fs.writeFile(path.join(dir, 'a.pdf'), await makePdf(2, { author: 'Ana' }));
   await fs.writeFile(path.join(dir, 'b.pdf'), await makePdf(3));
   await fs.writeFile(path.join(dir, 'firma.png'), TINY_PNG);
+  await fs.writeFile(path.join(dir, 'contrato.docx'), await sampleContract());
   await fs.writeFile(path.join(outside, 'secret.pdf'), await makePdf(1));
   // Windows CI runners usually cannot create symlinks without admin rights.
   await fs.symlink(path.join(outside, 'secret.pdf'), path.join(dir, 'link.pdf')).catch(() => { hasSymlink = false; });
 
-  const server = createServer(await FolderGuard.create([dir]), { lang: 'en' });
+  const server = createServer(await FolderGuard.create([dir]), { lang: 'en', engine: 'native' });
   const [a, b] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: 'test', version: '0.0.0' });
   await Promise.all([server.connect(a), client.connect(b)]);
@@ -42,7 +44,7 @@ afterAll(async () => {
 describe('hilvana-mcp', () => {
   it('exposes the tools and the recipe schema', async () => {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-    expect(tools).toEqual(['pdf_inspect', 'pdf_list', 'recipe_plan', 'recipe_run']);
+    expect(tools).toEqual(['pdf_inspect', 'pdf_list', 'recipe_plan', 'recipe_run', 'word_to_pdf']);
     const res = await client.readResource({ uri: 'hilvana://recipe-schema' });
     expect((res.contents[0] as { text: string }).text).toContain('"steps"');
   });
@@ -50,7 +52,7 @@ describe('hilvana-mcp', () => {
   it('lists regular files with page counts and skips symlinks', async () => {
     const res = json(await call('pdf_list', {}));
     expect(res.files.map((f: { name: string; pages?: number }) => [f.name, f.pages])).toEqual([
-      ['a.pdf', 2], ['b.pdf', 3], ['firma.png', undefined],
+      ['a.pdf', 2], ['b.pdf', 3], ['contrato.docx', undefined], ['firma.png', undefined],
     ]);
   });
 
@@ -113,5 +115,28 @@ describe('hilvana-mcp', () => {
     });
     expect(res.isError).toBe(true);
     expect(JSON.parse(res.content[0]!.text).issues[0].code).toBe('PAGE_OUT_OF_RANGE');
+  });
+
+  it('converts Word to a new PDF', async () => {
+    const res = json(await call('word_to_pdf', { path: 'contrato.docx' }));
+    expect(res).toMatchObject({ pageCount: 2, engine: 'native', warnings: [] });
+    expect(res.output).toMatch(/contrato\.pdf$/);
+    const again = await call('word_to_pdf', { path: 'contrato.docx' });
+    expect(again.content[0]!.text).toMatch(/already exists/);
+  });
+
+  it('rejects non-Word files in word_to_pdf', async () => {
+    const res = await call('word_to_pdf', { path: 'a.pdf', output: 'x.pdf' });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toMatch(/not a Word document/);
+  });
+
+  it('runs recipes that mix Word and PDF', async () => {
+    const res = json(await call('recipe_run', {
+      recipe: { version: 1, steps: [{ op: 'merge', files: ['contrato.docx', 'a.pdf'] }], goals: { pageCount: 4 } },
+      files: [{ path: 'contrato.docx' }, { path: 'a.pdf' }],
+      output: 'mixto.pdf',
+    }));
+    expect(res).toMatchObject({ ran: true, pageCount: 4, allGoalsMet: true });
   });
 });
