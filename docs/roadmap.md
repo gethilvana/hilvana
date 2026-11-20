@@ -10,8 +10,9 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] CLI y servidor MCP local con carpetas autorizadas
 - [x] Política de licencias en CI (sin AGPL/GPL)
 - [x] Word → PDF con texto seleccionable (motor propio + LibreOffice local opcional)
-- [ ] Compresión real (recompresión de imágenes) para cumplir `maxBytes`
-- [ ] Publicar `hilvana`, `hilvana-mcp`, `@hilvana/core` y `@hilvana/recipes` en npm
+- [x] Compresión real: imágenes a su tamaño mostrado, JPEG o sin pérdida, objetivo de tamaño, benchmark publicado (`docs/compression.md`)
+- [x] Paquetes listos para npm: metadatos, README por paquete, flujo de publicación con procedencia (`docs/publishing.md`)
+- [ ] Primera publicación en npm (requiere la cuenta y el token de npm)
 - [ ] Uso propio durante 4 semanas sin Smallpdf
 
 ## Fase 1 · MVP público (semanas 4–10)

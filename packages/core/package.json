@@ -2,12 +2,49 @@
   "name": "@hilvana/core",
   "version": "0.1.0",
   "description": "Hilvana PDF engine: environment-agnostic PDF operations that run locally (browser or Node).",
+  "keywords": [
+    "pdf",
+    "merge",
+    "split",
+    "compress",
+    "sign",
+    "privacy",
+    "local"
+  ],
   "license": "MIT",
+  "author": "Jorge Grajales (https://jorgegrajales.dev)",
+  "homepage": "https://github.com/gethilvana/hilvana#readme",
+  "bugs": {
+    "url": "https://github.com/gethilvana/hilvana/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gethilvana/hilvana",
+    "directory": "packages/core"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist"],
-  "repository": { "type": "git", "url": "https://github.com/gethilvana/hilvana", "directory": "packages/core" },
-  "dependencies": { "pdf-lib": "^1.17.1" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "jpeg-js": "^0.4.4",
+    "pdf-lib": "^1.17.1"
+  }
 }

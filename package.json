@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "docx": "^9.16.0",
+    "fast-png": "^7.0.1",
     "pdfjs-dist": "^4.10.38",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"

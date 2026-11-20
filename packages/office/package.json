@@ -2,7 +2,25 @@
   "name": "@hilvana/office",
   "version": "0.1.0",
   "description": "Hilvana office conversions that run locally: Word (.docx) to PDF with real, selectable text.",
+  "keywords": [
+    "docx",
+    "word",
+    "pdf",
+    "convert",
+    "word-to-pdf",
+    "local"
+  ],
   "license": "MIT",
+  "author": "Jorge Grajales (https://jorgegrajales.dev)",
+  "homepage": "https://github.com/gethilvana/hilvana#readme",
+  "bugs": {
+    "url": "https://github.com/gethilvana/hilvana/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gethilvana/hilvana",
+    "directory": "packages/office"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,12 +31,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gethilvana/hilvana",
-    "directory": "packages/office"
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@fontsource/arimo": "^5.3.0",

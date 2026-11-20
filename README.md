@@ -27,6 +27,7 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Marca de agua | `hilvana watermark` | `watermark` |
 | Numerar páginas | `hilvana number` | `numberPages` |
 | Borrar metadatos (autor, herramientas) | `hilvana strip` | `stripMetadata` |
+| Comprimir (o llegar a un peso objetivo) sin rasterizar el texto | `hilvana compress` | `compress` |
 | Imágenes a PDF | `hilvana images` | `fromImages` |
 | Ejecutar una receta completa | `hilvana run` | — |
 
@@ -61,7 +62,7 @@ $ hilvana run receta.json factura-enero.pdf factura-febrero.pdf firma.png --yes
   ✓ No contiene metadatos identificables
 ```
 
-Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word → PDF) y en la carpeta [examples](examples).
+Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word → PDF), [docs/compression.md](docs/compression.md) (compresión y benchmark) y en la carpeta [examples](examples).
 
 ### Reglas de seguridad
 
@@ -123,6 +124,7 @@ node packages/cli/dist/main.js --help --lang en
 hilvana merge a.pdf b.pdf -o both.pdf
 hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
 hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
+hilvana compress scan.pdf --target 2MB  # gentlest setting that fits (docs/compression.md)
 hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 ```
 

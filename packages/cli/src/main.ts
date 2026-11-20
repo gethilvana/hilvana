@@ -24,6 +24,7 @@ Uso:
   hilvana watermark <archivo.pdf> --text "CONFIDENCIAL" -o <salida.pdf>
   hilvana number <archivo.pdf> [--format "{n} / {total}"] -o <salida.pdf>
   hilvana strip <archivo.pdf> -o <salida.pdf>
+  hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
   hilvana run <receta.json> <archivos...> [-o <salida.pdf>] [--dry-run] [--yes]
   hilvana schema
@@ -47,6 +48,7 @@ Usage:
   hilvana watermark <file.pdf> --text "CONFIDENTIAL" -o <out.pdf>
   hilvana number <file.pdf> [--format "{n} / {total}"] -o <out.pdf>
   hilvana strip <file.pdf> -o <out.pdf>
+  hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
   hilvana run <recipe.json> <files...> [-o <out.pdf>] [--dry-run] [--yes]
   hilvana schema
@@ -72,6 +74,8 @@ const options = {
   format: { type: 'string' },
   'page-size': { type: 'string' },
   engine: { type: 'string' },
+  level: { type: 'string' },
+  target: { type: 'string' },
   lang: { type: 'string' },
   json: { type: 'boolean' },
   force: { type: 'boolean' },
@@ -147,6 +151,15 @@ function wordConverter(v: Values, lang: Lang): WordConverter {
   };
 }
 
+/** Parses sizes like "2MB", "500 KB", "1.5mb" or a plain number of bytes. */
+function parseSize(v: string, lang: Lang): number {
+  const m = /^\s*(\d+(?:[.,]\d+)?)\s*(b|kb|k|mb|m|gb|g)?\s*$/i.exec(v);
+  if (!m) throw new UsageError(lang === 'es' ? `Tamaño no válido: "${v}". Ejemplos: 2MB, 500KB.` : `Invalid size: "${v}". Examples: 2MB, 500KB.`);
+  const n = Number(m[1]!.replace(',', '.'));
+  const unit = (m[2] ?? 'b').toLowerCase()[0];
+  return Math.floor(n * (unit === 'k' ? 1024 : unit === 'm' ? 1024 ** 2 : unit === 'g' ? 1024 ** 3 : 1));
+}
+
 function printWarnings(name: string, warnings: string[], lang: Lang) {
   for (const w of warnings) process.stdout.write(`  ⚠ ${name}: ${t(lang, `word.${w}`)}\n`);
 }
@@ -183,6 +196,20 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
     case 'strip':
       out = await core.stripMetadata(src);
       break;
+    case 'compress': {
+      const level = v.level as core.CompressionLevel | undefined;
+      if (level && !['lossless', 'balanced', 'strong', 'max'].includes(level)) throw new UsageError(lang === 'es' ? '--level debe ser lossless, balanced, strong o max.' : '--level must be lossless, balanced, strong or max.');
+      const targetBytes = v.target ? parseSize(v.target, lang) : undefined;
+      const { bytes, report } = await core.compress(src, { level, targetBytes });
+      out = bytes;
+      const kb = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(2)} MB` : `${(n / 1024).toFixed(1)} KB`);
+      const lvl = t(lang, `level.${report.level}`);
+      process.stdout.write(lang === 'es'
+        ? `  ${kb(report.before)} → ${kb(report.after)} (${Math.round(100 * (1 - report.after / report.before))}% menos; nivel ${lvl}; ${report.images.recompressed} imágenes optimizadas)\n`
+        : `  ${kb(report.before)} → ${kb(report.after)} (${Math.round(100 * (1 - report.after / report.before))}% smaller; ${lvl} level; ${report.images.recompressed} images optimized)\n`);
+      if (report.targetMet === false) process.stdout.write(`  ⚠ ${t(lang, 'note.targetMissed', { target: kb(targetBytes!), after: kb(report.after) })}\n`);
+      break;
+    }
     default:
       throw new UsageError(HELP[lang]);
   }
@@ -260,6 +287,7 @@ async function main(argv: string[]) {
       const res = await run(recipe, files, { lang, confirmed, word });
       const outPath = v.output ?? path.join(path.dirname(inputs[0]!), res.filename);
       await write(outPath, res.bytes, inputs, v.force, lang);
+      for (const n of res.notes) process.stdout.write(`  ${n}\n`);
       for (const g of res.goals) process.stdout.write(`  ${g.message}\n`);
       if (!res.allGoalsMet) process.exitCode = 3;
       return;
@@ -268,6 +296,9 @@ async function main(argv: string[]) {
       return single(cmd, rest, v, lang);
   }
 }
+
+// Piping into `head` and similar closes stdout early; that is not an error.
+process.stdout.on('error', (err: NodeJS.ErrnoException) => { if (err.code === 'EPIPE') process.exit(0); throw err; });
 
 main(process.argv.slice(2)).catch((err) => {
   const lang = detectLang(process.argv.includes('--lang') ? process.argv[process.argv.indexOf('--lang') + 1] : undefined);

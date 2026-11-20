@@ -2,16 +2,6 @@
   "name": "hilvana-mcp",
   "version": "0.1.0",
   "description": "Hilvana MCP server: lets AI agents run private, local PDF workflows (merge, sign, number, clean metadata) through verifiable recipes.",
-  "license": "MIT",
-  "type": "module",
-  "bin": {
-    "hilvana-mcp": "dist/main.js"
-  },
-  "main": "dist/server.js",
-  "types": "dist/server.d.ts",
-  "files": [
-    "dist"
-  ],
   "keywords": [
     "mcp",
     "pdf",
@@ -19,10 +9,32 @@
     "privacy",
     "claude"
   ],
+  "license": "MIT",
+  "author": "Jorge Grajales (https://jorgegrajales.dev)",
+  "homepage": "https://github.com/gethilvana/hilvana#readme",
+  "bugs": {
+    "url": "https://github.com/gethilvana/hilvana/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gethilvana/hilvana",
     "directory": "packages/mcp"
+  },
+  "type": "module",
+  "bin": {
+    "hilvana-mcp": "dist/main.js"
+  },
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "provenance": true
   },
   "dependencies": {
     "@hilvana/core": "0.1.0",

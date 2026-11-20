@@ -1,0 +1,40 @@
+name: Release
+
+# Publishes every package to npm when a version tag (v0.1.0, v0.2.0, ...) is pushed.
+# Requires the NPM_TOKEN repository secret (see docs/publishing.md).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # npm provenance: links each published version to this workflow run
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run licenses
+      - name: Check that the tag matches the package versions
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          for p in core office recipes cli mcp; do
+            V=$(node -p "require('./packages/$p/package.json').version")
+            [ "$V" = "$TAG" ] || { echo "packages/$p is $V, tag is $TAG"; exit 1; }
+          done
+      # Order matters: dependencies first.
+      - run: |
+          for p in core office recipes cli mcp; do
+            npm publish --workspace packages/$p --provenance
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

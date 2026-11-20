@@ -12,7 +12,7 @@ This file tells coding agents (Claude Code and others) how to work in this repos
 
 ## Layout
 
-- `packages/core`: PDF operations on `Uint8Array`, environment-agnostic (Node and browser). Built on `pdf-lib` (MIT).
+- `packages/core`: PDF operations on `Uint8Array`, environment-agnostic (Node and browser). Built on `pdf-lib` (MIT). `compress.ts` recompresses images at their displayed size; when changing it, rerun `scripts/bench/` and update the table in `docs/compression.md`.
 - `packages/office`: Word (.docx) → PDF. `parse.ts` builds a layout model (styles, numbering, tables, images, header/footer), `layout.ts` paginates and draws with embedded Fontsource fonts (`fonts.ts`), `convert.ts` picks native or local LibreOffice. Verify layout changes visually against LibreOffice, not only with tests.
 - `packages/recipes`: Zod schema → JSON Schema, `plan` (validate + simulate page counts), `run` (execute + verify goals).
 - `packages/cli`: `hilvana` command.

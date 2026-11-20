@@ -47,6 +47,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     {
       instructions: [
         'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
+        'To make files smaller use the compress step: {"op":"compress"} with goals.maxBytes aims for that size automatically; levels are lossless, balanced (150 dpi images, default), strong (110 dpi) and max (72 dpi). Text is never rasterized.',
         'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
         'Workflow: 1) pdf_list or pdf_inspect to learn page counts; 2) recipe_plan to validate and show the user the steps; 3) recipe_run. Steps marked destructive (select, remove, stripMetadata, setMetadata) need confirm=true, and you should only set it after the user agrees.',
         'Inputs are never modified; results are written to a new file. ' + PRIVACY_NOTE,
@@ -180,6 +181,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
           goals: res.goals.map((g) => g.message),
           steps: res.steps,
           warnings: res.warnings,
+          notes: res.notes,
         });
       } catch (err) {
         if (err instanceof RecipeError) return fail(JSON.stringify({ ok: false, issues: err.issues }, null, 2));

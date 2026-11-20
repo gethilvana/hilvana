@@ -70,6 +70,8 @@ export interface RunResult {
   allGoalsMet: boolean;
   steps: string[];
   warnings: string[];
+  /** What some steps did, in plain language (e.g. compression results). */
+  notes: string[];
 }
 
 export function kindOf(bytes: Uint8Array): FileKind {
@@ -205,6 +207,9 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
     issues,
     steps: steps.map((s, i) => {
       let text = describeStep(s, lang);
+      if (s.op === 'compress' && !s.level && s.targetBytes === undefined && recipe.goals?.maxBytes) {
+        text = t(lang, 'step.compressTarget', { target: formatBytes(recipe.goals.maxBytes) });
+      }
       if (s.op === 'merge') {
         const names = s.files ?? docNames;
         if (names.length === 1 && kinds.get(names[0]!) === 'word') text = t(lang, 'step.convertWord', { file: names[0] });
@@ -268,10 +273,11 @@ export async function run(
   const images = files.filter((f) => kindOf(f.bytes) === 'image');
 
   let doc: Uint8Array | undefined;
+  const notes: string[] = [];
   const steps = withSource(recipe.steps);
   for (const [i, step] of steps.entries()) {
     try {
-      doc = await apply(step, doc, { byName, pdfs, images });
+      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals });
     } catch (err) {
       throw new RecipeError([issueFromError(err, lang, i + 1)]);
     }
@@ -291,13 +297,14 @@ export async function run(
     allGoalsMet: goals.every((g) => g.met),
     steps: p.steps,
     warnings: p.warnings,
+    notes,
   };
 }
 
 async function apply(
   step: Step,
   doc: Uint8Array | undefined,
-  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[] },
+  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals },
 ): Promise<Uint8Array> {
   const need = () => doc as Uint8Array;
   switch (step.op) {
@@ -313,6 +320,16 @@ async function apply(
     case 'stripMetadata': return core.stripMetadata(need());
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());
+    case 'compress': {
+      // With no explicit level, aim for the recipe's size goal if there is one.
+      const target = step.targetBytes ?? (step.level ? undefined : ctx.goals?.maxBytes);
+      const { bytes, report } = await core.compress(need(), { level: step.level, targetBytes: target });
+      const { lang } = ctx;
+      if (report.level === 'none') ctx.notes.push(t(lang, 'note.compressNone'));
+      else ctx.notes.push(t(lang, 'note.compress', { before: formatBytes(report.before), after: formatBytes(report.after), level: t(lang, `level.${report.level}`), images: report.images.recompressed }));
+      if (report.targetMet === false) ctx.notes.push(t(lang, 'note.targetMissed', { target: formatBytes(target!), after: formatBytes(bytes.byteLength) }));
+      return bytes;
+    }
   }
 }
 
