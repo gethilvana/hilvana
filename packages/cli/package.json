@@ -1,0 +1,12 @@
+{
+  "name": "hilvana",
+  "version": "0.1.0",
+  "description": "Hilvana CLI: private, local PDF workflows from the terminal. Merge, split, sign, number and clean PDFs, or run whole recipes.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "hilvana": "dist/main.js" },
+  "files": ["dist"],
+  "keywords": ["pdf", "cli", "merge", "sign", "privacy"],
+  "repository": { "type": "git", "url": "https://github.com/gethilvana/hilvana", "directory": "packages/cli" },
+  "dependencies": { "@hilvana/core": "0.1.0", "@hilvana/recipes": "0.1.0" }
+}

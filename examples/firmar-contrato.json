@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "Firmar contrato",
+  "description": "Firma la última página y agrega la fecha abajo a la izquierda.",
+  "steps": [
+    { "op": "sign", "image": "firma.png", "anchor": "bottom-right", "width": 160 },
+    { "op": "stampText", "text": "Firmado el {date}", "pages": "last", "anchor": "bottom-left", "size": 9 }
+  ],
+  "output": { "filename": "{name}-firmado" }
+}
