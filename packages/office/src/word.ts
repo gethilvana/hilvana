@@ -12,7 +12,8 @@ export type WordWarning =
   | 'FIRST_PAGE_HEADER_IGNORED'
   | 'PAGE_FIELD_IN_BODY'
   | 'CONTENT_TALLER_THAN_PAGE'
-  | 'MISSING_GLYPHS';
+  | 'MISSING_GLYPHS'
+  | 'COLUMNS_IGNORED';
 
 export interface WordToPdfResult {
   pdf: Uint8Array;

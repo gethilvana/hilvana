@@ -99,3 +99,21 @@ describe('run', () => {
     expect(res.pageCount).toBe(1);
   });
 });
+
+describe('D5 · output names from shared recipes stay inside the folder', () => {
+  it('strips folders, "..", absolute paths and reserved names', async () => {
+    const { safeFilename } = await import('@hilvana/recipes');
+    expect(safeFilename('../../etc/passwd')).toBe('passwd');
+    expect(safeFilename('/tmp/abs.pdf')).toBe('abs.pdf');
+    expect(safeFilename('C:\\Windows\\system32\\x.pdf')).toBe('x.pdf');
+    expect(safeFilename('..')).toBe('documento-hilvana');
+    expect(safeFilename('con.pdf')).toBe('documento-hilvana');
+    expect(safeFilename('a<b>c:"d|e?f*.pdf')).toBe('a-b-c--d-e-f-.pdf');
+    expect(safeFilename('.oculto.pdf')).toBe('oculto.pdf');
+  });
+
+  it('applies to recipe output names', async () => {
+    const res = await run({ version: 1, steps: [{ op: 'rotate', angle: 90 }], output: { filename: '../../salir/{date}' } }, await files());
+    expect(res.filename).toMatch(/^\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
+});

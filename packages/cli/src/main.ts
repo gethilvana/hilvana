@@ -4,8 +4,9 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import * as core from '@hilvana/core';
+import { UnsafeOutputError, safeWrite } from './safewrite.js';
 import { HilvanaError } from '@hilvana/core';
-import { convertWord, isDocx, type WordEngine } from '@hilvana/office';
+import { convertWord, fallbackTextFonts, isDocx, type WordEngine } from '@hilvana/office';
 import { RecipeError, localDate, plan, recipeJsonSchema, run, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
 const VERSION = '0.1.0';
@@ -97,17 +98,16 @@ class UsageError extends Error {}
 
 const read = async (p: string) => new Uint8Array(await fs.readFile(p));
 
-/** Writes a new file. Never overwrites an input; replaces other files only with --force. */
+/** Writes a new file. Never overwrites an input (even through links); replaces other files only with --force. */
 async function write(out: string, bytes: Uint8Array, inputs: string[], force: boolean | undefined, lang: Lang) {
   const target = path.resolve(out);
-  if (inputs.map((i) => path.resolve(i)).includes(target)) {
-    throw new UsageError(lang === 'es' ? 'No sobrescribo archivos de entrada. Elige otro nombre de salida.' : 'Refusing to overwrite an input file. Choose another output name.');
-  }
   try {
-    await fs.writeFile(target, bytes, { flag: force ? 'w' : 'wx' });
+    await safeWrite(target, bytes, { inputs: inputs.map((i) => path.resolve(i)), overwrite: force });
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
-      throw new UsageError(lang === 'es' ? `${out} ya existe. Usa --force para reemplazarlo.` : `${out} already exists. Use --force to replace it.`);
+    if (err instanceof UnsafeOutputError) {
+      const es = { OUTPUT_IS_INPUT: 'No sobrescribo archivos de entrada. Elige otro nombre de salida.', OUTPUT_IS_SYMLINK: `${out} es un enlace simbólico; no escribo a través de enlaces.`, OUTPUT_EXISTS: `${out} ya existe. Usa --force para reemplazarlo.` };
+      const en = { OUTPUT_IS_INPUT: 'Refusing to overwrite an input file. Choose another output name.', OUTPUT_IS_SYMLINK: `${out} is a symbolic link; refusing to write through it.`, OUTPUT_EXISTS: `${out} already exists. Use --force to replace it.` };
+      throw new UsageError((lang === 'es' ? es : en)[err.code]);
     }
     throw err;
   }
@@ -164,7 +164,10 @@ function printWarnings(name: string, warnings: string[], lang: Lang) {
   for (const w of warnings) process.stdout.write(`  ⚠ ${name}: ${t(lang, `word.${w}`)}\n`);
 }
 
+const SINGLE = ['pages', 'rotate', 'sign', 'stamp', 'watermark', 'number', 'strip', 'compress'];
+
 async function single(cmd: string, positionals: string[], v: Values, lang: Lang) {
+  if (!SINGLE.includes(cmd)) throw new UsageError(`✗ ${lang === 'es' ? `Comando desconocido: "${cmd}". Usa hilvana --help.` : `Unknown command: "${cmd}". Run hilvana --help.`}`);
   const [input] = positionals;
   if (!input) throw new UsageError(HELP[lang]);
   const src = await read(input);
@@ -175,23 +178,26 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
       if (!!v.keep === !!v.remove) throw new UsageError(lang === 'es' ? 'Usa --keep o --remove (uno de los dos).' : 'Use either --keep or --remove.');
       out = v.keep ? await core.selectPages(src, v.keep) : await core.removePages(src, v.remove!);
       break;
-    case 'rotate':
-      out = await core.rotate(src, Number(v.angle ?? 90) as 90, v.pages ?? 'all');
+    case 'rotate': {
+      const angle = Number(v.angle ?? 90);
+      if (![90, 180, 270, -90].includes(angle)) throw new UsageError(lang === 'es' ? '--angle debe ser 90, 180 o 270.' : '--angle must be 90, 180 or 270.');
+      out = await core.rotate(src, angle as 90, v.pages ?? 'all');
       break;
+    }
     case 'sign':
       if (!v.image) throw new UsageError(lang === 'es' ? 'Falta --image <firma.png>.' : 'Missing --image <signature.png>.');
       out = await core.stampImage(src, { image: await read(v.image), pages: v.pages, anchor, width: num(v.width) });
       break;
     case 'stamp':
       if (!v.text) throw new UsageError(lang === 'es' ? 'Falta --text.' : 'Missing --text.');
-      out = await core.stampText(src, { text: v.text.replace('{date}', localDate()), pages: v.pages, anchor });
+      out = await core.stampText(src, { text: v.text.replace('{date}', localDate()), pages: v.pages, anchor, fonts: () => fallbackTextFonts() });
       break;
     case 'watermark':
       if (!v.text) throw new UsageError(lang === 'es' ? 'Falta --text.' : 'Missing --text.');
-      out = await core.watermark(src, v.text, { pages: v.pages });
+      out = await core.watermark(src, v.text, { pages: v.pages, fonts: () => fallbackTextFonts() });
       break;
     case 'number':
-      out = await core.numberPages(src, { format: v.format, anchor, pages: v.pages });
+      out = await core.numberPages(src, { format: v.format, anchor, pages: v.pages, fonts: () => fallbackTextFonts() });
       break;
     case 'strip':
       out = await core.stripMetadata(src);
@@ -211,7 +217,7 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
       break;
     }
     default:
-      throw new UsageError(HELP[lang]);
+      throw new UsageError(`✗ ${lang === 'es' ? `Comando desconocido: "${cmd}". Usa hilvana --help.` : `Unknown command: "${cmd}". Run hilvana --help.`}`);
   }
   await write(v.output ?? defaultOutput(input, cmd), out, [input, ...(v.image ? [v.image] : [])], v.force, lang);
 }
@@ -270,7 +276,13 @@ async function main(argv: string[]) {
     case 'run': {
       const [recipePath, ...inputs] = rest;
       if (!recipePath || inputs.length === 0) throw new UsageError(HELP[lang]);
-      const recipe = JSON.parse(await fs.readFile(recipePath, 'utf8'));
+      let recipe: unknown;
+      try {
+        recipe = JSON.parse(await fs.readFile(recipePath, 'utf8'));
+      } catch (err) {
+        if (err instanceof SyntaxError) throw new UsageError(`✗ ${lang === 'es' ? 'La receta no es un JSON válido' : 'The recipe is not valid JSON'}: ${err.message}`);
+        throw err;
+      }
       const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p) })));
       const word = wordConverter(v, lang);
       const p = await plan(recipe, files, { lang, word });

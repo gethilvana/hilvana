@@ -47,6 +47,10 @@ interface Slice {
   spacer?: boolean;
   breakBefore?: boolean;
   keepWithNext?: boolean;
+  /** Table header row. */
+  header?: boolean;
+  /** Slices to draw first when this slice starts a new page (repeated table headers). */
+  repeat?: Slice[];
 }
 
 export class LayoutEngine {
@@ -360,6 +364,7 @@ export class LayoutEngine {
       const next = t.rows[rowIndex + 1];
       return {
         height,
+        header: row.header,
         keepWithNext: row.header,
         draw: (page: PDFPage, x0: number, top: number) => {
           const left = x0 + t.indent;
@@ -396,6 +401,13 @@ export class LayoutEngine {
           }
         },
       } satisfies Slice;
+    }).map((slice, i, all) => {
+      // Rows marked as header repeat at the top of each page the table continues on.
+      if (!slice.header) {
+        const headers = all.slice(0, all.findIndex((x) => !x.header));
+        if (headers.length && i >= headers.length) return { ...slice, repeat: headers };
+      }
+      return slice;
     });
   }
 
@@ -417,50 +429,59 @@ export class LayoutEngine {
 
   /** Lays out the whole document into new pages of `doc` and returns the page count. */
   render(): number {
-    const { page: setup } = this.model;
-    const contentWidth = setup.width - setup.margin.left - setup.margin.right;
-    const top = setup.height - setup.margin.top;
-    const bottom = setup.margin.bottom;
-    const slices = this.measureBlocks(this.model.blocks, contentWidth);
+    const pages: { page: PDFPage; setup: ParsedDocx['page'] }[] = [];
+    for (const section of this.model.sections) {
+      const setup = section.page;
+      const contentWidth = setup.width - setup.margin.left - setup.margin.right;
+      const top = setup.height - setup.margin.top;
+      const bottom = setup.margin.bottom;
+      const slices = this.measureBlocks(section.blocks, contentWidth);
 
-    const pages: PDFPage[] = [];
-    let page = this.doc.addPage([setup.width, setup.height]);
-    pages.push(page);
-    let y = top;
-    const atTop = () => y === top;
-    const newPage = () => {
-      page = this.doc.addPage([setup.width, setup.height]);
-      pages.push(page);
-      y = top;
-    };
+      let page = this.doc.addPage([setup.width, setup.height]);
+      pages.push({ page, setup });
+      let y = top;
+      const atTop = () => y === top;
+      const newPage = () => {
+        page = this.doc.addPage([setup.width, setup.height]);
+        pages.push({ page, setup });
+        y = top;
+      };
+      const drawSlice = (s: Slice) => {
+        if (s.height > top - bottom) this.warnings.add('CONTENT_TALLER_THAN_PAGE');
+        s.draw(page, setup.margin.left, y);
+        y -= s.height;
+      };
 
-    for (let k = 0; k < slices.length; k++) {
-      const s = slices[k]!;
-      if ((s as Slice & { pageBreak?: boolean }).pageBreak) { if (!atTop()) newPage(); continue; }
-      if (s.breakBefore && !atTop()) newPage();
-      if (s.spacer && atTop()) continue;
-      // Keep headings (and short paragraphs) with what follows when it would not fit.
-      if (s.keepWithNext && !atTop()) {
-        let need = s.height;
-        for (let j = k + 1; j < slices.length && j < k + 6; j++) {
-          const n = slices[j]!;
-          need += n.height;
-          if (!n.spacer && !n.keepWithNext) break;
+      for (let k = 0; k < slices.length; k++) {
+        const s = slices[k]!;
+        if ((s as Slice & { pageBreak?: boolean }).pageBreak) { if (!atTop()) newPage(); continue; }
+        if (s.breakBefore && !atTop()) newPage();
+        if (s.spacer && atTop()) continue;
+        let broke = false;
+        // Keep headings (and short paragraphs) with what follows when it would not fit.
+        if (s.keepWithNext && !atTop()) {
+          let need = s.height;
+          for (let j = k + 1; j < slices.length && j < k + 6; j++) {
+            const n = slices[j]!;
+            need += n.height;
+            if (!n.spacer && !n.keepWithNext) break;
+          }
+          if (y - need < bottom && need < top - bottom) { newPage(); broke = true; }
         }
-        if (y - need < bottom && need < top - bottom) newPage();
+        if (y - s.height < bottom - 0.01 && !atTop()) {
+          newPage();
+          broke = true;
+          if (s.spacer) continue;
+        }
+        if (broke && s.repeat) s.repeat.forEach(drawSlice);
+        drawSlice(s);
       }
-      if (y - s.height < bottom - 0.01 && !atTop()) {
-        newPage();
-        if (s.spacer) continue;
-      }
-      if (s.height > top - bottom) this.warnings.add('CONTENT_TALLER_THAN_PAGE');
-      s.draw(page, setup.margin.left, y);
-      y -= s.height;
     }
 
     // Headers and footers, now that the page count is known.
     const total = pages.length;
-    pages.forEach((pg, idx) => {
+    pages.forEach(({ page: pg, setup }, idx) => {
+      const contentWidth = setup.width - setup.margin.left - setup.margin.right;
       const fields = { page: idx + 1, total };
       if (this.model.header) {
         let hy = setup.height - this.model.headerDistance;

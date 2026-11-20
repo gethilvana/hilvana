@@ -32,11 +32,12 @@ Con el MCP: herramienta `word_to_pdf`, o archivos `.docx` dentro de `recipe_run`
 - Negrita, cursiva, subrayado, tachado, color, resaltado, superíndice y subíndice, mayúsculas.
 - Alineación (izquierda, centro, derecha, justificado), sangrías, sangría francesa, espaciado antes y después, interlineado (múltiple, exacto, mínimo), espaciado contextual.
 - Listas con viñetas y numeradas, multinivel (decimal, letras, romanos).
-- Tablas: anchos de columna, celdas combinadas (horizontal y vertical), sombreado, bordes de tabla y de celda, alineación vertical, márgenes de celda, tablas anidadas.
+- Tablas: anchos de columna, celdas combinadas (horizontal y vertical), sombreado, bordes de tabla y de celda, alineación vertical, márgenes de celda, tablas anidadas, y filas de encabezado que se repiten en cada página.
 - Imágenes PNG y JPEG en línea.
-- Saltos de página y de sección, tamaño y orientación de página, márgenes.
+- Saltos de página y de sección; cada sección conserva su tamaño, orientación (vertical u horizontal) y márgenes.
+- Control de cambios: se muestran las inserciones y se ocultan las eliminaciones, como en la vista "Final".
 - Encabezado y pie de página predeterminados, con campos `PAGE` y `NUMPAGES` ("Página 1 de 3").
-- Fuentes: Calibri/Aptos → Carlito, Cambria → Caladea, Arial → Arimo, Times New Roman → Tinos, Courier New → Cousine (todas SIL OFL, compatibles en métricas). Alfabetos latino, griego, cirílico, vietnamita y hebreo.
+- Fuentes: Calibri/Aptos → Carlito, Cambria → Caladea, Arial → Arimo, Times New Roman → Tinos, Courier New → Cousine (todas SIL OFL, compatibles en métricas). Alfabetos latino, griego, cirílico, vietnamita y hebreo; símbolos como ✓ ✗ ☐ ☑ ★ con Noto Sans Symbols 2 (OFL).
 
 ## Limitaciones conocidas · Known limitations
 
@@ -50,9 +51,11 @@ El motor nativo **avisa** cuando simplifica algo; nunca lo omite en silencio. Av
 | `LEGACY_SHAPE_SKIPPED` | Formas VML antiguas no se dibujan. |
 | `NOTES_SKIPPED` | Notas al pie y al final no se incluyen. |
 | `FIRST_PAGE_HEADER_IGNORED` | Un encabezado distinto para la primera página usa el general. |
-| `MISSING_GLYPHS` | Caracteres sin fuente disponible (por ejemplo, emojis) se reemplazan por "?". |
+| `MISSING_GLYPHS` | Caracteres sin fuente disponible (emojis, árabe, flechas) se reemplazan por "?". |
+| `COLUMNS_IGNORED` | El texto en varias columnas se pone en una sola. |
+| `PAGE_FIELD_IN_BODY` | Un número de página dentro del cuerpo (no en encabezado o pie) queda vacío. |
 
-Además: no hay columnas múltiples, los saltos de línea pueden diferir en alguna palabra frente a Word, y el espacio entre un párrafo y el siguiente suma el "después" del primero y el "antes" del segundo, como Word (LibreOffice a veces los combina).
+Además: no hay escritura de derecha a izquierda (árabe, hebreo), los comentarios no se imprimen (como en Word por defecto), los saltos de línea pueden diferir en alguna palabra frente a Word, y el espacio entre un párrafo y el siguiente suma el "después" del primero y el "antes" del segundo, como Word (LibreOffice a veces los combina).
 
 ## Cómo se verificó · How it was verified
 

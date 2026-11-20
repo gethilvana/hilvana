@@ -2,5 +2,5 @@ export { wordToPdf, type WordToPdfOptions, type WordToPdfResult, type WordWarnin
 export { convertWord, type WordEngine } from './convert.js';
 export { findLibreOffice, libreOfficeToPdf } from './libreoffice.js';
 export { DocxError, isDocx, parseDocx } from './parse.js';
-export { familyFor, nodeFontLoader, type Family, type FontLoader } from './fonts.js';
+export { fallbackTextFonts, familyFor, nodeFontLoader, type Family, type FontLoader } from './fonts.js';
 export type * from './model.js';

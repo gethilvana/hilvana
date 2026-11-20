@@ -149,4 +149,24 @@ describe('hilvana-mcp', () => {
     expect(res.ran).toBe(true);
     expect(res.notes).toHaveLength(1);
   });
+
+  it('D7 · refuses to write through a symlink at the output name (outside the root or onto an input)', async () => {
+    if (!hasSymlink) return;
+    const recipe = { version: 1, steps: [{ op: 'rotate', angle: 90 }] };
+    await fs.symlink(path.join(outside, 'secret.pdf'), path.join(dir, 'trap.pdf'));
+    const before = await fs.readFile(path.join(outside, 'secret.pdf'));
+    const res = await call('recipe_run', { recipe, files: [{ path: 'a.pdf' }], output: 'trap.pdf', overwrite: true });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toMatch(/symbolic link/);
+    expect(await fs.readFile(path.join(outside, 'secret.pdf'))).toEqual(before);
+  });
+
+  it('replaces an existing output only with overwrite, without leaving temporary files', async () => {
+    const recipe = { version: 1, steps: [{ op: 'rotate', angle: 90 }] };
+    await fs.writeFile(path.join(dir, 'reemplazar.pdf'), 'viejo');
+    const res = json(await call('recipe_run', { recipe, files: [{ path: 'a.pdf' }], output: 'reemplazar.pdf', overwrite: true }));
+    expect(res.ran).toBe(true);
+    expect((await fs.readFile(path.join(dir, 'reemplazar.pdf'))).subarray(0, 4).toString()).toBe('%PDF');
+    expect((await fs.readdir(dir)).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+  });
 });

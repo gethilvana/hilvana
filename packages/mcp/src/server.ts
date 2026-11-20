@@ -6,6 +6,7 @@ import { inspect } from '@hilvana/core';
 import { convertWord, type WordEngine } from '@hilvana/office';
 import { RecipeError, kindOf, plan, recipeJsonSchema, run, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
+import { safeWrite } from './safewrite.js';
 
 export const VERSION = '0.1.0';
 
@@ -171,7 +172,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
           });
         }
         const res = await run(recipe, files, { lang: l, confirmed: true, word });
-        await fs.writeFile(target, res.bytes, { flag: overwrite ? 'w' : 'wx' });
+        await safeWrite(target, res.bytes, { inputs: realPaths, overwrite });
         return text({
           ran: true,
           output: target,
@@ -212,7 +213,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
         if (kindOf(bytes) !== 'word') return fail(t(l, 'NOT_DOCX', { name: path.basename(input) }));
         const target = await guard.writable(output ?? input.replace(/\.docx$/i, '.pdf'), { inputs: [input], overwrite });
         const res = await converter(engine ?? defaults.engine)(bytes);
-        await fs.writeFile(target, res.pdf, { flag: overwrite ? 'w' : 'wx' });
+        await safeWrite(target, res.pdf, { inputs: [input], overwrite });
         return text({
           output: target,
           pageCount: res.pageCount,

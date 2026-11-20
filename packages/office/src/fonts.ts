@@ -6,7 +6,10 @@ import type { RunStyle } from './model.js';
  * Open fonts that are metric-compatible with the common Office fonts, so line breaks and
  * page counts stay close to Word's. All are SIL OFL 1.1, distributed through Fontsource.
  */
-export type Family = 'carlito' | 'caladea' | 'arimo' | 'tinos' | 'cousine';
+export type Family = 'carlito' | 'caladea' | 'arimo' | 'tinos' | 'cousine' | 'noto-sans-symbols-2';
+
+/** Last-resort fonts for symbols no text font has (✓ ✗ ☐ ★ ● → …). */
+const SYMBOL_FILES = ['noto-sans-symbols-2-symbols-400-normal.woff', 'noto-sans-symbols-2-math-400-normal.woff'];
 
 const SUBSETS = ['latin', 'latin-ext', 'greek', 'greek-ext', 'cyrillic', 'cyrillic-ext', 'vietnamese', 'hebrew'];
 
@@ -93,6 +96,16 @@ export class FontManager {
         covers.forEach((c) => pending.delete(c));
       }
       if (faces.length === 0) throw new Error(`No font files found for ${family}. Is @fontsource/${family} installed?`);
+      for (const file of SYMBOL_FILES) {
+        if (pending.size === 0) break;
+        const bytes = await this.loader('noto-sans-symbols-2', file);
+        if (!bytes) continue;
+        const kit = fontkit.create(bytes as never) as unknown as Face['kit'];
+        const covers = [...pending].filter((c) => kit.hasGlyphForCodePoint(c));
+        if (covers.length === 0) continue;
+        faces.push({ pdf: await this.doc.embedFont(bytes, { subset: true }), kit });
+        covers.forEach((c) => pending.delete(c));
+      }
       if (pending.size > 0) this.missingGlyphs = true;
       this.faces.set(k, faces);
     }
@@ -127,4 +140,21 @@ export class FontManager {
     }
     return out;
   }
+}
+
+/**
+ * Fonts for stamping text with characters outside the standard PDF fonts (✓, Greek, Cyrillic, Vietnamese),
+ * in fallback order. For @hilvana/core text operations (`fonts` option).
+ */
+export async function fallbackTextFonts(loader: FontLoader = nodeFontLoader): Promise<Uint8Array[]> {
+  const out: Uint8Array[] = [];
+  for (const subset of ['latin', 'latin-ext', 'greek', 'cyrillic', 'vietnamese']) {
+    const bytes = await loader('carlito', `carlito-${subset}-400-normal.woff`);
+    if (bytes) out.push(bytes);
+  }
+  for (const file of SYMBOL_FILES) {
+    const bytes = await loader('noto-sans-symbols-2', file);
+    if (bytes) out.push(bytes);
+  }
+  return out;
 }

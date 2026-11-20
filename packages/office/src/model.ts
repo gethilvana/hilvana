@@ -74,7 +74,8 @@ export interface Table {
   cellPadding: { top: number; right: number; bottom: number; left: number };
 }
 
-export type Block = Paragraph | Table | { type: 'pageBreak' };
+/** A page break; `section` is set when it ends a section, with that section's page setup. */
+export type Block = Paragraph | Table | { type: 'pageBreak'; section?: PageSetup };
 
 export interface PageSetup {
   width: number;
@@ -82,9 +83,17 @@ export interface PageSetup {
   margin: { top: number; right: number; bottom: number; left: number };
 }
 
-export interface DocModel {
+export interface Section {
   page: PageSetup;
   blocks: Block[];
+}
+
+export interface DocModel {
+  /** Page setup of the last section (the document default). */
+  page: PageSetup;
+  blocks: Block[];
+  /** The document split by section breaks, each with its own page size, orientation and margins. */
+  sections: Section[];
   defaultTab: number;
   warnings: string[];
 }
