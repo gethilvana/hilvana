@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "Draft for review",
+  "description": "Drop the cover page, watermark every page as a draft and number the pages.",
+  "steps": [
+    { "op": "remove", "pages": "1" },
+    { "op": "watermark", "text": "DRAFT" },
+    { "op": "numberPages", "format": "{n} / {total}" }
+  ],
+  "output": { "filename": "{name}-draft" }
+}

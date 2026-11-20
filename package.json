@@ -1,0 +1,28 @@
+{
+  "name": "hilvana-monorepo",
+  "private": true,
+  "description": "Hilvana: agent-ready PDF workflows, private by design.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/recipes",
+    "packages/cli",
+    "packages/mcp"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b packages/core packages/recipes packages/cli packages/mcp",
+    "clean": "tsc -b --clean packages/core packages/recipes packages/cli packages/mcp",
+    "test": "vitest run",
+    "typecheck": "tsc -b packages/core packages/recipes packages/cli packages/mcp --pretty",
+    "licenses": "node scripts/check-licenses.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

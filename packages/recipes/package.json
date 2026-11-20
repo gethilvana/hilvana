@@ -1,0 +1,13 @@
+{
+  "name": "@hilvana/recipes",
+  "version": "0.1.0",
+  "description": "Hilvana recipes: a versioned JSON format for chained PDF operations, with validation, execution and goal verification.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "repository": { "type": "git", "url": "https://github.com/gethilvana/hilvana", "directory": "packages/recipes" },
+  "dependencies": { "@hilvana/core": "0.1.0", "zod": "^4.1.0" }
+}

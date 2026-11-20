@@ -1,0 +1,49 @@
+# Recetas · Recipes (v1)
+
+Una receta es un JSON con pasos que se aplican en orden sobre un documento de trabajo. La especificación completa está en el JSON Schema: `hilvana schema` o el recurso MCP `hilvana://recipe-schema`.
+
+A recipe is a JSON list of steps applied in order to a working document. The full spec is the JSON Schema: `hilvana schema` or the MCP resource `hilvana://recipe-schema`.
+
+## Estructura · Structure
+
+```json
+{
+  "version": 1,
+  "name": "optional",
+  "steps": [ ... ],
+  "output": { "filename": "resultado-{date}" },
+  "goals": { "maxBytes": 2000000, "pageCount": 5, "maxPages": 10, "noMetadata": true }
+}
+```
+
+- Los archivos se referencian por **nombre** (por defecto, el nombre del archivo). · Files are referenced by **name** (the file name by default).
+- Si el primer paso no es `merge` ni `fromImages`, Hilvana une primero todos los PDF en el orden recibido. · If the first step is not `merge` or `fromImages`, all PDFs are merged first in the order given.
+- `{date}` se reemplaza por la fecha local (AAAA-MM-DD); `{name}` por el nombre del primer archivo. · `{date}` becomes the local date; `{name}` the first input's name.
+
+## Pasos · Steps
+
+| op | Parámetros · Parameters | Destructivo |
+|---|---|---|
+| `merge` | `files?: string[]` | |
+| `fromImages` | `files?: string[]`, `pageSize?: "image" \| "a4" \| "letter"` | |
+| `select` | `pages` (también reordena: `"3,1-2"`) | sí |
+| `remove` | `pages` | sí |
+| `rotate` | `angle: 90 \| 180 \| 270 \| -90`, `pages?` | |
+| `stampText` | `text`, `pages?`, `anchor?`, `size?`, `color?` | |
+| `sign` | `image`, `pages?` (por defecto `last`), `anchor?`, `width?` | |
+| `watermark` | `text`, `pages?`, `opacity?`, `color?` | |
+| `numberPages` | `format?` (`{n}`, `{total}`), `anchor?`, `pages?` | |
+| `stripMetadata` | — | sí |
+| `setMetadata` | `title?`, `author?`, `subject?` | sí |
+| `optimize` | — (sin pérdida; aún no recomprime imágenes) | |
+
+**Rangos de páginas · Page ranges** (1-based): `"1-3,5"`, `"last"`, `"last-1"`, `"4-last"`, `"odd"`, `"even"`, `"all"`.
+
+**Anclas · Anchors:** `top-left`, `top-center`, `top-right`, `center`, `bottom-left`, `bottom-center`, `bottom-right`.
+
+## Ciclo de vida · Lifecycle
+
+1. **plan**: valida el esquema, los nombres y tipos de archivo, y simula el número de páginas tras cada paso para detectar rangos que no existirán. No modifica nada. · Validates schema, file names and kinds, and simulates page counts after each step. Changes nothing.
+2. **confirm**: si hay pasos destructivos, se requiere confirmación explícita. · Destructive steps require explicit confirmation.
+3. **run**: ejecuta localmente y escribe un archivo nuevo. · Runs locally and writes a new file.
+4. **verify**: comprueba cada objetivo y explica el resultado (✓/✗). Un objetivo no cumplido no se oculta. · Checks each goal and explains the outcome. Unmet goals are reported, never hidden.

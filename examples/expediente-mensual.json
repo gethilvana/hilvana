@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Expediente mensual",
+  "description": "Une las facturas, marca la fecha de recibido, numera, firma la última página y quita los metadatos.",
+  "steps": [
+    { "op": "merge" },
+    { "op": "stampText", "text": "Recibido {date}", "pages": "1", "anchor": "top-right" },
+    { "op": "numberPages", "format": "Página {n} de {total}" },
+    { "op": "sign", "image": "firma.png" },
+    { "op": "stripMetadata" }
+  ],
+  "output": { "filename": "expediente-{date}" },
+  "goals": { "maxBytes": 2000000, "noMetadata": true }
+}
