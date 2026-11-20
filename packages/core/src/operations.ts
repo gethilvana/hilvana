@@ -283,14 +283,10 @@ export async function setMetadata(bytes: PdfBytes, meta: { title?: string; autho
   return save(doc);
 }
 
-/**
- * Lossless structural optimization (object streams, unused objects dropped on re-save).
- * Real image recompression is planned; see docs/roadmap.md.
- */
+/** Lossless optimization: compresses uncompressed streams, drops unreachable objects, uses object streams. */
 export async function optimize(bytes: PdfBytes): Promise<PdfBytes> {
-  const doc = await load(bytes);
-  const out = await save(doc, { objectStreams: true });
-  return out.byteLength < bytes.byteLength ? out : bytes;
+  const { compress } = await import('./compress.js');
+  return (await compress(bytes, { level: 'lossless' })).bytes;
 }
 
 /** Builds a PDF with one image per page, each page sized to the image (or to A4/Letter with fit). */

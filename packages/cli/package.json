@@ -2,14 +2,6 @@
   "name": "hilvana",
   "version": "0.1.0",
   "description": "Hilvana CLI: private, local PDF workflows from the terminal. Merge, split, sign, number and clean PDFs, or run whole recipes.",
-  "license": "MIT",
-  "type": "module",
-  "bin": {
-    "hilvana": "dist/main.js"
-  },
-  "files": [
-    "dist"
-  ],
   "keywords": [
     "pdf",
     "cli",
@@ -17,10 +9,30 @@
     "sign",
     "privacy"
   ],
+  "license": "MIT",
+  "author": "Jorge Grajales (https://jorgegrajales.dev)",
+  "homepage": "https://github.com/gethilvana/hilvana#readme",
+  "bugs": {
+    "url": "https://github.com/gethilvana/hilvana/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gethilvana/hilvana",
     "directory": "packages/cli"
+  },
+  "type": "module",
+  "bin": {
+    "hilvana": "dist/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "provenance": true
   },
   "dependencies": {
     "@hilvana/core": "0.1.0",

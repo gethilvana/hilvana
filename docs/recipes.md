@@ -35,7 +35,8 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `numberPages` | `format?` (`{n}`, `{total}`), `anchor?`, `pages?` | |
 | `stripMetadata` | — | sí |
 | `setMetadata` | `title?`, `author?`, `subject?` | sí |
-| `optimize` | — (sin pérdida; aún no recomprime imágenes) | |
+| `optimize` | — (sin pérdida) | |
+| `compress` | `level?: "lossless" \| "balanced" \| "strong" \| "max"`, `targetBytes?` (por defecto, `goals.maxBytes`) | |
 
 **Rangos de páginas · Page ranges** (1-based): `"1-3,5"`, `"last"`, `"last-1"`, `"4-last"`, `"odd"`, `"even"`, `"all"`.
 

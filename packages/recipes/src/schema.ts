@@ -61,7 +61,14 @@ export const SetMetadataStep = z.object({
   subject: z.string().optional(),
 }).strict();
 export const OptimizeStep = z.object({ op: z.literal('optimize') }).strict()
-  .describe('Lossless structural optimization. Does not recompress images yet.');
+  .describe('Lossless optimization (same as compress with level "lossless").');
+export const CompressStep = z.object({
+  op: z.literal('compress'),
+  level: z.enum(['lossless', 'balanced', 'strong', 'max']).optional()
+    .describe('lossless: no image changes. balanced: images at 150 dpi (default). strong: 110 dpi. max: 72 dpi. Text and vectors are never rasterized.'),
+  targetBytes: z.number().int().positive().optional()
+    .describe('Try stronger levels until the file is at most this size. Defaults to goals.maxBytes when no level is given.'),
+}).strict();
 
 export const Step = z.discriminatedUnion('op', [
   MergeStep,
@@ -76,6 +83,7 @@ export const Step = z.discriminatedUnion('op', [
   StripMetadataStep,
   SetMetadataStep,
   OptimizeStep,
+  CompressStep,
 ]);
 export type Step = z.infer<typeof Step>;
 

@@ -53,6 +53,16 @@ const messages: Record<Lang, Dict> = {
     'step.stripMetadata': 'Borrar los metadatos (autor, título, herramientas)',
     'step.setMetadata': 'Cambiar los metadatos del documento',
     'step.optimize': 'Optimizar la estructura del archivo',
+    'step.compress': 'Comprimir (nivel {level})',
+    'step.compressTarget': 'Comprimir hasta {target} como máximo',
+    'level.lossless': 'sin pérdida',
+    'level.balanced': 'equilibrado',
+    'level.strong': 'fuerte',
+    'level.max': 'máximo',
+    'level.none': 'sin cambios',
+    'note.compress': 'Compresión: {before} → {after} (nivel {level}; {images} imágenes optimizadas)',
+    'note.compressNone': 'La compresión no logró reducir el archivo; se dejó igual.',
+    'note.targetMissed': 'No se alcanzó {target}: lo más pequeño posible sin rasterizar el texto fue {after}.',
     'goal.maxBytes': 'Pesa como máximo {expected}',
     'goal.pageCount': 'Tiene exactamente {expected} páginas',
     'goal.maxPages': 'Tiene como máximo {expected} páginas',
@@ -108,6 +118,16 @@ const messages: Record<Lang, Dict> = {
     'step.stripMetadata': 'Remove metadata (author, title, tools)',
     'step.setMetadata': 'Change the document metadata',
     'step.optimize': 'Optimize the file structure',
+    'step.compress': 'Compress ({level} level)',
+    'step.compressTarget': 'Compress to at most {target}',
+    'level.lossless': 'lossless',
+    'level.balanced': 'balanced',
+    'level.strong': 'strong',
+    'level.max': 'maximum',
+    'level.none': 'unchanged',
+    'note.compress': 'Compression: {before} → {after} ({level} level; {images} images optimized)',
+    'note.compressNone': 'Compression could not make the file smaller; it was left as is.',
+    'note.targetMissed': '{target} was not reached: the smallest possible without rasterizing text was {after}.',
     'goal.maxBytes': 'Is at most {expected}',
     'goal.pageCount': 'Has exactly {expected} pages',
     'goal.maxPages': 'Has at most {expected} pages',
@@ -151,6 +171,10 @@ export function describeStep(step: Step, lang: Lang): string {
     case 'stripMetadata': return t(lang, 'step.stripMetadata');
     case 'setMetadata': return t(lang, 'step.setMetadata');
     case 'optimize': return t(lang, 'step.optimize');
+    case 'compress':
+      return step.targetBytes !== undefined
+        ? t(lang, 'step.compressTarget', { target: formatBytes(step.targetBytes) })
+        : t(lang, 'step.compress', { level: t(lang, `level.${step.level ?? 'balanced'}`) });
   }
 }
 

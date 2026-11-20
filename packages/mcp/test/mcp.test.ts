@@ -139,4 +139,14 @@ describe('hilvana-mcp', () => {
     }));
     expect(res).toMatchObject({ ran: true, pageCount: 4, allGoalsMet: true });
   });
+
+  it('reports compression results as notes', async () => {
+    const res = json(await call('recipe_run', {
+      recipe: { version: 1, steps: [{ op: 'merge' }, { op: 'compress', level: 'lossless' }] },
+      files: [{ path: 'a.pdf' }, { path: 'b.pdf' }],
+      output: 'comprimido.pdf',
+    }));
+    expect(res.ran).toBe(true);
+    expect(res.notes).toHaveLength(1);
+  });
 });

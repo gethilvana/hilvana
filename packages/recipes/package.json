@@ -2,7 +2,24 @@
   "name": "@hilvana/recipes",
   "version": "0.1.0",
   "description": "Hilvana recipes: a versioned JSON format for chained PDF and Word operations, with validation, execution and goal verification.",
+  "keywords": [
+    "pdf",
+    "workflow",
+    "recipes",
+    "agents",
+    "json-schema"
+  ],
   "license": "MIT",
+  "author": "Jorge Grajales (https://jorgegrajales.dev)",
+  "homepage": "https://github.com/gethilvana/hilvana#readme",
+  "bugs": {
+    "url": "https://github.com/gethilvana/hilvana/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gethilvana/hilvana",
+    "directory": "packages/recipes"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,12 +30,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gethilvana/hilvana",
-    "directory": "packages/recipes"
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@hilvana/core": "0.1.0",

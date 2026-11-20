@@ -1,0 +1,13 @@
+# hilvana-mcp
+
+MCP server that lets AI agents (Claude and others) run **private, local** PDF and Word workflows: list and inspect files, convert Word to PDF, and plan/run recipes (merge, sign, number, compress, clean metadata) with confirmation for destructive steps. Files never leave your computer, and the agent only sees structure, never content.
+
+```json
+{
+  "mcpServers": {
+    "hilvana": { "command": "npx", "args": ["-y", "hilvana-mcp", "--root", "/path/to/your/PDFs", "--lang", "es"] }
+  }
+}
+```
+
+Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run` · Resource: `hilvana://recipe-schema` · MIT
