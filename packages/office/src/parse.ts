@@ -1,6 +1,6 @@
 import { unzipSync, strFromU8 } from 'fflate';
 import { DOMParser } from '@xmldom/xmldom';
-import type { Block, DocModel, Inline, PageSetup, Paragraph, ParagraphStyle, RunStyle, Table, TableCell, TableRow } from './model.js';
+import type { Block, DocModel, Inline, PageSetup, Paragraph, ParagraphStyle, RunStyle, Section, Table, TableCell, TableRow } from './model.js';
 
 /* ------------------------------------------------------------------ XML helpers */
 
@@ -317,11 +317,14 @@ function formatNumber(n: number, fmt: string): string {
 
 /** Word bullets often use private-use characters from the Symbol/Wingdings fonts. */
 function bulletText(text: string): string {
-  // Geometric shapes (●○■□◆➢✓…) and Symbol/Wingdings private-use characters are not in text fonts.
+  // Map Symbol/Wingdings private-use bullets to real Unicode shapes.
   return [...text].map((c) => {
     const cp = c.codePointAt(0)!;
-    if (c === '\u25CB' || c === '\u25E6') return 'o';
-    if ((cp >= 0xf000 && cp <= 0xf0ff) || (cp >= 0x2190 && cp <= 0x27bf) || (cp >= 0x25a0 && cp <= 0x25ff)) return '\u2022';
+    // Symbol/Wingdings private-use characters have no Unicode meaning; geometric shapes (● ○ ■ ✓) are kept
+    // and drawn with the symbols fallback font.
+    if (cp >= 0xf000 && cp <= 0xf0ff) return cp === 0xf06f ? '\u25CB' : cp === 0xf0a7 || cp === 0xf06e ? '\u25AA' : '\u2022';
+    // A black circle bullet looks like a text bullet in Word; the symbol font's ● is much larger.
+    if (cp === 0x25cf) return '\u2022';
     return c;
   }).join('');
 }
@@ -662,7 +665,13 @@ function readBlocks(ctx: Context, part: Part, container: El): Block[] {
       blocks.push(readParagraph(ctx, part, c));
       // A section break inside a paragraph starts a new page (next-page sections).
       const sect = kid(kid(c, 'pPr'), 'sectPr');
-      if (sect && attr(kid(sect, 'type'), 'val') !== 'continuous') blocks.push({ type: 'pageBreak' });
+      if (sect) {
+        if (Number(attr(kid(sect, 'cols'), 'num') ?? 1) > 1) ctx.warnings.add('COLUMNS_IGNORED');
+        if (attr(kid(sect, 'type'), 'val') !== 'continuous') {
+          const { width, height, margin } = readPage(sect);
+          blocks.push({ type: 'pageBreak', section: { width, height, margin } });
+        }
+      }
     } else if (c.localName === 'tbl') blocks.push(readTable(ctx, part, c));
     else if (c.localName === 'sdt') blocks.push(...readBlocks(ctx, part, kid(c, 'sdtContent') ?? c));
     else if (c.localName === 'customXml') blocks.push(...readBlocks(ctx, part, c));
@@ -734,6 +743,17 @@ export function parseDocx(bytes: Uint8Array): ParsedDocx {
   const blocks = readBlocks(ctx, docPart, body);
   const sect = kid(body, 'sectPr');
   const page = readPage(sect);
+  if (Number(attr(kid(sect, 'cols'), 'num') ?? 1) > 1) ctx.warnings.add('COLUMNS_IGNORED');
+  // Each section break carries the setup of the section it closes; the body's sectPr is the last one's.
+  const sections: Section[] = [];
+  let current: Block[] = [];
+  for (const b of blocks) {
+    if (b.type === 'pageBreak' && b.section) {
+      sections.push({ page: b.section, blocks: current });
+      current = [];
+    } else current.push(b);
+  }
+  sections.push({ page: { width: page.width, height: page.height, margin: page.margin }, blocks: current });
 
   const readHf = (kind: 'header' | 'footer'): Block[] | undefined => {
     const ref = kids(sect, `${kind}Reference`).find((r) => (attr(r, 'type') ?? 'default') === 'default');
@@ -751,6 +771,7 @@ export function parseDocx(bytes: Uint8Array): ParsedDocx {
   return {
     page: { width: page.width, height: page.height, margin: page.margin },
     blocks,
+    sections,
     defaultTab: ctx.defaultTab,
     warnings: [...ctx.warnings],
     header: readHf('header'),

@@ -7,7 +7,8 @@ export type HilvanaErrorCode =
   | 'INVALID_PDF'
   | 'UNSUPPORTED_IMAGE'
   | 'WOULD_REMOVE_ALL_PAGES'
-  | 'INVALID_ARGUMENT';
+  | 'INVALID_ARGUMENT'
+  | 'UNSUPPORTED_CHARACTERS';
 
 /** Error with a stable code so every surface (web, CLI, MCP) can localize it. */
 export class HilvanaError extends Error {

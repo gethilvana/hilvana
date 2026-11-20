@@ -1,6 +1,6 @@
 import * as core from '@hilvana/core';
 import { HilvanaError, parsePageRange } from '@hilvana/core';
-import { DocxError, isDocx, wordToPdf } from '@hilvana/office';
+import { DocxError, fallbackTextFonts, isDocx, wordToPdf } from '@hilvana/office';
 import { DESTRUCTIVE_OPS, Recipe, type Goals, type Step } from './schema.js';
 import { describeStep, formatBytes, localDate, t, type Lang } from './i18n.js';
 
@@ -12,6 +12,8 @@ export type WordConverter = (docx: Uint8Array) => Promise<{ pdf: Uint8Array; pag
 export interface EngineOptions {
   lang?: Lang;
   word?: WordConverter;
+  /** Fonts for stamped text outside the standard PDF fonts. Defaults to the bundled open fonts (Node). */
+  textFonts?: core.FontSource;
 }
 
 const defaultWord: WordConverter = (docx) => wordToPdf(docx);
@@ -243,6 +245,20 @@ export class RecipeError extends Error {
 const today = () => localDate();
 
 /**
+ * Recipes can be shared, so their output name is only ever a file name: no folders, no "..",
+ * no characters Windows forbids, no leading dots.
+ */
+export function safeFilename(name: string): string {
+  const base = name.split(/[\\/]+/).filter(Boolean).pop() ?? '';
+  const cleaned = base
+    .replace(/[<>:"|?*\u0000-\u001f]/g, '-')
+    .replace(/^\.+/, '')
+    .replace(/[. ]+$/, '')
+    .slice(0, 150);
+  return /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i.test(cleaned) || !cleaned ? 'documento-hilvana' : cleaned;
+}
+
+/**
  * Validates, then executes a recipe locally and verifies its goals.
  * Recipes with destructive steps only run with `confirmed: true`.
  * Input byte arrays are never modified.
@@ -277,7 +293,7 @@ export async function run(
   const steps = withSource(recipe.steps);
   for (const [i, step] of steps.entries()) {
     try {
-      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals });
+      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals, fonts: opts.textFonts ?? (() => fallbackTextFonts()) });
     } catch (err) {
       throw new RecipeError([issueFromError(err, lang, i + 1)]);
     }
@@ -286,7 +302,7 @@ export async function run(
   const info = await core.inspect(result);
   const goals = verify(recipe.goals, result, info, lang);
   const firstName = (files[0]?.name ?? 'documento').replace(/\.[^.]+$/, '');
-  const filename = (recipe.output?.filename ?? '{name}-hilvana.pdf').replace('{date}', today()).replace('{name}', firstName);
+  const filename = safeFilename((recipe.output?.filename ?? '{name}-hilvana.pdf').replace('{date}', today()).replace('{name}', firstName));
 
   return {
     bytes: result,
@@ -304,7 +320,7 @@ export async function run(
 async function apply(
   step: Step,
   doc: Uint8Array | undefined,
-  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals },
+  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals; fonts: core.FontSource },
 ): Promise<Uint8Array> {
   const need = () => doc as Uint8Array;
   switch (step.op) {
@@ -313,10 +329,10 @@ async function apply(
     case 'select': return core.selectPages(need(), step.pages);
     case 'remove': return core.removePages(need(), step.pages);
     case 'rotate': return core.rotate(need(), step.angle, step.pages);
-    case 'stampText': return core.stampText(need(), { ...step, text: step.text.replace('{date}', today()) });
+    case 'stampText': return core.stampText(need(), { ...step, text: step.text.replace('{date}', today()), fonts: ctx.fonts });
     case 'sign': return core.stampImage(need(), { image: ctx.byName.get(step.image)!, pages: step.pages, anchor: step.anchor, width: step.width });
-    case 'watermark': return core.watermark(need(), step.text, step);
-    case 'numberPages': return core.numberPages(need(), step);
+    case 'watermark': return core.watermark(need(), step.text, { ...step, fonts: ctx.fonts });
+    case 'numberPages': return core.numberPages(need(), { ...step, fonts: ctx.fonts });
     case 'stripMetadata': return core.stripMetadata(need());
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());

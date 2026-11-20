@@ -69,9 +69,11 @@ export class FolderGuard {
     });
     if (!this.inside(parent)) throw new Error(`Outside the allowed folders: ${p}`);
     const real = path.join(parent, path.basename(target));
+    // A symlink at the output name could point anywhere (outside the allowed folders, or at an input).
+    const lst = await fs.lstat(real).catch(() => undefined);
+    if (lst?.isSymbolicLink()) throw new Error(`The output is a symbolic link; refusing to write through it: ${p}`);
     if (opts.inputs.includes(real)) throw new Error('Refusing to overwrite an input file. Choose a new output name.');
-    const exists = await fs.stat(real).then(() => true, () => false);
-    if (exists && !opts.overwrite) throw new Error(`The output already exists: ${p}. Choose another name or set overwrite.`);
+    if (lst && !opts.overwrite) throw new Error(`The output already exists: ${p}. Choose another name or set overwrite.`);
     return real;
   }
 }
