@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
@@ -8,7 +9,8 @@ import { RecipeError, kindOf, plan, recipeJsonSchema, run, t, type InputFile, ty
 import { FolderGuard } from './fsguard.js';
 import { safeWrite } from './safewrite.js';
 
-export const VERSION = '0.1.0';
+// Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
+export const VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
 const PRIVACY_NOTE =
   'All processing happens on this computer. Hilvana never uploads files and never returns page text or images, only structure (page count, sizes, metadata presence).';

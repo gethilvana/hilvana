@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { promises as fs } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { parseArgs } from 'node:util';
@@ -9,7 +10,8 @@ import { HilvanaError } from '@hilvana/core';
 import { convertWord, fallbackTextFonts, isDocx, type WordEngine } from '@hilvana/office';
 import { RecipeError, localDate, plan, recipeJsonSchema, run, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
-const VERSION = '0.1.0';
+// Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
+const VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
 const HELP: Record<Lang, string> = {
   es: `hilvana ${VERSION}: flujos de PDF privados, en tu equipo.

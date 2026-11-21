@@ -105,3 +105,17 @@ describe('hilvana CLI', { timeout: 60_000 }, () => {
     expect((await hilvana('run', 'meta.json', 'a.pdf', '-o', 'm.pdf')).code).toBe(3);
   });
 });
+
+// D24: the version was hard-coded and stayed at 0.1.0 in the 0.1.1 release.
+describe('version', () => {
+  it('CLI and MCP server report the version of their package', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const { readFileSync } = await import('node:fs');
+    const root = new URL('../../', import.meta.url);
+    for (const [pkg, bin] of [['cli', 'dist/main.js'], ['mcp', 'dist/main.js']] as const) {
+      const expected = JSON.parse(readFileSync(new URL(`${pkg}/package.json`, root), 'utf8')).version;
+      const out = execFileSync(process.execPath, [new URL(`${pkg}/${bin}`, root).pathname, '--version'], { encoding: 'utf8' }).trim();
+      expect(out).toBe(expected);
+    }
+  });
+});
