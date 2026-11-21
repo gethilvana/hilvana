@@ -25,11 +25,15 @@ function OutputRow({ s, out }: { s: Strings; out: Output }) {
   useEffect(() => {
     let live = true;
     let destroy: (() => void) | undefined;
-    openPreview(out.bytes.slice()).then(async (p) => {
-      destroy = p.destroy;
-      const u = await p.page(1, 64);
-      if (live) setThumb(u);
-    }, () => undefined);
+    // Previews are optional: if the result goes away while one is still drawing, pdf.js cancels it.
+    openPreview(out.bytes.slice())
+      .then(async (p) => {
+        if (!live) return p.destroy();
+        destroy = p.destroy;
+        const u = await p.page(1, 64);
+        if (live) setThumb(u);
+      })
+      .catch(() => undefined);
     return () => { live = false; destroy?.(); };
   }, [out.bytes]);
   return (

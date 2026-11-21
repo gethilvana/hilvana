@@ -74,6 +74,8 @@ Una sola vez, en el panel de Cloudflare (la misma cuenta de jorgegrajales.dev):
 
 Desde ahí, cada cambio que se una a `main` se publica solo.
 
+> **Web Analytics de Cloudflare:** si la zona tiene la configuración automática activada (por ejemplo, por el sitio personal), Cloudflare inyecta su script también en este subdominio. La política lo bloquea, pero no debe estar. Desactiva la configuración automática de la zona y activa la analítica solo en el proyecto del sitio personal (o con el fragmento manual en su código). Verifícalo abriendo la página con la pestaña Red: el único dominio debe ser `pdf.jorgegrajales.dev`.
+
 ### Comprobar la publicación
 
 - `curl -sI https://pdf.jorgegrajales.dev | grep -i content-security-policy` debe mostrar la política con `frame-ancestors 'none'`.

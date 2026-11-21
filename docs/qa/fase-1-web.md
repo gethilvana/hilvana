@@ -48,6 +48,10 @@ Cada riesgo se califica por **probabilidad** (1 baja, 2 media, 3 alta) por **imp
 | **D16** | Baja | En la web, los errores de Word se mostraban como códigos (`ENCRYPTED_DOCX`) | Se traducen con el nombre del archivo | `e2e/hostile.spec.ts`, `e2e/i18n.spec.ts` |
 | **D21** | Baja | XML dañado dentro de un .docx mostraba el mensaje del parser ("unclosed xml tag(s)") | Se reporta `CORRUPT_DOCX` | `office/test/regressions.test.ts`, `e2e/i18n.spec.ts` |
 
+**D23 (baja, encontrado en producción):** si el resultado desaparecía mientras pdf.js dibujaba su vista previa (por ejemplo, al cambiar de herramienta justo después de comprimir), quedaba un error no capturado en la consola. Era inofensivo, pero visible para quien siga la guía de comprobación. Corrección: la vista previa espera a que termine el dibujo antes de cerrarse y su cancelación queda manejada. Prueba: `e2e/state.spec.ts`; además, **todas** las pruebas de navegador fallan ahora ante cualquier error no capturado.
+
+**Hallazgo de configuración en producción:** Cloudflare inyectaba su script de Web Analytics (`static.cloudflareinsights.com`) en `pdf.jorgegrajales.dev`, por la configuración automática de la zona. La política de seguridad lo bloqueó, así que no salió ningún dato. Se resolvió moviendo la analítica solo al sitio personal, y se verificó en producción que el único dominio contactado es `pdf.jorgegrajales.dev`.
+
 **D18 (descartado):** en este entorno de pruebas, Chrome nombraba `download` los archivos con tildes. La causa era el *locale* "C" del contenedor, no la app: con UTF-8, como en cualquier computador y en GitHub Actions, el nombre se conserva. La configuración de pruebas fija UTF-8 y la prueba lo verifica.
 
 ## 5. Cobertura
