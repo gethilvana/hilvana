@@ -17,6 +17,7 @@ This file tells coding agents (Claude Code and others) how to work in this repos
 - `packages/recipes`: Zod schema → JSON Schema, `plan` (validate + simulate page counts), `run` (execute + verify goals).
 - `packages/cli`: `hilvana` command.
 - `packages/mcp`: `hilvana-mcp` stdio server; `FolderGuard` restricts file access to authorized roots after resolving symlinks.
+- `packages/web`: browser app (Vite + Preact, not published to npm). Tools build recipes (`src/tools.ts`) that run in a Web Worker (`src/worker.ts`). The Content-Security-Policy in `vite.config.ts` only allows the page's own origin: never add third-party scripts, fonts, analytics or APIs. Every user-facing string lives in `src/i18n.ts` in both languages. Check visual changes with screenshots and run `npm run e2e -w @hilvana/web`.
 
 ## Adding a recipe step
 

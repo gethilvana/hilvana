@@ -1,0 +1,277 @@
+import type { Lang } from '@hilvana/recipes';
+
+export type ToolId =
+  | 'merge' | 'pages' | 'split' | 'rotate'
+  | 'word' | 'images'
+  | 'sign' | 'stamp' | 'number' | 'watermark'
+  | 'compress' | 'metadata';
+
+interface ToolText {
+  name: string;
+  purpose: string;
+  action: string;
+  busy: string;
+}
+
+const es = {
+  tagline: 'Herramientas de PDF que trabajan en tu equipo',
+  privacy: 'Tus archivos no salen de este equipo.',
+  privacyLink: 'Cómo comprobarlo',
+  privacyTitle: 'Cómo comprobar que nada sale de tu equipo',
+  privacyBody: [
+    'Hilvana procesa los documentos en tu navegador con el mismo motor de código abierto que la línea de comandos. No hay servidor que los reciba.',
+    'La página declara una política de seguridad que solo le permite conectarse a su propio dominio, y solo para descargar sus fuentes tipográficas. El navegador bloquea cualquier otra conexión.',
+    'Para verlo tú mismo: abre las herramientas de desarrollo (F12), ve a la pestaña Red y procesa un archivo. O desconéctate de internet después de abrir la página: todo sigue funcionando.',
+  ],
+  sourceCode: 'Código fuente',
+  openSource: 'Código abierto con licencia MIT',
+  close: 'Cerrar',
+  language: 'Idioma',
+  tools: 'Herramientas',
+  groups: { arrange: 'Unir y ordenar', convert: 'Convertir', mark: 'Firmar y marcar', reduce: 'Reducir y limpiar' },
+  drop: { title: 'Suelta tus archivos aquí', or: 'o', choose: 'elige archivos', again: 'Agregar más archivos' },
+  accepts: { pdf: 'PDF', pdfWord: 'PDF o Word (.docx)', word: 'Word (.docx)', images: 'Imágenes PNG o JPG', one: 'Un PDF o Word' },
+  file: {
+    pages: (n: number) => (n === 1 ? '1 página' : `${n} páginas`),
+    reading: 'Leyendo…',
+    converted: 'Convertido desde Word',
+    remove: (name: string) => `Quitar ${name}`,
+    up: (name: string) => `Subir ${name}`,
+    down: (name: string) => `Bajar ${name}`,
+    wrongKind: 'Esta herramienta no usa este tipo de archivo.',
+    metadata: 'Tiene metadatos',
+    noMetadata: 'Sin metadatos',
+  },
+  options: 'Opciones',
+  pagesHint: ['1-3,5', 'last', '2-last', 'odd', 'even'],
+  pagesHintLabel: 'Ejemplos:',
+  fields: {
+    pages: 'Páginas',
+    allPages: 'Todas',
+    lastPage: 'La última',
+    firstPage: 'La primera',
+    custom: 'Elegir',
+    position: 'Posición',
+    size: 'Tamaño de letra',
+    text: 'Texto',
+    format: 'Formato',
+    level: 'Nivel',
+    target: 'Tamaño máximo',
+    angle: 'Giro',
+    pageSize: 'Tamaño de página',
+    width: 'Ancho de la firma',
+    opacity: 'Opacidad',
+    splitMode: 'Cómo dividir',
+    ranges: 'Rangos',
+    rangesHint: 'Un rango por parte, separados por punto y coma: 1-3; 4-6; 7-last',
+  },
+  anchors: {
+    'top-left': 'Arriba a la izquierda', 'top-center': 'Arriba al centro', 'top-right': 'Arriba a la derecha',
+    'bottom-left': 'Abajo a la izquierda', 'bottom-center': 'Abajo al centro', 'bottom-right': 'Abajo a la derecha', center: 'Centro',
+  },
+  levels: {
+    balanced: 'Equilibrado: imágenes a 150 ppp',
+    strong: 'Fuerte: imágenes a 110 ppp',
+    max: 'Máximo: imágenes a 72 ppp',
+    lossless: 'Sin pérdida: no toca las imágenes',
+    target: 'Hasta un tamaño',
+  },
+  pageSizes: { image: 'Igual a cada imagen', a4: 'A4', letter: 'Carta' },
+  angles: { 90: '90° a la derecha', 180: '180°', 270: '90° a la izquierda' },
+  split: { each: 'Una página por archivo', ranges: 'Por rangos' },
+  grid: {
+    help: 'Toca una página para quitarla. Arrástrala, o usa las flechas, para cambiar el orden.',
+    rotateHelp: 'Toca las páginas que quieres girar. Si no eliges ninguna, se giran todas.',
+    removed: 'Se quita',
+    selected: 'Se gira',
+    page: (n: number) => `Página ${n}`,
+    moveLeft: (n: number) => `Mover la página ${n} antes`,
+    moveRight: (n: number) => `Mover la página ${n} después`,
+    restore: 'Restablecer',
+    summary: (keep: number, total: number) => `Quedan ${keep} de ${total} páginas`,
+  },
+  signature: {
+    draw: 'Dibujar', upload: 'Subir imagen', clear: 'Borrar', hint: 'Firma con el mouse, el dedo o un lápiz.',
+    chosen: 'Imagen de la firma', missing: 'Dibuja o sube una firma.', canvas: 'Área para dibujar la firma',
+  },
+  stampDefault: 'Recibido {date}',
+  watermarkDefault: 'CONFIDENCIAL',
+  numberDefault: 'Página {n} de {total}',
+  numberHint: '{n} es el número de página y {total} el total.',
+  stampHint: '{date} se reemplaza por la fecha de hoy.',
+  metadataFound: 'Metadatos encontrados',
+  metadataNone: 'Este archivo no tiene metadatos de identificación.',
+  metadataFields: { title: 'Título', author: 'Autor', subject: 'Asunto', keywords: 'Palabras clave', creator: 'Creado con', producer: 'Producido con' },
+  needFiles: (accepts: string) => `Agrega archivos para empezar: ${accepts}.`,
+  needTwo: 'Agrega al menos dos archivos para unirlos.',
+  needOne: 'Esta herramienta trabaja con un archivo a la vez; se usará el primero.',
+  result: {
+    title: 'Listo',
+    download: 'Descargar',
+    downloadZip: 'Descargar todo (.zip)',
+    pages: (n: number) => (n === 1 ? '1 página' : `${n} páginas`),
+    again: 'Empezar de nuevo',
+    recipe: 'Ver como receta',
+    recipeHint: 'La misma acción como receta JSON. Úsala con `npx hilvana run` o pídele a tu agente que la ejecute con el servidor MCP.',
+    copy: 'Copiar receta',
+    copied: 'Receta copiada',
+    error: 'No se pudo completar',
+    warnings: 'Simplificaciones al convertir',
+  },
+  offlineReady: 'Lista para usar sin conexión.',
+  tools_: {
+    merge: { name: 'Unir PDF', purpose: 'Junta varios PDF o documentos de Word en uno, en el orden que elijas.', action: 'Unir archivos', busy: 'Uniendo…' },
+    pages: { name: 'Organizar páginas', purpose: 'Quita páginas o cambia su orden.', action: 'Guardar páginas', busy: 'Guardando…' },
+    split: { name: 'Dividir', purpose: 'Separa un PDF en varios archivos.', action: 'Dividir archivo', busy: 'Dividiendo…' },
+    rotate: { name: 'Girar páginas', purpose: 'Endereza páginas escaneadas de lado o al revés.', action: 'Girar páginas', busy: 'Girando…' },
+    word: { name: 'Word a PDF', purpose: 'Convierte documentos .docx a PDF con texto seleccionable.', action: 'Convertir a PDF', busy: 'Convirtiendo…' },
+    images: { name: 'Imágenes a PDF', purpose: 'Convierte fotos o capturas en un solo PDF.', action: 'Crear PDF', busy: 'Creando…' },
+    sign: { name: 'Firmar', purpose: 'Pon tu firma en la página que elijas.', action: 'Firmar documento', busy: 'Firmando…' },
+    stamp: { name: 'Sello de texto', purpose: 'Agrega un texto como "Recibido" con la fecha de hoy.', action: 'Agregar sello', busy: 'Sellando…' },
+    number: { name: 'Numerar páginas', purpose: 'Escribe el número de página en cada hoja.', action: 'Numerar páginas', busy: 'Numerando…' },
+    watermark: { name: 'Marca de agua', purpose: 'Escribe un texto en diagonal sobre las páginas.', action: 'Agregar marca de agua', busy: 'Marcando…' },
+    compress: { name: 'Comprimir', purpose: 'Reduce el peso del PDF sin convertir el texto en imagen.', action: 'Comprimir PDF', busy: 'Comprimiendo…' },
+    metadata: { name: 'Quitar metadatos', purpose: 'Borra el autor, el título y otros datos que el archivo guarda de ti.', action: 'Quitar metadatos', busy: 'Limpiando…' },
+  } satisfies Record<ToolId, ToolText>,
+};
+
+type Strings = typeof es;
+
+const en: Strings = {
+  tagline: 'PDF tools that work on your device',
+  privacy: 'Your files never leave this device.',
+  privacyLink: 'How to check',
+  privacyTitle: 'How to check that nothing leaves your device',
+  privacyBody: [
+    'Hilvana processes documents in your browser with the same open-source engine as the command line. There is no server to receive them.',
+    'The page declares a security policy that only lets it connect to its own domain, and only to download its fonts. The browser blocks any other connection.',
+    'To see it yourself: open the developer tools (F12), go to the Network tab and process a file. Or go offline after the page loads: everything keeps working.',
+  ],
+  sourceCode: 'Source code',
+  openSource: 'Open source under the MIT license',
+  close: 'Close',
+  language: 'Language',
+  tools: 'Tools',
+  groups: { arrange: 'Combine and arrange', convert: 'Convert', mark: 'Sign and mark', reduce: 'Reduce and clean' },
+  drop: { title: 'Drop your files here', or: 'or', choose: 'choose files', again: 'Add more files' },
+  accepts: { pdf: 'PDF', pdfWord: 'PDF or Word (.docx)', word: 'Word (.docx)', images: 'PNG or JPG images', one: 'One PDF or Word file' },
+  file: {
+    pages: (n: number) => (n === 1 ? '1 page' : `${n} pages`),
+    reading: 'Reading…',
+    converted: 'Converted from Word',
+    remove: (name: string) => `Remove ${name}`,
+    up: (name: string) => `Move ${name} up`,
+    down: (name: string) => `Move ${name} down`,
+    wrongKind: 'This tool does not use this kind of file.',
+    metadata: 'Has metadata',
+    noMetadata: 'No metadata',
+  },
+  options: 'Options',
+  pagesHint: ['1-3,5', 'last', '2-last', 'odd', 'even'],
+  pagesHintLabel: 'Examples:',
+  fields: {
+    pages: 'Pages',
+    allPages: 'All',
+    lastPage: 'The last one',
+    firstPage: 'The first one',
+    custom: 'Choose',
+    position: 'Position',
+    size: 'Font size',
+    text: 'Text',
+    format: 'Format',
+    level: 'Level',
+    target: 'Maximum size',
+    angle: 'Rotation',
+    pageSize: 'Page size',
+    width: 'Signature width',
+    opacity: 'Opacity',
+    splitMode: 'How to split',
+    ranges: 'Ranges',
+    rangesHint: 'One range per part, separated by semicolons: 1-3; 4-6; 7-last',
+  },
+  anchors: {
+    'top-left': 'Top left', 'top-center': 'Top center', 'top-right': 'Top right',
+    'bottom-left': 'Bottom left', 'bottom-center': 'Bottom center', 'bottom-right': 'Bottom right', center: 'Center',
+  },
+  levels: {
+    balanced: 'Balanced: images at 150 dpi',
+    strong: 'Strong: images at 110 dpi',
+    max: 'Maximum: images at 72 dpi',
+    lossless: 'Lossless: images untouched',
+    target: 'Up to a size',
+  },
+  pageSizes: { image: 'Same as each image', a4: 'A4', letter: 'Letter' },
+  angles: { 90: '90° clockwise', 180: '180°', 270: '90° counterclockwise' },
+  split: { each: 'One page per file', ranges: 'By ranges' },
+  grid: {
+    help: 'Tap a page to remove it. Drag it, or use the arrows, to change the order.',
+    rotateHelp: 'Tap the pages you want to rotate. If you pick none, all of them rotate.',
+    removed: 'Removed',
+    selected: 'Rotates',
+    page: (n: number) => `Page ${n}`,
+    moveLeft: (n: number) => `Move page ${n} earlier`,
+    moveRight: (n: number) => `Move page ${n} later`,
+    restore: 'Reset',
+    summary: (keep: number, total: number) => `${keep} of ${total} pages kept`,
+  },
+  signature: {
+    draw: 'Draw', upload: 'Upload image', clear: 'Clear', hint: 'Sign with a mouse, a finger or a pen.',
+    chosen: 'Signature image', missing: 'Draw or upload a signature.', canvas: 'Signature drawing area',
+  },
+  stampDefault: 'Received {date}',
+  watermarkDefault: 'CONFIDENTIAL',
+  numberDefault: 'Page {n} of {total}',
+  numberHint: '{n} is the page number and {total} the total.',
+  stampHint: '{date} becomes today\'s date.',
+  metadataFound: 'Metadata found',
+  metadataNone: 'This file has no identifying metadata.',
+  metadataFields: { title: 'Title', author: 'Author', subject: 'Subject', keywords: 'Keywords', creator: 'Created with', producer: 'Produced with' },
+  needFiles: (accepts: string) => `Add files to start: ${accepts}.`,
+  needTwo: 'Add at least two files to merge them.',
+  needOne: 'This tool works on one file at a time; the first one will be used.',
+  result: {
+    title: 'Done',
+    download: 'Download',
+    downloadZip: 'Download all (.zip)',
+    pages: (n: number) => (n === 1 ? '1 page' : `${n} pages`),
+    again: 'Start over',
+    recipe: 'View as a recipe',
+    recipeHint: 'The same action as a JSON recipe. Use it with `npx hilvana run`, or ask your agent to run it through the MCP server.',
+    copy: 'Copy recipe',
+    copied: 'Recipe copied',
+    error: 'Could not finish',
+    warnings: 'Simplified while converting',
+  },
+  offlineReady: 'Ready to use offline.',
+  tools_: {
+    merge: { name: 'Merge PDF', purpose: 'Combine several PDFs or Word documents into one, in the order you choose.', action: 'Merge files', busy: 'Merging…' },
+    pages: { name: 'Arrange pages', purpose: 'Remove pages or change their order.', action: 'Save pages', busy: 'Saving…' },
+    split: { name: 'Split', purpose: 'Break a PDF into several files.', action: 'Split file', busy: 'Splitting…' },
+    rotate: { name: 'Rotate pages', purpose: 'Straighten scanned pages that are sideways or upside down.', action: 'Rotate pages', busy: 'Rotating…' },
+    word: { name: 'Word to PDF', purpose: 'Convert .docx documents to PDF with selectable text.', action: 'Convert to PDF', busy: 'Converting…' },
+    images: { name: 'Images to PDF', purpose: 'Turn photos or screenshots into a single PDF.', action: 'Create PDF', busy: 'Creating…' },
+    sign: { name: 'Sign', purpose: 'Put your signature on the page you choose.', action: 'Sign document', busy: 'Signing…' },
+    stamp: { name: 'Text stamp', purpose: 'Add a text such as "Received" with today\'s date.', action: 'Add stamp', busy: 'Stamping…' },
+    number: { name: 'Number pages', purpose: 'Write the page number on every page.', action: 'Number pages', busy: 'Numbering…' },
+    watermark: { name: 'Watermark', purpose: 'Write a diagonal text across the pages.', action: 'Add watermark', busy: 'Marking…' },
+    compress: { name: 'Compress', purpose: 'Make the PDF smaller without turning text into images.', action: 'Compress PDF', busy: 'Compressing…' },
+    metadata: { name: 'Remove metadata', purpose: 'Erase the author, title and other details the file keeps about you.', action: 'Remove metadata', busy: 'Cleaning…' },
+  },
+};
+
+export const strings: Record<Lang, Strings> = { es, en };
+export type { Strings };
+
+export function initialLang(): Lang {
+  const fromUrl = new URLSearchParams(location.search).get('lang');
+  if (fromUrl === 'es' || fromUrl === 'en') return fromUrl;
+  try {
+    const saved = localStorage.getItem('hilvana.lang');
+    if (saved === 'es' || saved === 'en') return saved;
+  } catch { /* storage can be unavailable */ }
+  return navigator.language?.toLowerCase().startsWith('es') ? 'es' : navigator.language ? 'en' : 'es';
+}
+
+export function saveLang(lang: Lang) {
+  try { localStorage.setItem('hilvana.lang', lang); } catch { /* ignore */ }
+}

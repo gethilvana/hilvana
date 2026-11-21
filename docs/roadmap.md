@@ -13,16 +13,17 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Compresión real: imágenes a su tamaño mostrado, JPEG o sin pérdida, objetivo de tamaño, benchmark publicado (`docs/compression.md`)
 - [x] Paquetes listos para npm: metadatos, README por paquete, flujo de publicación con procedencia (`docs/publishing.md`)
 - [x] Pasada de QA previa a la publicación: 14 defectos corregidos, 103 pruebas (`docs/qa/fase-0.md`)
-- [ ] Primera publicación en npm (requiere la cuenta y el token de npm)
+- [x] Primera publicación en npm (`v0.1.0`, con procedencia y publicación de confianza sin token)
 - [ ] Uso propio durante 4 semanas sin Smallpdf
 
 ## Fase 1 · MVP público (semanas 4–10)
 
 - [ ] Descifrado local de PDF protegidos solo con permisos (sin contraseña de apertura)
-
-- [ ] Web bilingüe en pdf.jorgegrajales.dev (procesamiento en el navegador, PWA)
+- [x] Web bilingüe con procesamiento en el navegador, PWA sin conexión y política de seguridad que solo permite el propio dominio (`docs/web.md`)
+- [ ] Publicación en pdf.jorgegrajales.dev (Cloudflare Pages)
 - [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima)
-- [ ] PDF → Word, imagen ↔ PDF en la web
+- [x] Imágenes → PDF en la web
+- [ ] PDF → Word, PDF → imágenes
 - [ ] Word → PDF: cuadros de texto, notas al pie, columnas, encabezado de primera página
 - [ ] Arnés de calidad v1: corpus de PDFs, fidelidad, compresión, acierto del agente
 - [ ] Listado en directorios de servidores MCP

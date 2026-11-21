@@ -1,0 +1,30 @@
+{
+  "name": "@hilvana/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hilvana on the web: the same engine, running entirely in the browser.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "fonts": "node scripts/copy-assets.mjs",
+    "dev": "npm run fonts && vite",
+    "build": "npm run fonts && tsc --noEmit -p . && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@hilvana/core": "0.1.0",
+    "@hilvana/office": "0.1.0",
+    "@hilvana/recipes": "0.1.0",
+    "fflate": "^0.8.3",
+    "pdfjs-dist": "^6.5.438",
+    "preact": "^11.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "vite": "^8.3.8",
+    "pdf-lib": "^1.17.1"
+  }
+}
