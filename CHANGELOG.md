@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **hilvana**, **hilvana-mcp**: `--version` (and the version the MCP server reports to clients) is read from the package, so it can no longer drift from the release. 0.1.1 reported 0.1.0. (D24)
+
 ## 0.1.1 · 2026-11-21
 
 Fixes found by the risk-based QA pass of phase 1 ([docs/qa/fase-1-web.md](docs/qa/fase-1-web.md)).

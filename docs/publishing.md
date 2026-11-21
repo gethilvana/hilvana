@@ -24,7 +24,11 @@ Los cinco paquetes se publican solos desde GitHub Actions cuando se sube una eti
    | Workflow filename | `release.yml` |
    | Environment name | (vacío) |
 
+   En **Allowed actions**, marca **Allow npm publish** (deja *Allow npm dist-tag* sin marcar). Sin esa casilla, el *trusted publisher* solo puede preparar versiones (`npm stage publish`), y el flujo de publicación falla con `E404` o `ENEEDAUTH`.
+
    Luego, en la misma página, *Publishing access → Require two-factor authentication and disallow tokens*.
+
+   Para comprobar la configuración sin publicar: **Actions → Release → Run workflow**. Cada paquete debe responder `HTTP 201`.
    - npm solo permite configurarlo en paquetes que ya existen. Para un paquete **nuevo**, publícalo una vez con un token granular temporal (*Read and write*, *Bypass 2FA*, vencimiento corto, secreto `NPM_TOKEN` con `NODE_AUTH_TOKEN` en el paso de publicar), configura el *trusted publisher* y borra el token y el secreto.
 
 ## Cada versión
