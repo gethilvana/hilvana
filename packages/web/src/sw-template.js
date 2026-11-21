@@ -31,12 +31,13 @@ self.addEventListener('fetch', (event) => {
       const res = await fetch(req);
       if (res.ok && lazy) (await caches.open(ASSET_CACHE)).put(req, res.clone());
       return res;
-    } catch (err) {
+    } catch {
       if (req.mode === 'navigate') {
         const index = await caches.match('./', { ignoreSearch: true, ignoreVary: true });
         if (index) return index;
       }
-      throw err;
+      // Offline and not cached: answer like a server would, instead of an error the browser reports.
+      return new Response('', { status: 503, statusText: 'Offline' });
     }
   })());
 });
