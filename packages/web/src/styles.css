@@ -150,6 +150,8 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-si
 .file-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-meta { color: var(--ink-2); font-size: var(--t-s); }
 .file-error { color: var(--alert); font-size: var(--t-s); }
+.file-note { color: var(--ink-2); font-size: var(--t-s); padding-left: 1.2rem; position: relative; }
+.file-note::before { content: ''; position: absolute; left: 0.1rem; top: 0.45em; width: 0.6rem; height: 0.6rem; border-radius: 50%; border: 2px solid #b7791f; }
 .file-actions { display: flex; gap: 0.15rem; }
 .file-warnings { font-size: var(--t-s); color: var(--ink-2); margin-top: 0.2rem; }
 .file-warnings summary { cursor: pointer; }
@@ -240,6 +242,7 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-si
 .result h2 { font-size: var(--t-xl); }
 .result .files { width: 100%; }
 .notes { margin: 0; padding-left: 1.1rem; color: var(--ink-2); }
+.notes-warn { color: var(--ink); }
 .recipe { width: 100%; }
 .recipe summary { cursor: pointer; font-weight: 700; }
 .recipe .hint { margin: 0.5rem 0; max-width: 64ch; }
@@ -251,7 +254,7 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-si
 .foot { max-width: 1180px; width: 100%; margin: 0 auto; padding: 1.25rem 1.5rem 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule-soft); }
 .privacy { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: var(--t-s); }
 .privacy-icon { width: 16px; height: 16px; fill: var(--thread-pale); stroke: var(--thread); stroke-width: 1.4; }
-.foot-meta { font-size: var(--t-s); color: var(--ink-2); }
+.foot-meta { font-size: var(--t-s); color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; }
 
 .dialog { border: 0; border-radius: var(--radius-sheet); padding: 1.75rem; max-width: min(560px, calc(100vw - 2rem)); color: var(--ink); display: none; }
 .dialog[open] { display: grid; gap: 0.9rem; }

@@ -107,6 +107,20 @@ test.describe('the build that gets deployed', () => {
     expect([...found]).toEqual([]);
   });
 
+  test('includes the license of every bundled third-party package, linked from the page', async ({ page }) => {
+    const notices = await readFile(path.join(dist, 'THIRD_PARTY_NOTICES.txt'), 'utf8');
+    for (const name of ['pdf-lib', 'pdfjs-dist', 'jpeg-js', 'fflate', 'preact', 'zod', '@pdf-lib/fontkit', '@fontsource/carlito', '@fontsource-variable/bricolage-grotesque']) {
+      expect(notices, name).toContain(`\n- ${name} `);
+    }
+    expect(notices).toContain('SIL Open Font License');
+    expect(notices).toContain('Apache License');
+    expect(notices).toContain('standard_fonts/LICENSE_FOXIT');
+    await page.goto('./?lang=es#/merge');
+    const href = await page.getByRole('link', { name: 'Licencias de terceros' }).getAttribute('href');
+    const res = await page.request.get(new URL(href!, page.url()).href);
+    expect(res.ok()).toBe(true);
+  });
+
   test('ships no source maps', async () => {
     test.skip(process.env.COVERAGE === '1', 'coverage builds include maps on purpose');
     const files = await readdir(path.join(dist, 'assets'));

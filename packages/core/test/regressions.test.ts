@@ -153,3 +153,44 @@ describe('encrypted PDFs are reported as protected (D17)', () => {
     await expect(load(bytes)).rejects.toMatchObject({ code: 'ENCRYPTED' });
   });
 });
+
+// Signed PDFs: Hilvana rewrites files, so a signature never survives a change. Detect it so surfaces can warn.
+describe('digital signatures are detected', () => {
+  it('counts signature dictionaries, inside object streams too', async () => {
+    const { makeSignedPdf } = await import('./helpers.js');
+    expect((await inspect(await makeSignedPdf(2, 1))).signatures).toBe(1);
+    expect((await inspect(await makeSignedPdf(3, 2))).signatures).toBe(2);
+  });
+
+  it('does not count unsigned files or look-alike dictionaries', async () => {
+    const { makePdf } = await import('./helpers.js');
+    const { PDFDocument } = await import('pdf-lib');
+    expect((await inspect(await makePdf(2))).signatures).toBe(0);
+    const doc = await PDFDocument.load(await makePdf(1));
+    doc.context.register(doc.context.obj({ ByteRange: [0, 1, 2, 3] })); // no /Contents: not a signature
+    expect((await inspect(await doc.save())).signatures).toBe(0);
+  });
+
+  it('a changed file no longer carries the signature (why the warning exists)', async () => {
+    const { makeSignedPdf } = await import('./helpers.js');
+    const merged = await merge([await makeSignedPdf(2, 1)]);
+    expect((await inspect(merged)).signatures).toBe(0);
+  });
+});
+
+describe('changed files never carry a broken signature', () => {
+  it.each([
+    ['merge', async (b: Uint8Array) => merge([b])],
+    ['stamp', async (b: Uint8Array) => stampText(b, { text: 'Recibido' })],
+    ['select', async (b: Uint8Array) => selectPages(b, '1')],
+    ['strip metadata', async (b: Uint8Array) => stripMetadata(b)],
+    ['compress', async (b: Uint8Array) => (await (await import('@hilvana/core')).compress(b, { level: 'lossless' })).bytes],
+  ])('%s', async (_name, op) => {
+    const { makeSignedPdf } = await import('./helpers.js');
+    const out = await op(await makeSignedPdf(2, 2));
+    const info = await inspect(out);
+    expect(info.signatures).toBe(0);
+    const doc = await PDFDocument.load(out);
+    expect(doc.catalog.has((await import('pdf-lib')).PDFName.of('Perms'))).toBe(false);
+  });
+});

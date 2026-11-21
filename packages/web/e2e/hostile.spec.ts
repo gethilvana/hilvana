@@ -109,3 +109,14 @@ test('unsupported images (WebP) are explained in the images tool', async ({ page
   await expect(page.locator('.file-error')).toBeVisible();
   await expect(page.locator('.action .btn-primary')).toBeDisabled();
 });
+
+test('a digitally signed PDF is flagged before and after, and the result carries no broken signature', async ({ page }) => {
+  await open(page, 'merge');
+  await addFiles(page, 'contrato-firmado.pdf', 'factura-octubre.pdf');
+  await expect(page.locator('.file').first().locator('.file-note')).toHaveText('Firmado digitalmente: el resultado será un archivo nuevo sin esa firma. Guarda también el original.');
+  await expect(page.locator('.file').nth(1).locator('.file-note')).toHaveCount(0);
+  await runTool(page);
+  await expect(page.locator('.result .notes-warn')).toContainText('"contrato-firmado.pdf" está firmado digitalmente');
+  const { inspect } = await import('@hilvana/core');
+  expect((await inspect(new Uint8Array((await download(page)).bytes))).signatures).toBe(0);
+});

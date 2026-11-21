@@ -117,3 +117,16 @@ describe('D5 · output names from shared recipes stay inside the folder', () => 
     expect(res.filename).toMatch(/^\d{4}-\d{2}-\d{2}\.pdf$/);
   });
 });
+
+describe('signed inputs', () => {
+  it('warn in plan and run that the signature will not be kept, in both languages', async () => {
+    const { makeSignedPdf } = await import('../../core/test/helpers.js');
+    const files = [{ name: 'contrato-firmado.pdf', bytes: await makeSignedPdf(2) }, { name: 'anexo.pdf', bytes: await makePdf(1) }];
+    const recipe = { version: 1, steps: [{ op: 'merge' }] };
+    const es = await plan(recipe, files, 'es');
+    expect(es.ok).toBe(true);
+    expect(es.warnings).toEqual(['"contrato-firmado.pdf" está firmado digitalmente. El resultado es un archivo nuevo y no conserva esa firma: guarda también el original firmado.']);
+    expect((await plan(recipe, files, 'en')).warnings[0]).toMatch(/is digitally signed/);
+    expect((await run(recipe, files)).warnings).toHaveLength(1);
+  });
+});

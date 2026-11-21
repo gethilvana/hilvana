@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 · 2026-11-21
+
+- **@hilvana/core**: `inspect()` reports `signatures` (digital signatures in the file). Changed files no longer carry broken signatures: a signature covers exact bytes, so after any change readers would show it as tampered. Its visible appearance stays on the page. New `countSignatures()` and `dropSignatures()`.
+- **@hilvana/recipes**: plans and runs warn when an input is digitally signed (`SIGNED_INPUT`, Spanish and English).
+- **hilvana**: `inspect` shows the signature count; commands that change a signed PDF warn on stderr.
+- **hilvana-mcp**: `pdf_inspect` returns `signatures`; `recipe_plan` and `recipe_run` include the warning.
+- **Web**: signed files are flagged in the file list and in the result. New third-party notices file (`THIRD_PARTY_NOTICES.txt`), linked from the footer, with the license of every bundled package, font and pdf.js data file.
+
 ## 0.2.0 · 2026-11-21
 
 - **@hilvana/recipes**: new `split` step (last step only) that produces one file per range, or per page. `RunResult.outputs` lists every file; `bytes`/`filename` stay as the first output for existing callers. `Plan.outputCount` predicts how many files a recipe makes.

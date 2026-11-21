@@ -9,6 +9,8 @@
 - **Funciona sin conexión** después de la primera visita, gracias a un *service worker* que guarda la app. Los documentos nunca pasan por él.
 - Las vistas previas de páginas usan pdf.js (Apache-2.0), solo para dibujar. Todos los cambios a los documentos los hace el motor de Hilvana.
 
+**Licencias de terceros.** La compilación genera `dist/THIRD_PARTY_NOTICES.txt` (`scripts/notices.mjs`) con la licencia de cada paquete, fuente y archivo de pdf.js que se incluye en la app. El pie de página enlaza a ese archivo.
+
 Las pruebas de navegador (`packages/web/e2e/privacy.spec.ts`) verifican la política, que un `fetch` a otro dominio queda bloqueado y que la app funciona sin conexión.
 
 ## Herramientas

@@ -302,7 +302,10 @@ export function App() {
 
       <footer class="foot">
         <PrivacyNote s={s} onOpen={() => setPrivacyOpen(true)} />
-        <p class="foot-meta"><a class="link" href={SOURCE} rel="noopener">{s.openSource}</a></p>
+        <p class="foot-meta">
+          <a class="link" href={SOURCE} rel="noopener">{s.openSource}</a>
+          <a class="link" href="./THIRD_PARTY_NOTICES.txt">{s.thirdParty}</a>
+        </p>
       </footer>
 
       <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title={s.privacyTitle} closeLabel={s.close}>
