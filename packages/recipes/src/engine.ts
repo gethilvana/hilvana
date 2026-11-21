@@ -139,7 +139,9 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         pageCounts.set(name, res.pageCount);
         for (const w of res.warnings) warnings.push(`${name}: ${t(lang, `word.${w}`)}`);
       } else {
-        pageCounts.set(name, (await core.inspect(byName.get(name)!.bytes)).pageCount);
+        const info = await core.inspect(byName.get(name)!.bytes);
+        pageCounts.set(name, info.pageCount);
+        if (info.signatures > 0) warnings.push(t(lang, 'SIGNED_INPUT', { name }));
       }
     } catch (err) {
       if (err instanceof DocxError) issues.push({ code: err.code, message: t(lang, err.code, { name }) });

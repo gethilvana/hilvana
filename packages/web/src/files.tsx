@@ -105,6 +105,7 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove }: {
               </span>
               {d.status === 'error' && <span class="file-error" role="alert">{d.error}</span>}
               {bad && <span class="file-error">{s.file.wrongKind}</span>}
+              {!bad && d.info && d.info.signatures > 0 && <span class="file-note">{s.file.signed}</span>}
               {d.warnings && d.warnings.length > 0 && (
                 <details class="file-warnings">
                   <summary>{s.result.warnings}</summary>

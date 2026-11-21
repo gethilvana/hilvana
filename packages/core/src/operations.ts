@@ -22,6 +22,55 @@ export interface PdfInfo {
   };
   /** True when any of the identifying metadata fields above is set. */
   hasMetadata: boolean;
+  /**
+   * Digital signatures in the file (signature dictionaries, including document timestamps).
+   * Any change Hilvana makes rewrites the file, so the result no longer carries a valid signature.
+   */
+  signatures: number;
+}
+
+function isSignatureDict(obj: unknown): obj is PDFDict {
+  if (!(obj instanceof PDFDict)) return false;
+  const type = obj.get(PDFName.of('Type'));
+  const typed = type === PDFName.of('Sig') || type === PDFName.of('DocTimeStamp');
+  return obj.has(PDFName.of('ByteRange')) && obj.has(PDFName.of('Contents')) && (typed || obj.has(PDFName.of('SubFilter')));
+}
+
+/** Counts digital signatures: signature dictionaries (the signed /ByteRange and /Contents), stored on their own or inline. */
+export function countSignatures(doc: PDFDocument): number {
+  let n = 0;
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    if (isSignatureDict(obj)) n++;
+    else if (obj instanceof PDFDict && isSignatureDict(obj.get(PDFName.of('V')))) n++;
+  }
+  return n;
+}
+
+/**
+ * Removes digital signatures before a changed file is saved. A signature covers exact bytes; after any
+ * change it can only show as broken, which readers present as tampering. The signature's visible
+ * appearance stays on the page; only the cryptographic part goes. Surfaces warn about this beforehand.
+ */
+export function dropSignatures(doc: PDFDocument): number {
+  const sigRefs = new Set<string>();
+  const refs: PDFRef[] = [];
+  for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+    if (isSignatureDict(obj)) { sigRefs.add(ref.toString()); refs.push(ref); }
+  }
+  let dropped = refs.length;
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFDict)) continue;
+    const v = obj.get(PDFName.of('V'));
+    if ((v instanceof PDFRef && sigRefs.has(v.toString())) || isSignatureDict(v)) {
+      if (!(v instanceof PDFRef)) dropped++;
+      obj.delete(PDFName.of('V'));
+    }
+  }
+  if (dropped === 0) return 0;
+  for (const ref of refs) doc.context.delete(ref);
+  doc.catalog.delete(PDFName.of('Perms')); // certification (DocMDP) refers to the removed signature
+  doc.catalog.lookupMaybe(PDFName.of('AcroForm'), PDFDict)?.delete(PDFName.of('SigFlags'));
+  return dropped;
 }
 
 /** Fails with INVALID_PDF unless the document has a readable page tree. */
@@ -49,6 +98,7 @@ export async function load(bytes: PdfBytes): Promise<PDFDocument> {
 
 /** Saves without injecting a producer/creator fingerprint. */
 async function save(doc: PDFDocument, opts: { objectStreams?: boolean } = {}): Promise<PdfBytes> {
+  dropSignatures(doc);
   return doc.save({ useObjectStreams: opts.objectStreams ?? true });
 }
 
@@ -88,6 +138,7 @@ export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
     pages: doc.getPages().map((p) => ({ width: p.getWidth(), height: p.getHeight(), rotation: p.getRotation().angle })),
     metadata: clean,
     hasMetadata: Object.keys(clean).length > 0,
+    signatures: countSignatures(doc),
   };
 }
 

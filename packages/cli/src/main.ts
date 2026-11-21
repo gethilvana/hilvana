@@ -162,6 +162,12 @@ function parseSize(v: string, lang: Lang): number {
   return Math.floor(n * (unit === 'k' ? 1024 : unit === 'm' ? 1024 ** 2 : unit === 'g' ? 1024 ** 3 : 1));
 }
 
+/** Changing a signed PDF always produces a new, unsigned file: say so before the person relies on it. */
+async function warnIfSigned(file: string, bytes: Uint8Array, lang: Lang) {
+  const info = await core.inspect(bytes).catch(() => undefined);
+  if (info && info.signatures > 0) process.stderr.write(`⚠ ${t(lang, 'SIGNED_INPUT', { name: path.basename(file) })}\n`);
+}
+
 function printWarnings(name: string, warnings: string[], lang: Lang) {
   for (const w of warnings) process.stdout.write(`  ⚠ ${name}: ${t(lang, `word.${w}`)}\n`);
 }
@@ -173,6 +179,7 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
   const [input] = positionals;
   if (!input) throw new UsageError(HELP[lang]);
   const src = await read(input);
+  await warnIfSigned(input, src, lang);
   const anchor = v.anchor as core.Anchor | undefined;
   let out: Uint8Array;
   switch (cmd) {
@@ -237,8 +244,8 @@ async function main(argv: string[]) {
       const info = await core.inspect(await read(rest[0]));
       if (v.json) return void process.stdout.write(JSON.stringify(info, null, 2) + '\n');
       const lines = lang === 'es'
-        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${info.encrypted ? 'sí' : 'no'}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`]
-        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${info.encrypted ? 'yes' : 'no'}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`];
+        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${info.encrypted ? 'sí' : 'no'}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`, `Firmas digitales: ${info.signatures}`]
+        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${info.encrypted ? 'yes' : 'no'}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`, `Digital signatures: ${info.signatures}`];
       return void process.stdout.write(lines.join('\n') + '\n');
     }
     case 'word': {
@@ -263,7 +270,10 @@ async function main(argv: string[]) {
           const res = await convert(bytes);
           printWarnings(path.basename(p), res.warnings, lang);
           parts.push(res.pdf);
-        } else parts.push(bytes);
+        } else {
+          await warnIfSigned(p, bytes, lang);
+          parts.push(bytes);
+        }
       }
       const out = await core.merge(parts);
       return write(v.output ?? defaultOutput(rest[0]!, 'merged'), out, rest, v.force, lang);

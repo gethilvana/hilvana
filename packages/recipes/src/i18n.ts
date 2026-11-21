@@ -40,6 +40,7 @@ const messages: Record<Lang, Dict> = {
     'word.COLUMNS_IGNORED': 'el texto en varias columnas se puso en una sola',
     NO_PDF_INPUTS: 'La receta necesita al menos un PDF de entrada.',
     SOURCE_NOT_FIRST: 'El paso {index} crea un documento nuevo; solo puede ir de primero.',
+    SIGNED_INPUT: '"{name}" está firmado digitalmente. El resultado es un archivo nuevo y no conserva esa firma: guarda también el original firmado.',
     SPLIT_NOT_LAST: 'El paso {index} divide el documento en varios archivos; solo puede ir de último.',
     CONFIRMATION_REQUIRED: 'La receta tiene pasos que eliminan contenido o información ({steps}). Confírmala para ejecutarla.',
     // describe
@@ -112,6 +113,7 @@ const messages: Record<Lang, Dict> = {
     'word.COLUMNS_IGNORED': 'multi-column text was set in a single column',
     NO_PDF_INPUTS: 'The recipe needs at least one PDF input.',
     SOURCE_NOT_FIRST: 'Step {index} creates a new document; it can only come first.',
+    SIGNED_INPUT: '"{name}" is digitally signed. The result is a new file and does not keep that signature: keep the signed original too.',
     SPLIT_NOT_LAST: 'Step {index} splits the document into several files; it can only come last.',
     CONFIRMATION_REQUIRED: 'The recipe has steps that remove content or information ({steps}). Confirm it to run it.',
     'step.merge': 'Merge {files}',

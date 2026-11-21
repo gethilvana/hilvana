@@ -4,7 +4,7 @@ import {
 } from 'pdf-lib';
 import { unzlibSync, zlibSync } from 'fflate';
 import jpeg from 'jpeg-js';
-import { load, type PdfBytes } from './operations.js';
+import { dropSignatures, load, type PdfBytes } from './operations.js';
 
 export type CompressionLevel = 'lossless' | 'balanced' | 'strong' | 'max';
 
@@ -105,6 +105,7 @@ async function compressAt(input: PdfBytes, settings: { dpi: number; quality: num
     }
   }
   deflateUncompressedStreams(doc);
+  dropSignatures(doc);
   removeUnreachable(doc);
   const out = await doc.save({ useObjectStreams: true });
   return {

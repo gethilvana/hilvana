@@ -115,6 +115,14 @@ describe('hilvana-mcp', () => {
     expect(await fs.readdir(path.join(dir, 'partes2'))).toEqual(['a-hilvana-2.pdf']);
   });
 
+  it('reports signatures in pdf_inspect and warns before changing a signed PDF', async () => {
+    const { makeSignedPdf } = await import('../../core/test/helpers.js');
+    await fs.writeFile(path.join(dir, 'firmado.pdf'), await makeSignedPdf(1));
+    expect(json(await call('pdf_inspect', { path: 'firmado.pdf' })).signatures).toBe(1);
+    const p = json(await call('recipe_plan', { recipe: { version: 1, steps: [{ op: 'numberPages' }] }, files: [{ path: 'firmado.pdf' }], lang: 'en' }));
+    expect(p.warnings).toEqual(['"firmado.pdf" is digitally signed. The result is a new file and does not keep that signature: keep the signed original too.']);
+  });
+
   it('asks for confirmation before destructive steps', async () => {
     const args = {
       recipe: { version: 1, steps: [{ op: 'remove', pages: '1' }] },

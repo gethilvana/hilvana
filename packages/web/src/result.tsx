@@ -66,10 +66,7 @@ export function ResultPanel({ s, result, onReset }: { s: Strings; result: Result
       {result.outputs.length > 1 && <ZipLink s={s} outputs={result.outputs} name={result.zipName ?? 'hilvana.zip'} />}
       {result.notes.length > 0 && <ul class="notes">{result.notes.map((n) => <li key={n}>{n}</li>)}</ul>}
       {result.warnings.length > 0 && (
-        <details class="file-warnings">
-          <summary>{s.result.warnings}</summary>
-          <ul>{result.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
-        </details>
+        <ul class="notes notes-warn">{result.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
       )}
       {json && (
         <details class="recipe">

@@ -106,6 +106,18 @@ describe('hilvana CLI', { timeout: 60_000 }, () => {
   });
 });
 
+describe('signed PDFs', () => {
+  it('inspect counts signatures, and changing one warns that the signature is not kept', async () => {
+    const { makeSignedPdf } = await import('../../core/test/helpers.js');
+    await fs.writeFile(path.join(dir, 'firmado.pdf'), await makeSignedPdf(2));
+    expect((await hilvana('inspect', 'firmado.pdf')).out).toMatch(/Firmas digitales: 1/);
+    const r = await hilvana('stamp', 'firmado.pdf', '--text', 'Recibido', '-o', 'firmado-sellado.pdf');
+    expect(r.code).toBe(0);
+    expect(r.err).toMatch(/"firmado.pdf" está firmado digitalmente/);
+    expect((await hilvana('inspect', 'firmado-sellado.pdf')).out).toMatch(/Firmas digitales: 0/);
+  });
+});
+
 describe('recipes that split', () => {
   it('write each part into the -o folder, creating it', async () => {
     await fs.writeFile(path.join(dir, 'dividir.json'), JSON.stringify({ version: 1, steps: [{ op: 'split', ranges: ['1', '2-last'] }] }));

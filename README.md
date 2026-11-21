@@ -70,6 +70,7 @@ Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word �
 - **Los pasos que borran contenido** (`select`, `remove`, `stripMetadata`, `setMetadata`) piden confirmación.
 - **Las recetas se validan antes de ejecutarse**: nombres de archivo, tipos y rangos de páginas después de cada paso.
 - **El servidor MCP solo accede a las carpetas que autorizas**, y no sigue enlaces simbólicos hacia afuera.
+- **Los PDF firmados digitalmente se señalan antes de procesarlos.** Cualquier cambio crea un archivo nuevo que ya no puede llevar esa firma, así que el resultado no conserva firmas rotas (la imagen visible de la firma sí se mantiene). Guarda siempre el original firmado.
 
 Detalles en [PRIVACY.md](PRIVACY.md).
 
@@ -149,6 +150,7 @@ Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, pl
 - Steps that remove content or information ask for confirmation.
 - Recipes are validated against your actual files before running.
 - The MCP server can only reach the folders you authorize, and does not follow symlinks out of them.
+- Digitally signed PDFs are flagged before processing. Any change makes a new file that cannot keep the signature, so results carry no broken signatures (the visible signature image stays). Keep the signed original.
 
 ---
 

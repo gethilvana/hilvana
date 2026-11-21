@@ -1,6 +1,6 @@
 {
   "name": "hilvana",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Hilvana CLI: private, local PDF workflows from the terminal. Merge, split, sign, number and clean PDFs, or run whole recipes.",
   "keywords": [
     "pdf",
@@ -38,8 +38,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@hilvana/core": "0.2.0",
-    "@hilvana/office": "0.2.0",
-    "@hilvana/recipes": "0.2.0"
+    "@hilvana/core": "0.3.0",
+    "@hilvana/office": "0.3.0",
+    "@hilvana/recipes": "0.3.0"
   }
 }
