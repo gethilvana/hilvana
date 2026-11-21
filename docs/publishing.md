@@ -15,11 +15,17 @@ Los cinco paquetes se publican solos desde GitHub Actions cuando se sube una eti
 1. **Cuenta de npm.** Crea una en npmjs.com y activa la verificación en dos pasos (*Account → Two-Factor Authentication*, modo "Authorization and writes").
 2. **Organización `hilvana`.** En npmjs.com: *Add Organization* → nombre `hilvana` → plan gratuito (paquetes públicos). Es la que permite publicar `@hilvana/...`.
    - Si el nombre ya estuviera tomado, usa `gethilvana` y cambia `@hilvana/` por `@gethilvana/` en los `package.json` (Claude puede hacerlo).
-3. **Token de publicación.** *Access Tokens → Generate New Token → Granular Access Token*:
-   - Permisos: *Read and write*.
-   - Paquetes: todos los de la organización `hilvana` y los paquetes `hilvana` y `hilvana-mcp` (la primera vez, "All packages").
-   - Vencimiento: 90 días.
-4. **Guardar el token en GitHub.** En el repositorio: *Settings → Secrets and variables → Actions → New repository secret*, nombre `NPM_TOKEN`, valor el token.
+3. **Publicación de confianza (*trusted publishing*).** No se guarda ningún token: GitHub Actions obtiene una credencial de un solo uso en cada publicación. En npmjs.com, para **cada uno** de los cinco paquetes: *Settings → Trusted Publisher → GitHub Actions* y llena:
+
+   | Campo | Valor |
+   |---|---|
+   | Organization or user | `gethilvana` |
+   | Repository | `hilvana` |
+   | Workflow filename | `release.yml` |
+   | Environment name | (vacío) |
+
+   Luego, en la misma página, *Publishing access → Require two-factor authentication and disallow tokens*.
+   - npm solo permite configurarlo en paquetes que ya existen. Para un paquete **nuevo**, publícalo una vez con un token granular temporal (*Read and write*, *Bypass 2FA*, vencimiento corto, secreto `NPM_TOKEN` con `NODE_AUTH_TOKEN` en el paso de publicar), configura el *trusted publisher* y borra el token y el secreto.
 
 ## Cada versión
 
