@@ -12,10 +12,14 @@ export const test = base.extend<{ coverage: void; networkGuard: void; allowExter
    * Privacy guard on every test: the page and its workers may only request the app's own files.
    * Fails the test if any other request is made (by the page, a worker or the service worker).
    */
-  networkGuard: [async ({ context, allowExternal }, use) => {
+  networkGuard: [async ({ context, page, allowExternal }, use) => {
     const seen: string[] = [];
     context.on('request', (r) => seen.push(r.url()));
+    // Uncaught errors are bugs even when the screen looks fine.
+    const uncaught: string[] = [];
+    page.on('pageerror', (e) => uncaught.push(String(e)));
     await use();
+    expect(uncaught, 'uncaught errors in the page').toEqual([]);
     if (allowExternal) return;
     const bad = seen.filter((u) => !u.startsWith('blob:') && !u.startsWith('data:') && !ALLOWED.test(u));
     expect(bad, 'requests outside the app\'s own files').toEqual([]);

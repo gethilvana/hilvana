@@ -129,3 +129,14 @@ test('the recipe can be copied', async ({ page, context, browserName }) => {
   await expect(page.getByRole('button', { name: 'Receta copiada' })).toBeVisible();
   expect(JSON.parse(await page.evaluate(() => navigator.clipboard.readText()))).toMatchObject({ steps: [{ op: 'stripMetadata' }] });
 });
+
+test('leaving a result while its preview is drawing leaves no errors behind', async ({ page }) => {
+  await open(page, 'merge');
+  const big = await makePdf(120, 'Grande');
+  for (let i = 0; i < 3; i++) {
+    await addBuffers(page, [{ name: 'a.pdf', buffer: big }, { name: 'b.pdf', buffer: big }]);
+    await runTool(page);
+    await page.getByRole('button', { name: 'Empezar de nuevo' }).click(); // unmounts the result at once
+  }
+  await page.waitForTimeout(1500); // the fixture fails the test if pdf.js left an uncaught error
+});

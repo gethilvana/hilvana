@@ -60,7 +60,8 @@ export async function openPreview(bytes: Uint8Array): Promise<Preview> {
     destroy() {
       for (const u of urls.values()) void u.then((x) => URL.revokeObjectURL(x), () => undefined);
       urls.clear();
-      void task.destroy();
+      // Let a page that is drawing finish first, so pdf.js does not report a cancelled render.
+      void queue.then(() => task.destroy()).catch(() => undefined);
     },
   };
 }
