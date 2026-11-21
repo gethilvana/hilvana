@@ -27,8 +27,9 @@ export const test = base.extend<{ coverage: void; networkGuard: void; allowExter
     if (on) await page.coverage.startJSCoverage({ resetOnNavigation: false });
     await use();
     if (on) {
-      const entries = await page.coverage.stopJSCoverage();
-      await new CoverageReport(coverageOptions as never).add(entries.filter((e) => e.url.includes('/assets/index-')));
+      // Only the app served by the test server (the update test serves a copy on another port).
+      const entries = (await page.coverage.stopJSCoverage()).filter((e) => e.url.startsWith('http://localhost:4173/assets/index-'));
+      if (entries.length) await new CoverageReport(coverageOptions as never).add(entries);
     }
   }, { auto: true }],
 });

@@ -78,7 +78,8 @@ test('odd file names produce safe download names', async ({ page }) => {
   await runTool(page);
   const { name } = await download(page);
   expect(name).not.toMatch(/[\\/:"?*<>|]/);
-  expect(name).toBe('Información- -final- v2--comprimido.pdf');
+  // Safari also turns spaces into underscores; both are safe.
+  expect(name.replace(/_/g, ' ')).toBe('Información- -final- v2--comprimido.pdf');
 });
 
 test('files with the same name are kept apart', async ({ page }) => {

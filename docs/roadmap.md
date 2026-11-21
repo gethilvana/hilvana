@@ -20,7 +20,8 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 
 - [ ] Descifrado local de PDF protegidos solo con permisos (sin contraseña de apertura)
 - [x] Web bilingüe con procesamiento en el navegador, PWA sin conexión y política de seguridad que solo permite el propio dominio (`docs/web.md`)
-- [ ] Publicación en pdf.jorgegrajales.dev (Cloudflare Pages)
+- [x] QA por riesgos de la web y del motor: 7 defectos corregidos, 88 pruebas por navegador (`docs/qa/fase-1-web.md`)
+- [ ] Publicación en pdf.jorgegrajales.dev (Cloudflare Pages) y `v0.1.1` en npm
 - [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima)
 - [x] Imágenes → PDF en la web
 - [ ] PDF → Word, PDF → imágenes

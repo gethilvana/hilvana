@@ -108,6 +108,7 @@ test.describe('the build that gets deployed', () => {
   });
 
   test('ships no source maps', async () => {
+    test.skip(process.env.COVERAGE === '1', 'coverage builds include maps on purpose');
     const files = await readdir(path.join(dist, 'assets'));
     expect(files.filter((f) => f.endsWith('.map'))).toEqual([]);
   });
