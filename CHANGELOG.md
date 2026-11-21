@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 · 2026-11-21
+
+- **@hilvana/recipes**: new `split` step (last step only) that produces one file per range, or per page. `RunResult.outputs` lists every file; `bytes`/`filename` stay as the first output for existing callers. `Plan.outputCount` predicts how many files a recipe makes.
+- **hilvana** (`run`) and **hilvana-mcp** (`recipe_run`): recipes that split write their parts into a folder. The MCP server checks every destination before writing any part.
+- **Web**: every tool now runs a recipe and shows it, including Split and Word batches.
 
 - **hilvana**, **hilvana-mcp**: `--version` (and the version the MCP server reports to clients) is read from the package, so it can no longer drift from the release. 0.1.1 reported 0.1.0. (D24)
 

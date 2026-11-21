@@ -29,7 +29,7 @@ Uso:
   hilvana strip <archivo.pdf> -o <salida.pdf>
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
-  hilvana run <receta.json> <archivos...> [-o <salida.pdf>] [--dry-run] [--yes]
+  hilvana run <receta.json> <archivos...> [-o <salida.pdf | carpeta si la receta termina en split>] [--dry-run] [--yes]
   hilvana schema
 
 Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
@@ -53,7 +53,7 @@ Usage:
   hilvana strip <file.pdf> -o <out.pdf>
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
-  hilvana run <recipe.json> <files...> [-o <out.pdf>] [--dry-run] [--yes]
+  hilvana run <recipe.json> <files...> [-o <out.pdf | folder when the recipe ends with split>] [--dry-run] [--yes]
   hilvana schema
 
 Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
@@ -299,8 +299,15 @@ async function main(argv: string[]) {
         if (!confirmed) throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) + (lang === 'es' ? ' (usa --yes)' : ' (use --yes)') }]);
       }
       const res = await run(recipe, files, { lang, confirmed, word });
-      const outPath = v.output ?? path.join(path.dirname(inputs[0]!), res.filename);
-      await write(outPath, res.bytes, inputs, v.force, lang);
+      if (res.outputs.length > 1) {
+        // A recipe that ends with split writes its parts into a folder (-o), created if needed.
+        const dir = v.output ?? path.dirname(inputs[0]!);
+        await fs.mkdir(dir, { recursive: true });
+        for (const o of res.outputs) await write(path.join(dir, o.filename), o.bytes, inputs, v.force, lang);
+      } else {
+        const outPath = v.output ?? path.join(path.dirname(inputs[0]!), res.filename);
+        await write(outPath, res.bytes, inputs, v.force, lang);
+      }
       for (const n of res.notes) process.stdout.write(`  ${n}\n`);
       for (const g of res.goals) process.stdout.write(`  ${g.message}\n`);
       if (!res.allGoalsMet) process.exitCode = 3;

@@ -70,6 +70,12 @@ export const CompressStep = z.object({
     .describe('Try stronger levels until the file is at most this size. Defaults to goals.maxBytes when no level is given.'),
 }).strict();
 
+export const SplitStep = z.object({
+  op: z.literal('split'),
+  ranges: z.array(pages).min(1).max(500).optional()
+    .describe('One output file per range, in order (e.g. ["1-3", "4-last"]). Omit for one file per page.'),
+}).strict().describe('Last step only: splits the document into several output files.');
+
 export const Step = z.discriminatedUnion('op', [
   MergeStep,
   FromImagesStep,
@@ -84,6 +90,7 @@ export const Step = z.discriminatedUnion('op', [
   SetMetadataStep,
   OptimizeStep,
   CompressStep,
+  SplitStep,
 ]);
 export type Step = z.infer<typeof Step>;
 
@@ -101,7 +108,7 @@ export const Recipe = z.object({
   description: z.string().max(1000).optional(),
   steps: z.array(Step).min(1).max(50),
   output: z.object({
-    filename: z.string().max(200).optional().describe('Supports {date} and {name} (first input without extension).'),
+    filename: z.string().max(200).optional().describe('Supports {date} and {name} (first input without extension). With a final split step, each part adds "-<range>" (or "-<page>") before .pdf.'),
   }).strict().optional(),
   goals: Goals.optional(),
 }).strict();

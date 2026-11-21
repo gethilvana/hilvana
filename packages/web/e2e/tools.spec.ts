@@ -45,6 +45,7 @@ test('splits into one file per page, with a zip of all parts', async ({ page }) 
   await expect(page.locator('.result .output')).toHaveCount(3);
   await expect(page.getByRole('link', { name: 'Descargar todo (.zip)' })).toHaveAttribute('download', 'factura-noviembre-partes.zip');
   expect((await download(page, 2)).pdf.getPageCount()).toBe(1);
+  expect(await recipe(page)).toEqual({ version: 1, steps: [{ op: 'split' }], output: { filename: '{name}' } });
 });
 
 test('splits by ranges', async ({ page }) => {
@@ -55,6 +56,15 @@ test('splits by ranges', async ({ page }) => {
   await runTool(page);
   await expect(page.locator('.result .output')).toHaveCount(2);
   expect((await download(page, 1)).pdf.getPageCount()).toBe(4);
+  expect((await recipe(page)).steps).toEqual([{ op: 'split', ranges: ['1-2', '3-last'] }]);
+});
+
+test('asks for ranges before splitting by ranges', async ({ page }) => {
+  await open(page, 'split');
+  await addFiles(page, 'escaneo.pdf');
+  await page.getByLabel('Cómo dividir').selectOption('ranges');
+  await expect(page.locator('.blocker')).toHaveText('Escribe al menos un rango, por ejemplo 1-3; 4-last.');
+  await expect(page.locator('.action .btn-primary')).toBeDisabled();
 });
 
 test('rotates only the chosen pages', async ({ page }) => {
@@ -65,6 +75,16 @@ test('rotates only the chosen pages', async ({ page }) => {
   await runTool(page);
   const pages = (await download(page)).pdf.getPages();
   expect(pages.map((p) => p.getRotation().angle)).toEqual([180, 90, 0, 0, 0, 0]);
+});
+
+test('shows the recipe for a batch of Word documents too', async ({ page }) => {
+  await open(page, 'word');
+  await page.locator('.drop input[type=file]').setInputFiles([fx('contrato.docx'), fx('contrato.docx')]);
+  await expect(page.locator('.file')).toHaveCount(2);
+  await runTool(page);
+  await expect(page.locator('.result .output')).toHaveCount(2);
+  expect(await recipe(page)).toEqual({ version: 1, steps: [{ op: 'merge' }], output: { filename: '{name}' } });
+  await expect(page.locator('.recipe .hint')).toContainText('se aplicó a cada documento');
 });
 
 test('converts Word to PDF with embedded fonts', async ({ page }) => {

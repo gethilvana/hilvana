@@ -12,8 +12,7 @@ export interface Output {
 export type ToWorker =
   | { type: 'add'; id: string; name: string; bytes: Uint8Array; lang: Lang }
   | { type: 'remove'; id: string }
-  | { type: 'run'; job: number; recipe: unknown; files: { id: string; name: string }[]; lang: Lang }
-  | { type: 'split'; job: number; file: string; ranges?: string[]; lang: Lang };
+  | { type: 'run'; job: number; recipe: unknown; files: { id: string; name: string }[]; lang: Lang };
 
 export type FromWorker =
   | { type: 'added'; id: string; kind: Kind; info?: PdfInfo; preview?: Uint8Array; warnings?: string[]; error?: string }

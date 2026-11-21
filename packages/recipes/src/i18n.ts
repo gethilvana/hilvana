@@ -40,6 +40,7 @@ const messages: Record<Lang, Dict> = {
     'word.COLUMNS_IGNORED': 'el texto en varias columnas se puso en una sola',
     NO_PDF_INPUTS: 'La receta necesita al menos un PDF de entrada.',
     SOURCE_NOT_FIRST: 'El paso {index} crea un documento nuevo; solo puede ir de primero.',
+    SPLIT_NOT_LAST: 'El paso {index} divide el documento en varios archivos; solo puede ir de último.',
     CONFIRMATION_REQUIRED: 'La receta tiene pasos que eliminan contenido o información ({steps}). Confírmala para ejecutarla.',
     // describe
     'step.merge': 'Unir {files}',
@@ -58,6 +59,8 @@ const messages: Record<Lang, Dict> = {
     'step.optimize': 'Optimizar la estructura del archivo',
     'step.compress': 'Comprimir (nivel {level})',
     'step.compressTarget': 'Comprimir hasta {target} como máximo',
+    'step.splitEach': 'Dividir en un archivo por página',
+    'step.splitRanges': 'Dividir en {count} archivos: {ranges}',
     'level.lossless': 'sin pérdida',
     'level.balanced': 'equilibrado',
     'level.strong': 'fuerte',
@@ -109,6 +112,7 @@ const messages: Record<Lang, Dict> = {
     'word.COLUMNS_IGNORED': 'multi-column text was set in a single column',
     NO_PDF_INPUTS: 'The recipe needs at least one PDF input.',
     SOURCE_NOT_FIRST: 'Step {index} creates a new document; it can only come first.',
+    SPLIT_NOT_LAST: 'Step {index} splits the document into several files; it can only come last.',
     CONFIRMATION_REQUIRED: 'The recipe has steps that remove content or information ({steps}). Confirm it to run it.',
     'step.merge': 'Merge {files}',
     'step.mergeAll': 'Merge every PDF in the order received',
@@ -126,6 +130,8 @@ const messages: Record<Lang, Dict> = {
     'step.optimize': 'Optimize the file structure',
     'step.compress': 'Compress ({level} level)',
     'step.compressTarget': 'Compress to at most {target}',
+    'step.splitEach': 'Split into one file per page',
+    'step.splitRanges': 'Split into {count} files: {ranges}',
     'level.lossless': 'lossless',
     'level.balanced': 'balanced',
     'level.strong': 'strong',
@@ -181,6 +187,8 @@ export function describeStep(step: Step, lang: Lang): string {
       return step.targetBytes !== undefined
         ? t(lang, 'step.compressTarget', { target: formatBytes(step.targetBytes) })
         : t(lang, 'step.compress', { level: t(lang, `level.${step.level ?? 'balanced'}`) });
+    case 'split':
+      return step.ranges ? t(lang, 'step.splitRanges', { count: step.ranges.length, ranges: step.ranges.join('; ') }) : t(lang, 'step.splitEach');
   }
 }
 
