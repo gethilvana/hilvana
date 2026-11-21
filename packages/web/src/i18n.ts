@@ -104,6 +104,7 @@ const es = {
   metadataFields: { title: 'Título', author: 'Autor', subject: 'Asunto', keywords: 'Palabras clave', creator: 'Creado con', producer: 'Producido con' },
   needFiles: (accepts: string) => `Agrega archivos para empezar: ${accepts}.`,
   needTwo: 'Agrega al menos dos archivos para unirlos.',
+  needRanges: 'Escribe al menos un rango, por ejemplo 1-3; 4-last.',
   needOne: 'Esta herramienta trabaja con un archivo a la vez; se usará el primero.',
   result: {
     title: 'Listo',
@@ -113,6 +114,7 @@ const es = {
     again: 'Empezar de nuevo',
     recipe: 'Ver como receta',
     recipeHint: 'La misma acción como receta JSON. Úsala con `npx hilvana run` o pídele a tu agente que la ejecute con el servidor MCP.',
+    recipeEachHint: 'Esta receta se aplicó a cada documento por separado. Úsala con `npx hilvana run` (un documento por vez) o pídele a tu agente que la ejecute con el servidor MCP.',
     copy: 'Copiar receta',
     copied: 'Receta copiada',
     error: 'No se pudo completar',
@@ -228,6 +230,7 @@ const en: Strings = {
   metadataFields: { title: 'Title', author: 'Author', subject: 'Subject', keywords: 'Keywords', creator: 'Created with', producer: 'Produced with' },
   needFiles: (accepts: string) => `Add files to start: ${accepts}.`,
   needTwo: 'Add at least two files to merge them.',
+  needRanges: 'Type at least one range, for example 1-3; 4-last.',
   needOne: 'This tool works on one file at a time; the first one will be used.',
   result: {
     title: 'Done',
@@ -237,6 +240,7 @@ const en: Strings = {
     again: 'Start over',
     recipe: 'View as a recipe',
     recipeHint: 'The same action as a JSON recipe. Use it with `npx hilvana run`, or ask your agent to run it through the MCP server.',
+    recipeEachHint: 'This recipe ran on each document separately. Use it with `npx hilvana run` (one document at a time), or ask your agent to run it through the MCP server.',
     copy: 'Copy recipe',
     copied: 'Recipe copied',
     error: 'Could not finish',

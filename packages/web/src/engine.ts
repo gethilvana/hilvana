@@ -58,8 +58,4 @@ export class Engine {
   run(recipe: unknown, files: { id: string; name: string }[], lang: Lang) {
     return this.job((job) => ({ type: 'run', job, recipe, files, lang }));
   }
-
-  split(file: string, ranges: string[] | undefined, lang: Lang) {
-    return this.job((job) => ({ type: 'split', job, file, ranges, lang }));
-  }
 }

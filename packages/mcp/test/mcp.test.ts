@@ -85,6 +85,36 @@ describe('hilvana-mcp', () => {
     expect((await fs.stat(path.join(dir, 'out.pdf'))).size).toBeGreaterThan(0);
   });
 
+  it('writes each part of a split into the output folder', async () => {
+    await fs.mkdir(path.join(dir, 'partes'));
+    const res = json(await call('recipe_run', {
+      recipe: { version: 1, steps: [{ op: 'merge' }, { op: 'split', ranges: ['1-2', '3-last'] }], output: { filename: 'lote' } },
+      files: [{ path: 'a.pdf' }, { path: 'b.pdf' }],
+      output: 'partes',
+    }));
+    expect(res.ran).toBe(true);
+    expect(res.outputs.map((o: { pageCount: number }) => o.pageCount)).toEqual([2, 3]);
+    expect((await fs.readdir(path.join(dir, 'partes'))).sort()).toEqual(['lote-1-2.pdf', 'lote-3-last.pdf']);
+  });
+
+  it('requires an existing folder inside the allowed ones for a split', async () => {
+    const recipe = { version: 1, steps: [{ op: 'split' }] };
+    const missing = await call('recipe_run', { recipe, files: [{ path: 'a.pdf' }], output: 'no-existe' });
+    expect(missing.content[0]!.text).toMatch(/Folder not found/);
+    const aFile = await call('recipe_run', { recipe, files: [{ path: 'a.pdf' }], output: 'b.pdf' });
+    expect(aFile.content[0]!.text).toMatch(/Not a folder/);
+    const outside = await call('recipe_run', { recipe, files: [{ path: 'a.pdf' }], output: os.tmpdir() });
+    expect(outside.content[0]!.text).toMatch(/Outside the allowed folders/);
+  });
+
+  it('writes no part when one of them would overwrite a file', async () => {
+    await fs.mkdir(path.join(dir, 'partes2'));
+    await fs.writeFile(path.join(dir, 'partes2', 'a-hilvana-2.pdf'), 'existing');
+    const res = await call('recipe_run', { recipe: { version: 1, steps: [{ op: 'split' }] }, files: [{ path: 'a.pdf' }], output: 'partes2' });
+    expect(res.content[0]!.text).toMatch(/already exists/);
+    expect(await fs.readdir(path.join(dir, 'partes2'))).toEqual(['a-hilvana-2.pdf']);
+  });
+
   it('asks for confirmation before destructive steps', async () => {
     const args = {
       recipe: { version: 1, steps: [{ op: 'remove', pages: '1' }] },

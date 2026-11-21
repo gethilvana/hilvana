@@ -6,7 +6,7 @@ import { initialLang, saveLang, strings, type ToolId } from './i18n';
 import { PageGrid, SignaturePad, ToolOptions } from './options';
 import { ResultPanel, type Result } from './result';
 import { openPreview } from './thumbs';
-import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, type Options } from './tools';
+import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, splitRanges, type Options } from './tools';
 import { Dialog, PrivacyNote, Stitch, Wordmark } from './ui';
 
 const SOURCE = 'https://github.com/gethilvana/hilvana';
@@ -124,6 +124,7 @@ export function App() {
   if (!usable.length) blocker = s.needFiles({ docs: s.accepts.pdfWord, word: s.accepts.word, images: s.accepts.images }[tool.accept]);
   else if (tool.id === 'merge' && usable.length < 2) blocker = s.needTwo;
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
+  else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
   const nothingToDo = tool.id === 'pages' && !options.pagesOrder;
   const canRun = !blocker && !reading && !busy && !nothingToDo;
 
@@ -135,11 +136,7 @@ export function App() {
     setResult(null);
     try {
       let res: Result;
-      if (tool.id === 'split') {
-        const ranges = options.splitMode === 'ranges' ? options.ranges.split(';').map((r) => r.trim()).filter(Boolean) : undefined;
-        const r = await engine.split(first!.id, ranges, lang);
-        res = { ...r, zipName: `${first!.name.replace(/\.[^.]+$/, '')}-${lang === 'es' ? 'partes' : 'parts'}.zip` };
-      } else if (tool.id === 'word') {
+      if (tool.id === 'word') {
         const all = await Promise.all(usable.map((d) => {
           const recipe = buildRecipe('word', options, [d.name], lang);
           return engine.run(recipe, [{ id: d.id, name: d.name }], lang).then((r) => ({ ...r, recipe }));
@@ -148,7 +145,8 @@ export function App() {
           outputs: all.flatMap((r) => r.outputs),
           notes: all.flatMap((r) => r.notes),
           warnings: all.flatMap((r) => r.warnings),
-          recipe: all.length === 1 ? all[0]!.recipe : undefined,
+          recipe: all[0]!.recipe,
+          recipeEach: all.length > 1,
           zipName: lang === 'es' ? 'documentos.zip' : 'documents.zip',
         };
       } else {
@@ -161,7 +159,11 @@ export function App() {
         }
         const recipe = buildRecipe(tool.id, options, inputs.map((d) => d.name), lang, sigName);
         const r = await engine.run(recipe, files, lang);
-        res = { ...r, recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : recipe };
+        res = {
+          ...r,
+          recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : recipe,
+          ...(tool.id === 'split' ? { zipName: `${first!.name.replace(/\.[^.]+$/, '')}-${lang === 'es' ? 'partes' : 'parts'}.zip` } : {}),
+        };
       }
       if (mine !== runId.current) return;
       setResult(res);

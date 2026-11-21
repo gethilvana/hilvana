@@ -33,7 +33,7 @@ const options: fc.Arbitrary<Options> = fc.record({
 }) as fc.Arbitrary<Options>;
 
 describe('recipes built by the web tools', () => {
-  const recipeTools = TOOLS.filter((t) => t.id !== 'split');
+  const recipeTools = TOOLS; // every tool, split included, runs a recipe
 
   it('are always valid against the recipe schema, for any option the UI can produce', () => {
     fc.assert(fc.property(options, fc.constantFrom(...recipeTools.map((t) => t.id)), fc.constantFrom('es', 'en' as const), (o, tool, lang) => {
@@ -67,6 +67,18 @@ describe('recipes built by the web tools', () => {
   it('turn the target size into bytes', () => {
     const r = buildRecipe('compress', { ...defaultOptions(strings.es), level: 'target', targetMB: 1.5 }, ['a.pdf'], 'es');
     expect(r.steps[0]).toEqual({ op: 'compress', targetBytes: 1572864 });
+  });
+
+  it('split by page or by the typed ranges', () => {
+    const o = defaultOptions(strings.es);
+    expect(buildRecipe('split', o, ['a.pdf'], 'es').steps).toEqual([{ op: 'split' }]);
+    expect(buildRecipe('split', { ...o, splitMode: 'ranges', ranges: ' 1-3 ;; 4-last ' }, ['a.pdf'], 'es').steps).toEqual([{ op: 'split', ranges: ['1-3', '4-last'] }]);
+    expect(buildRecipe('split', { ...o, splitMode: 'ranges', ranges: ' ; ' }, ['a.pdf'], 'es').steps).toEqual([{ op: 'split' }]);
+  });
+
+  it('convert any Word file with the same recipe', () => {
+    const o = defaultOptions(strings.es);
+    expect(buildRecipe('word', o, ['x.docx'], 'es')).toEqual(buildRecipe('word', o, ['y.docx'], 'es'));
   });
 
   it('rotate every page when none is chosen', () => {

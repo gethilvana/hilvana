@@ -51,6 +51,8 @@ export interface Plan {
   destructiveSteps: number[];
   /** Page count predicted after each step (when it could be computed). */
   predictedPages?: number[];
+  /** How many files the recipe will produce (more than one when it ends with `split`). */
+  outputCount?: number;
   /** Simplifications made while converting Word files, in plain language. */
   warnings: string[];
 }
@@ -63,7 +65,17 @@ export interface GoalResult {
   message: string;
 }
 
+export interface RunOutput {
+  bytes: Uint8Array;
+  filename: string;
+  pageCount: number;
+  byteLength: number;
+}
+
 export interface RunResult {
+  /** Every file the recipe produced: one, or one per part when the recipe ends with `split`. */
+  outputs: RunOutput[];
+  /** The first output (the only one unless the recipe splits); kept for single-output callers. */
   bytes: Uint8Array;
   filename: string;
   pageCount: number;
@@ -138,6 +150,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
   const steps = withSource(recipe.steps);
   const offset = steps.length - recipe.steps.length; // 1 when a merge was prepended
   let pages: number | undefined;
+  let outputCount: number | undefined = 1;
   const predicted: number[] = [];
 
   steps.forEach((step, i) => {
@@ -187,6 +200,15 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         checkRange(step.pages ?? 'last');
         break;
       }
+      case 'split': {
+        if (i !== steps.length - 1) issues.push({ code: 'SPLIT_NOT_LAST', message: t(lang, 'SPLIT_NOT_LAST', { index: n }), step: n });
+        for (const r of step.ranges ?? []) {
+          const sel = checkRange(r);
+          if (pages !== undefined && sel.length === 0) issues.push({ code: 'INVALID_RANGE', message: t(lang, 'INVALID_RANGE', { expr: r }), step: n });
+        }
+        outputCount = step.ranges ? step.ranges.length : pages;
+        break;
+      }
       case 'rotate':
       case 'stampText':
       case 'watermark':
@@ -223,6 +245,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
     goals: describeGoals(recipe.goals, lang),
     destructiveSteps,
     predictedPages: predicted,
+    outputCount,
   };
 }
 
@@ -298,17 +321,39 @@ export async function run(
       throw new RecipeError([issueFromError(err, lang, i + 1)]);
     }
   }
-  const result = doc!;
-  const info = await core.inspect(result);
-  const goals = verify(recipe.goals, result, info, lang);
   const firstName = (files[0]?.name ?? 'documento').replace(/\.[^.]+$/, '');
-  const filename = safeFilename((recipe.output?.filename ?? '{name}-hilvana.pdf').replace('{date}', today()).replace('{name}', firstName));
+  const named = safeFilename((recipe.output?.filename ?? '{name}-hilvana.pdf').replace('{date}', today()).replace('{name}', firstName));
+  const base = named.replace(/\.pdf$/i, '');
+
+  // A final split turns the document into parts; every other recipe has exactly one output.
+  const last = steps[steps.length - 1]!;
+  const parts: { bytes: Uint8Array; label?: string }[] = [];
+  if (last.op === 'split') {
+    try {
+      const pieces = last.ranges ? await core.split(doc!, last.ranges) : await core.burst(doc!);
+      pieces.forEach((bytes, i) => parts.push({ bytes, label: last.ranges ? last.ranges[i]! : String(i + 1) }));
+    } catch (err) {
+      throw new RecipeError([issueFromError(err, lang, steps.length - (steps.length - recipe.steps.length))]);
+    }
+  } else {
+    parts.push({ bytes: doc! });
+  }
+
+  const outputs: RunOutput[] = [];
+  const goals: GoalResult[] = [];
+  for (const part of parts) {
+    const info = await core.inspect(part.bytes);
+    const filename = safeFilename(part.label ? `${base}-${part.label.replace(/[^\w-]+/g, '_')}` : base) + '.pdf';
+    outputs.push({ bytes: part.bytes, filename, pageCount: info.pageCount, byteLength: part.bytes.byteLength });
+    for (const g of verify(recipe.goals, part.bytes, info, lang)) goals.push(parts.length > 1 ? { ...g, message: `${filename}: ${g.message}` } : g);
+  }
 
   return {
-    bytes: result,
-    filename: filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`,
-    pageCount: info.pageCount,
-    byteLength: result.byteLength,
+    outputs,
+    bytes: outputs[0]!.bytes,
+    filename: outputs[0]!.filename,
+    pageCount: outputs[0]!.pageCount,
+    byteLength: outputs[0]!.byteLength,
     goals,
     allGoalsMet: goals.every((g) => g.met),
     steps: p.steps,
@@ -336,6 +381,7 @@ async function apply(
     case 'stripMetadata': return core.stripMetadata(need());
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());
+    case 'split': return need(); // applied after every other step, see run()
     case 'compress': {
       // With no explicit level, aim for the recipe's size goal if there is one.
       const target = step.targetBytes ?? (step.level ? undefined : ctx.goals?.maxBytes);
