@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gethilvana/hilvana",
+    "url": "git+https://github.com/gethilvana/hilvana.git",
     "directory": "packages/recipes"
   },
   "type": "module",

@@ -31,6 +31,12 @@ jobs:
             V=$(node -p "require('./packages/$p/package.json').version")
             [ "$V" = "$TAG" ] || { echo "packages/$p is $V, tag is $TAG"; exit 1; }
           done
+      - name: Check that every package publishes as public
+        run: |
+          for p in core office recipes cli mcp; do
+            A=$(node -p "require('./packages/$p/package.json').publishConfig?.access")
+            [ "$A" = "public" ] || { echo "packages/$p lacks publishConfig.access=public"; exit 1; }
+          done
       # Order matters: dependencies first.
       - run: |
           for p in core office recipes cli mcp; do
