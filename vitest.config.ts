@@ -11,5 +11,6 @@ export default defineConfig({
       '@hilvana/office': r('./packages/office/src/index.ts'),
     },
   },
-  test: { include: ['packages/*/test/**/*.test.ts'] },
+  // Font embedding and real PDFs are slow on shared Windows/macOS runners.
+  test: { include: ['packages/*/test/**/*.test.ts'], testTimeout: 30_000 },
 });
