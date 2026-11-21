@@ -28,7 +28,9 @@
   "types": "dist/server.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"

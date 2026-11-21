@@ -34,6 +34,13 @@ jobs:
       # Order matters: dependencies first.
       - run: |
           for p in core office recipes cli mcp; do
+            NAME=$(node -p "require('./packages/$p/package.json').name")
+            VER=$(node -p "require('./packages/$p/package.json').version")
+            # Re-running after a partial failure must not stop on versions already out.
+            if npm view "$NAME@$VER" version >/dev/null 2>&1; then
+              echo "$NAME@$VER is already on npm, skipping"
+              continue
+            fi
             npm publish --workspace packages/$p --provenance
           done
         env:

@@ -33,7 +33,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"
