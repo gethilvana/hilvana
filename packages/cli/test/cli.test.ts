@@ -114,7 +114,9 @@ describe('version', () => {
     const root = new URL('../../', import.meta.url);
     for (const [pkg, bin] of [['cli', 'dist/main.js'], ['mcp', 'dist/main.js']] as const) {
       const expected = JSON.parse(readFileSync(new URL(`${pkg}/package.json`, root), 'utf8')).version;
-      const out = execFileSync(process.execPath, [new URL(`${pkg}/${bin}`, root).pathname, '--version'], { encoding: 'utf8' }).trim();
+      // fileURLToPath, not URL.pathname: on Windows pathname is "/D:/..." and breaks the path.
+      const { fileURLToPath } = await import('node:url');
+      const out = execFileSync(process.execPath, [fileURLToPath(new URL(`${pkg}/${bin}`, root)), '--version'], { encoding: 'utf8' }).trim();
       expect(out).toBe(expected);
     }
   });
