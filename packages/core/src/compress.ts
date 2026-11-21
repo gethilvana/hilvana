@@ -425,7 +425,7 @@ function recompressImage(
   // JPEG sources stay JPEG. Otherwise compare: lossless keeps text and edges crisp (screenshots,
   // charts, logos), so it wins unless JPEG is much smaller, which happens with real photos.
   const jpegData = isJpeg || looksLikePhoto(resized, ch)
-    ? jpeg.encode({ data: toRgba(resized, ch), width: nw, height: nh }, target.quality).data
+    ? encodeJpeg(toRgba(resized, ch), nw, nh, target.quality)
     : undefined;
   const flateData = !isJpeg && !(sameSize && jpegData === undefined) ? zlibSync(resized, { level: 9 }) : undefined;
   if (!jpegData && !flateData) return 'skipped';
@@ -496,5 +496,20 @@ function removeUnreachable(doc: PDFDocument) {
   }
   for (const [ref] of ctx.enumerateIndirectObjects()) {
     if (!seen.has(ref.toString())) ctx.delete(ref);
+  }
+}
+
+/**
+ * jpeg-js returns a Node Buffer whenever a CommonJS `module` exists, which bundlers define in browsers
+ * too, where Buffer does not exist (D22). Lend it the one method it calls, only for this synchronous call.
+ */
+function encodeJpeg(rgba: Uint8Array, width: number, height: number, quality: number): Uint8Array {
+  const g = globalThis as { Buffer?: unknown };
+  const lend = typeof g.Buffer === 'undefined';
+  if (lend) g.Buffer = { from: (bytes: ArrayLike<number>) => Uint8Array.from(bytes) };
+  try {
+    return new Uint8Array(jpeg.encode({ data: rgba, width, height }, quality).data);
+  } finally {
+    if (lend) delete g.Buffer;
   }
 }

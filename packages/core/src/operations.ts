@@ -65,7 +65,13 @@ export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
   } catch (err) {
     throw new HilvanaError('INVALID_PDF', { reason: String((err as Error)?.message ?? err).slice(0, 200) });
   }
-  assertStructure(doc);
+  // An encrypted file often cannot even be walked without decrypting it: say so, not "invalid" (D17).
+  try {
+    assertStructure(doc);
+  } catch (err) {
+    if (encrypted) throw new HilvanaError('ENCRYPTED');
+    throw err;
+  }
   const metadata = {
     title: doc.getTitle(),
     author: doc.getAuthor(),

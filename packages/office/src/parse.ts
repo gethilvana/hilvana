@@ -706,8 +706,11 @@ export interface ParsedDocx extends DocModel {
   footerDistance: number;
 }
 
+/** Ceilings for what a .docx may expand to in memory. Real documents stay far below them. */
+export const DOCX_LIMITS = { partBytes: 64 * 1024 * 1024, totalBytes: 256 * 1024 * 1024, entries: 5000 };
+
 export class DocxError extends Error {
-  constructor(readonly code: 'NOT_DOCX' | 'ENCRYPTED_DOCX' | 'CORRUPT_DOCX', message?: string) {
+  constructor(readonly code: 'NOT_DOCX' | 'ENCRYPTED_DOCX' | 'CORRUPT_DOCX' | 'DOCX_TOO_LARGE', message?: string) {
     super(message ?? code);
     this.name = 'DocxError';
   }
@@ -729,12 +732,57 @@ export function parseDocx(bytes: Uint8Array): ParsedDocx {
   // Encrypted Office files are OLE containers, not zips.
   if (bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0) throw new DocxError('ENCRYPTED_DOCX');
   let files: Record<string, Uint8Array>;
+  // Guard against zip bombs: a few MB can declare gigabytes of content. Only the parts the
+  // converter reads are extracted, and their declared sizes are capped before inflating.
+  let total = 0;
+  let count = 0;
+  let tooLarge: string | undefined;
+  const take = (f: { name: string; size: number; originalSize: number }) => {
+    // Deflate never grows data by more than a few bytes per block: a compressed part much larger
+    // than its declared size is lying about it, so the cap above would not hold.
+    if (f.size > f.originalSize * 1.01 + 1024) tooLarge ??= `${f.name} hides its real size`;
+    total += f.originalSize;
+    if (f.originalSize > DOCX_LIMITS.partBytes) tooLarge ??= `${f.name} declares ${f.originalSize} bytes`;
+    if (total > DOCX_LIMITS.totalBytes) tooLarge ??= `content declares ${total} bytes`;
+    return !tooLarge;
+  };
   try {
-    files = unzipSync(bytes);
+    // First the XML parts and relationships, then only the media those relationships point to.
+    files = unzipSync(bytes, {
+      filter: (f) => {
+        if (++count > DOCX_LIMITS.entries) tooLarge ??= 'too many parts';
+        if (!/^word\/.*\.(xml|rels)$/.test(f.name)) return false;
+        return take(f);
+      },
+    });
+    const referenced = new Set<string>();
+    for (const [name, data] of Object.entries(files)) {
+      if (!name.endsWith('.rels')) continue;
+      const dir = name.replace(/_rels\/[^/]+\.rels$/, '');
+      for (const m of strFromU8(data).matchAll(/Target="([^"]+)"/g)) {
+        const target = m[1]!;
+        if (/^[a-z]+:/i.test(target)) continue; // external links are never fetched
+        referenced.add(normalize(target.startsWith('/') ? target.slice(1) : dir + target));
+      }
+    }
+    if (!tooLarge && referenced.size) {
+      Object.assign(files, unzipSync(bytes, { filter: (f) => !(f.name in files) && referenced.has(f.name) && take(f) }));
+    }
   } catch (err) {
     throw new DocxError('CORRUPT_DOCX', String((err as Error).message));
   }
+  if (tooLarge) throw new DocxError('DOCX_TOO_LARGE', tooLarge);
   if (!files['word/document.xml']) throw new DocxError('NOT_DOCX');
+  // Anything that breaks while reading the parts means a damaged document, with a code callers can explain (D21).
+  try {
+    return readDocx(files);
+  } catch (err) {
+    if (err instanceof DocxError) throw err;
+    throw new DocxError('CORRUPT_DOCX', String((err as Error)?.message ?? err).slice(0, 200));
+  }
+}
+
+function readDocx(files: Record<string, Uint8Array>): ParsedDocx {
   const ctx = new Context(files);
   loadStyles(ctx);
   const docPart: Part = { path: 'word/document.xml', rels: loadRels(ctx, 'word/document.xml') };

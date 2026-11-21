@@ -12,7 +12,7 @@ Hilvana une, divide, firma, numera y limpia PDFs, y convierte Word a PDF, **en t
 
 Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana encadena los pasos, los valida antes de tocar nada y comprueba al final que se cumplió el objetivo. Tu agente de IA (por ejemplo Claude) puede usarlo directamente a través de un servidor **MCP**.
 
-> Estado: **v0.1, fase 0**. El motor, las recetas, la CLI y el servidor MCP funcionan. La interfaz web llega en la fase 1 ([hoja de ruta](docs/roadmap.md)).
+> Estado: **v0.1 publicada en npm**. El motor, las recetas, la CLI y el servidor MCP funcionan. La **aplicación web** (fase 1) procesa todo en el navegador, sin subir archivos, y funciona sin conexión ([docs/web.md](docs/web.md), [hoja de ruta](docs/roadmap.md)).
 
 ### Qué puede hacer hoy
 
@@ -73,30 +73,31 @@ Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word �
 
 Detalles en [PRIVACY.md](PRIVACY.md).
 
-### Instalación (desde el código, mientras se publica en npm)
+### Instalación
 
-Requiere Node.js 20 o superior.
+Requiere Node.js 20 o superior. No hace falta instalar nada más:
 
 ```bash
-git clone https://github.com/gethilvana/hilvana && cd hilvana
-npm install && npm run build
-node packages/cli/dist/main.js --help
+npx hilvana --help
+npx hilvana merge a.pdf b.pdf -o ambos.pdf
 ```
 
 ### Usarlo con Claude (MCP)
 
-En la configuración de Claude Desktop (`claude_desktop_config.json`), con la ruta donde clonaste el repositorio y la carpeta que quieres autorizar:
+En la configuración de Claude Desktop (`claude_desktop_config.json`), con la carpeta que quieres autorizar:
 
 ```json
 {
   "mcpServers": {
     "hilvana": {
-      "command": "node",
-      "args": ["/ruta/a/hilvana/packages/mcp/dist/main.js", "--root", "/Users/tu-usuario/Documentos/PDFs", "--lang", "es"]
+      "command": "npx",
+      "args": ["-y", "hilvana-mcp", "--root", "/Users/tu-usuario/Documentos/PDFs", "--lang", "es"]
     }
   }
 }
 ```
+
+En Windows usa `"command": "cmd"` y antepone `"/c", "npx"` a los argumentos; escribe las rutas con `/` (por ejemplo `C:/Users/tu-usuario/Documents/PDFs`).
 
 Luego puedes pedirle a Claude, por ejemplo: *"Une las facturas de la carpeta, numera las páginas, firma la última con firma.png y deja el resultado por debajo de 2 MB."*
 
@@ -110,22 +111,19 @@ Hilvana merges, splits, signs, numbers and cleans PDFs, and converts Word to PDF
 
 What makes it different is **recipes**: you describe the result, Hilvana chains the steps, validates them before touching anything, and checks at the end that the goal was met. Your AI agent (Claude, for example) can use it directly through an **MCP** server.
 
-> Status: **v0.1, phase 0**. The engine, recipes, CLI and MCP server work. The web app arrives in phase 1 ([roadmap](docs/roadmap.md)).
+> Status: **v0.1 on npm**. The engine, recipes, CLI and MCP server work. The **web app** (phase 1) processes everything in the browser, never uploads files, and works offline ([docs/web.md](docs/web.md), [roadmap](docs/roadmap.md)).
 
 ### Quick start
 
-```bash
-git clone https://github.com/gethilvana/hilvana && cd hilvana
-npm install && npm run build
-node packages/cli/dist/main.js --help --lang en
-```
+Requires Node.js 20 or later:
 
 ```bash
-hilvana merge a.pdf b.pdf -o both.pdf
-hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
-hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
-hilvana compress scan.pdf --target 2MB  # gentlest setting that fits (docs/compression.md)
-hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
+npx hilvana --help --lang en
+npx hilvana merge a.pdf b.pdf -o both.pdf
+npx hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
+npx hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
+npx hilvana compress scan.pdf --target 2MB  # gentlest setting that fits (docs/compression.md)
+npx hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 ```
 
 ### With Claude (MCP)
@@ -134,12 +132,14 @@ hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 {
   "mcpServers": {
     "hilvana": {
-      "command": "node",
-      "args": ["/path/to/hilvana/packages/mcp/dist/main.js", "--root", "/Users/you/Documents/PDFs", "--lang", "en"]
+      "command": "npx",
+      "args": ["-y", "hilvana-mcp", "--root", "/Users/you/Documents/PDFs", "--lang", "en"]
     }
   }
 }
 ```
+
+On Windows, use `"command": "cmd"` and put `"/c", "npx"` before the arguments.
 
 Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Destructive steps require `confirm: true`, which the agent should only send after you agree.
 
@@ -161,6 +161,7 @@ Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, pl
 | [`@hilvana/recipes`](packages/recipes) | Recipe schema (JSON Schema included), validator, runner and goal checks, in Spanish and English. |
 | [`hilvana`](packages/cli) | Command-line tool. |
 | [`hilvana-mcp`](packages/mcp) | MCP server for AI agents. |
+| [`@hilvana/web`](packages/web) | Web app (not published to npm): the same engine in the browser, as an offline-capable PWA. See [docs/web.md](docs/web.md). |
 
 ## Development
 
@@ -169,6 +170,8 @@ npm install
 npm run build      # TypeScript project references
 npm test           # Vitest
 npm run licenses   # blocks AGPL/GPL in production dependencies
+npm run dev -w @hilvana/web                     # web app at http://localhost:5173
+npm run build:web && npm run e2e -w @hilvana/web  # browser tests (Playwright)
 ```
 
 ## License

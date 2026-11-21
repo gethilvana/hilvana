@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { PDFDocument, StandardFonts, degrees } from 'pdf-lib';
-import { inspect, merge, numberPages, selectPages, stampImage, stampText, stripMetadata, watermark } from '@hilvana/core';
+import { inspect, load, merge, numberPages, selectPages, stampImage, stampText, stripMetadata, watermark } from '@hilvana/core';
 import { TINY_PNG, makePdf } from './helpers.js';
 
 const require = createRequire(import.meta.url);
@@ -141,5 +141,15 @@ describe('D14 · form fields survive merge and page selection', () => {
     const src = await formPdf('nombre', 'Ana');
     expect((await PDFDocument.load(await selectPages(src, '1'))).getForm().getFields()).toHaveLength(2);
     expect((await PDFDocument.load(await selectPages(src, '2'))).getForm().getFields()).toHaveLength(0);
+  });
+});
+
+// D17: qpdf-style encrypted files (object streams) were reported as invalid instead of protected.
+describe('encrypted PDFs are reported as protected (D17)', () => {
+  it.each(['con-contrasena.pdf', 'solo-permisos.pdf'])('%s', async (name) => {
+    const { readFile } = await import('node:fs/promises');
+    const bytes = new Uint8Array(await readFile(new URL(`../../web/e2e/fixtures/${name}`, import.meta.url)));
+    await expect(inspect(bytes)).rejects.toMatchObject({ code: 'ENCRYPTED' });
+    await expect(load(bytes)).rejects.toMatchObject({ code: 'ENCRYPTED' });
   });
 });

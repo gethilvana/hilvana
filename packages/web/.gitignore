@@ -1,0 +1,6 @@
+public/fonts/
+public/pdfjs/
+dist/
+test-results/
+playwright-report/
+coverage-e2e/

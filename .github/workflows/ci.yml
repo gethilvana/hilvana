@@ -28,3 +28,26 @@ jobs:
       - name: License policy (no AGPL/GPL in production dependencies)
         if: matrix.os == 'ubuntu-latest' && matrix.node == 22
         run: npm run licenses
+
+  web:
+    # The web app, tested in a real browser against the production build
+    # (Content-Security-Policy, service worker and offline mode included).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run build:web
+      - run: npx playwright install --with-deps chromium firefox webkit
+        working-directory: packages/web
+      - run: npm run e2e -w @hilvana/web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: packages/web/playwright-report
+          retention-days: 7
