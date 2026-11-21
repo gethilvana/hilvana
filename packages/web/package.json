@@ -23,8 +23,11 @@
     "preact": "^11.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
-    "vite": "^8.3.8",
-    "pdf-lib": "^1.17.1"
+    "fast-png": "^7.0.1",
+    "monocart-coverage-reports": "^3.2.1",
+    "pdf-lib": "^1.17.1",
+    "vite": "^8.3.8"
   }
 }

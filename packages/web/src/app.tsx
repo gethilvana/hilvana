@@ -35,6 +35,8 @@ export function App() {
   const resultRef = useRef<HTMLDivElement>(null);
   const docsRef = useRef(docs);
   docsRef.current = docs;
+  // Each run gets a number; switching tools or starting over makes older runs stale (D19).
+  const runId = useRef(0);
 
   useEffect(() => {
     const onHash = () => setToolId(toolFromHash());
@@ -60,6 +62,8 @@ export function App() {
 
   // Switching tools keeps the files that still make sense.
   useEffect(() => {
+    runId.current++;
+    setBusy(false);
     setResult(null);
     setError(null);
     setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
@@ -125,6 +129,7 @@ export function App() {
 
   async function runTool() {
     if (!canRun) return;
+    const mine = ++runId.current;
     setBusy(true);
     setError(null);
     setResult(null);
@@ -158,12 +163,13 @@ export function App() {
         const r = await engine.run(recipe, files, lang);
         res = { ...r, recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : recipe };
       }
+      if (mine !== runId.current) return;
       setResult(res);
       requestAnimationFrame(() => resultRef.current?.querySelector<HTMLElement>('#result')?.focus());
     } catch (err) {
-      setError((err as Error).message);
+      if (mine === runId.current) setError((err as Error).message);
     } finally {
-      setBusy(false);
+      if (mine === runId.current) setBusy(false);
     }
   }
 
@@ -282,6 +288,7 @@ export function App() {
 
           <div ref={resultRef} aria-live="polite">
             {result && <ResultPanel s={s} result={result} onReset={() => {
+              runId.current++;
               setResult(null);
               setDocs((list) => { list.forEach(drop); return []; });
               setSignature(null);

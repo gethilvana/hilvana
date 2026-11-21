@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
 import { addFiles, download, open, runTool } from './helpers';
 
 test('on a phone, tools are picked from a menu and merging works', async ({ page }) => {

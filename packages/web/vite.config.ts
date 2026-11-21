@@ -79,7 +79,8 @@ export default defineConfig({
   worker: { format: 'es' },
   build: {
     target: 'es2022',
-    sourcemap: false,
+    // Source maps only for coverage runs; the published site ships without them.
+    sourcemap: process.env.COVERAGE === '1',
     chunkSizeWarningLimit: 2000,
   },
   plugins: [csp(), serviceWorker()],

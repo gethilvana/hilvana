@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
 import { addFiles, download, open, runTool } from './helpers';
 
 test('the page declares a policy that only allows its own origin', async ({ page }) => {

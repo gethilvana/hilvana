@@ -4,7 +4,7 @@
 // and the only requests made are for the bundled open fonts.
 import * as core from '@hilvana/core';
 import { HilvanaError } from '@hilvana/core';
-import { fallbackTextFonts, wordToPdf, type FontLoader } from '@hilvana/office';
+import { DocxError, fallbackTextFonts, wordToPdf, type FontLoader } from '@hilvana/office';
 import { kindOf, run, RecipeError, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import type { FromWorker, ToWorker, Output } from './protocol';
 
@@ -30,9 +30,10 @@ const convertOnce: WordConverter = (docx) => {
   return p;
 };
 
-function message(err: unknown, lang: Lang): string {
+function message(err: unknown, lang: Lang, name = ''): string {
   if (err instanceof RecipeError) return err.issues.map((i) => i.message).join(' ');
   if (err instanceof HilvanaError) return t(lang, err.code, err.details);
+  if (err instanceof DocxError) return t(lang, err.code, { name });
   return String((err as Error)?.message ?? err);
 }
 
@@ -60,7 +61,7 @@ async function handle(msg: ToWorker): Promise<void> {
         }
         return post({ type: 'added', id: msg.id, kind });
       } catch (err) {
-        return post({ type: 'added', id: msg.id, kind, error: message(err, msg.lang) });
+        return post({ type: 'added', id: msg.id, kind, error: message(err, msg.lang, msg.name) });
       }
     }
     case 'remove':
