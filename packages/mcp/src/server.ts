@@ -142,11 +142,11 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     {
       title: 'Run a recipe',
       description:
-        'Runs a recipe locally and writes the result to a NEW file, then verifies the goals. Inputs are never modified. If the recipe has destructive steps it returns the plan and asks for confirmation instead of running; set confirm=true only after the user agreed.',
+        'Runs a recipe locally and writes the result to a NEW file (or, when the recipe ends with split, one new file per part in the output folder), then verifies the goals. Inputs are never modified. If the recipe has destructive steps it returns the plan and asks for confirmation instead of running; set confirm=true only after the user agreed.',
       inputSchema: {
         recipe: recipeInput,
         files: z.array(fileRef).min(1),
-        output: z.string().describe('Path of the new PDF, inside an allowed folder. Must not be an input.'),
+        output: z.string().describe('Path of the new PDF, inside an allowed folder. Must not be an input. When the recipe ends with a split step, an existing folder for the parts instead.'),
         confirm: z.boolean().optional().describe('Required when the recipe has destructive steps, after the user agreed.'),
         overwrite: z.boolean().optional().describe('Replace the output if it already exists (never an input).'),
         lang: langInput,
@@ -159,9 +159,11 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       const word = converter(engine ?? defaults.engine);
       try {
         const { files, realPaths } = await loadFiles(guard, refs);
-        const target = await guard.writable(output, { inputs: realPaths, overwrite });
         const p = await plan(recipe, files, { lang: l, word });
         if (!p.ok) return fail(JSON.stringify({ ok: false, issues: p.issues }, null, 2));
+        const splits = p.recipe?.steps.at(-1)?.op === 'split';
+        const folder = splits ? await guard.folder(output) : undefined;
+        const target = splits ? undefined : await guard.writable(output, { inputs: realPaths, overwrite });
         if (p.destructiveSteps.length > 0 && !confirm) {
           return text({
             ran: false,
@@ -174,10 +176,15 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
           });
         }
         const res = await run(recipe, files, { lang: l, confirmed: true, word });
-        await safeWrite(target, res.bytes, { inputs: realPaths, overwrite });
+        // Check every destination before writing any, so a refused name never leaves half the parts behind.
+        const targets = folder
+          ? await Promise.all(res.outputs.map((o) => guard.writable(path.join(folder, o.filename), { inputs: realPaths, overwrite })))
+          : [target!];
+        for (const [i, t] of targets.entries()) await safeWrite(t, res.outputs[i]!.bytes, { inputs: realPaths, overwrite });
         return text({
           ran: true,
-          output: target,
+          output: folder ?? target,
+          outputs: res.outputs.map((o, i) => ({ path: targets[i], pageCount: o.pageCount, bytes: o.byteLength })),
           pageCount: res.pageCount,
           bytes: res.byteLength,
           allGoalsMet: res.allGoalsMet,

@@ -10,6 +10,8 @@ export interface Result {
   notes: string[];
   warnings: string[];
   recipe?: unknown;
+  /** The recipe ran once per input file (Word batch). */
+  recipeEach?: boolean;
   zipName?: string;
 }
 
@@ -72,7 +74,7 @@ export function ResultPanel({ s, result, onReset }: { s: Strings; result: Result
       {json && (
         <details class="recipe">
           <summary>{s.result.recipe}</summary>
-          <p class="hint">{s.result.recipeHint.split('`').map((part, i) => (i % 2 ? <code key={i}>{part}</code> : part))}</p>
+          <p class="hint">{(result.recipeEach ? s.result.recipeEachHint : s.result.recipeHint).split('`').map((part, i) => (i % 2 ? <code key={i}>{part}</code> : part))}</p>
           <pre><code>{json}</code></pre>
           <button type="button" class="btn btn-quiet btn-small" onClick={async () => {
             try { await navigator.clipboard.writeText(json); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked */ }

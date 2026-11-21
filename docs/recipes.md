@@ -37,6 +37,13 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `setMetadata` | `title?`, `author?`, `subject?` | sí |
 | `optimize` | — (sin pérdida) | |
 | `compress` | `level?: "lossless" \| "balanced" \| "strong" \| "max"`, `targetBytes?` (por defecto, `goals.maxBytes`) | |
+| `split` | `ranges?: string[]` (sin rangos: un archivo por página). **Solo como último paso** · Last step only | |
+
+**Dividir · Split:** una receta que termina en `split` produce varios archivos: `{nombre}-{rango}.pdf` (o `{nombre}-{página}.pdf`). Los objetivos se comprueban en cada parte. En la CLI, `-o` es la carpeta de las partes y se crea si no existe. En el MCP, `output` es una carpeta existente dentro de las autorizadas; se comprueban todos los destinos antes de escribir. · A recipe ending with `split` produces several files, and goals are checked on each part. CLI: `-o` is the folder (created if needed). MCP: `output` is an existing allowed folder; every destination is checked before anything is written.
+
+```json
+{ "version": 1, "steps": [{ "op": "merge" }, { "op": "numberPages" }, { "op": "split", "ranges": ["1-3", "4-last"] }], "output": { "filename": "lote" } }
+```
 
 **Rangos de páginas · Page ranges** (1-based): `"1-3,5"`, `"last"`, `"last-1"`, `"4-last"`, `"odd"`, `"even"`, `"all"`.
 
@@ -46,5 +53,5 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 
 1. **plan**: valida el esquema, los nombres y tipos de archivo, y simula el número de páginas tras cada paso para detectar rangos que no existirán. No modifica nada. · Validates schema, file names and kinds, and simulates page counts after each step. Changes nothing.
 2. **confirm**: si hay pasos destructivos, se requiere confirmación explícita. · Destructive steps require explicit confirmation.
-3. **run**: ejecuta localmente y escribe un archivo nuevo. · Runs locally and writes a new file.
+3. **run**: ejecuta localmente y escribe un archivo nuevo (o uno por parte con `split`). · Runs locally and writes a new file (one per part with `split`).
 4. **verify**: comprueba cada objetivo y explica el resultado (✓/✗). Un objetivo no cumplido no se oculta. · Checks each goal and explains the outcome. Unmet goals are reported, never hidden.

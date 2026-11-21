@@ -71,25 +71,8 @@ async function handle(msg: ToWorker): Promise<void> {
       try {
         const inputs: InputFile[] = msg.files.map((f) => ({ name: f.name, bytes: files.get(f.id)!.bytes }));
         const res = await run(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
-        const out: Output = { name: res.filename, bytes: res.bytes, pageCount: res.pageCount };
-        return post({ type: 'done', job: msg.job, outputs: [out], notes: [...res.notes, ...res.goals.filter((g) => !g.met).map((g) => g.message)], warnings: res.warnings }, [res.bytes.buffer]);
-      } catch (err) {
-        return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
-      }
-    }
-    case 'split': {
-      try {
-        const src = files.get(msg.file)!;
-        const base = src.name.replace(/\.[^.]+$/, '');
-        const pdf = kindOf(src.bytes) === 'word' ? (await convertOnce(src.bytes)).pdf : src.bytes;
-        const parts = msg.ranges ? await core.split(pdf, msg.ranges) : await core.burst(pdf);
-        const labels = msg.ranges ?? parts.map((_, i) => String(i + 1));
-        const outputs: Output[] = await Promise.all(parts.map(async (bytes, i) => ({
-          name: `${base}-${labels[i]!.replace(/[^\w-]+/g, '_')}.pdf`,
-          bytes,
-          pageCount: (await core.inspect(bytes)).pageCount,
-        })));
-        return post({ type: 'done', job: msg.job, outputs, notes: [], warnings: [] }, outputs.map((o) => o.bytes.buffer));
+        const outputs: Output[] = res.outputs.map((o) => ({ name: o.filename, bytes: o.bytes, pageCount: o.pageCount }));
+        return post({ type: 'done', job: msg.job, outputs, notes: [...res.notes, ...res.goals.filter((g) => !g.met).map((g) => g.message)], warnings: res.warnings }, outputs.map((o) => o.bytes.buffer));
       } catch (err) {
         return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
       }

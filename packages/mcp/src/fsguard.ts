@@ -47,12 +47,13 @@ export class FolderGuard {
     return real;
   }
 
-  /** Resolves an existing folder for listing. */
+  /** Resolves an existing folder inside the allowed roots (for listing, and for the parts of a split). */
   async folder(p: string): Promise<string> {
     const real = await fs.realpath(this.expand(p)).catch(() => {
       throw new Error(`Folder not found: ${p}`);
     });
     if (!this.inside(real)) throw new Error(`Outside the allowed folders: ${p}`);
+    if (!(await fs.stat(real)).isDirectory()) throw new Error(`Not a folder: ${p}`);
     return real;
   }
 

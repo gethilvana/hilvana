@@ -106,6 +106,18 @@ describe('hilvana CLI', { timeout: 60_000 }, () => {
   });
 });
 
+describe('recipes that split', () => {
+  it('write each part into the -o folder, creating it', async () => {
+    await fs.writeFile(path.join(dir, 'dividir.json'), JSON.stringify({ version: 1, steps: [{ op: 'split', ranges: ['1', '2-last'] }] }));
+    const r = await hilvana('run', 'dividir.json', 'a.pdf', '-o', 'partes');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/Dividir en 2 archivos/);
+    expect((await fs.readdir(path.join(dir, 'partes'))).sort()).toEqual(['a-hilvana-1.pdf', 'a-hilvana-2-last.pdf']);
+    // Running again refuses to replace the parts unless --force.
+    expect((await hilvana('run', 'dividir.json', 'a.pdf', '-o', 'partes')).err).toMatch(/ya existe/);
+  });
+});
+
 // D24: the version was hard-coded and stayed at 0.1.0 in the 0.1.1 release.
 describe('version', () => {
   it('CLI and MCP server report the version of their package', async () => {

@@ -97,6 +97,13 @@ export function pagesExpr(p: PagesChoice): string | undefined {
   return p.custom.trim() || undefined;
 }
 
+/** The ranges typed for "split by ranges" ("1-3; 4-last"), or undefined for one file per page. */
+export function splitRanges(o: Pick<Options, 'splitMode' | 'ranges'>): string[] | undefined {
+  if (o.splitMode !== 'ranges') return undefined;
+  const ranges = o.ranges.split(';').map((r) => r.trim()).filter(Boolean);
+  return ranges.length ? ranges : undefined;
+}
+
 /** Compacts [1,2,3,5,7,8] into "1-3,5,7-8" for readable recipes. */
 export function compactRange(pages: number[]): string {
   const parts: string[] = [];
@@ -121,7 +128,8 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
   const base = (steps: Recipe['steps']): Recipe => ({ version: 1, steps, output: out(suffix) });
   switch (tool) {
     case 'merge': return base([{ op: 'merge', files: names }]);
-    case 'word': return { version: 1, steps: [{ op: 'merge', files: names }], output: out() };
+    // The same recipe converts any single Word file, so it applies to each document of a batch.
+    case 'word': return { version: 1, steps: [{ op: 'merge' }], output: out() };
     case 'images': return base([{ op: 'fromImages', files: names, pageSize: o.pageSize }]);
     case 'pages': return base([{ op: 'select', pages: compactRange(o.pagesOrder ?? []) }]);
     case 'rotate': return base([{ op: 'rotate', angle: o.angle, ...(o.rotatePages.length ? { pages: compactRange([...o.rotatePages].sort((a, b) => a - b)) } : {}) }]);
@@ -133,6 +141,9 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
       ? { op: 'compress', targetBytes: Math.round(o.targetMB * 1024 * 1024) }
       : { op: 'compress', level: o.level }]);
     case 'metadata': return base([{ op: 'stripMetadata' }]);
-    case 'split': throw new Error('split does not use a recipe');
+    case 'split': {
+      const ranges = splitRanges(o);
+      return { version: 1, steps: [{ op: 'split', ...(ranges ? { ranges } : {}) }], output: out() };
+    }
   }
 }
