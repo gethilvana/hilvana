@@ -48,25 +48,31 @@ npm run e2e -w @hilvana/web
 
 Con un Chrome ya instalado: `CHROME_PATH=/ruta/a/chrome npm run e2e -w @hilvana/web`.
 
-## Publicar en pdf.jorgegrajales.dev (Cloudflare Pages)
+## Publicar en pdf.jorgegrajales.dev (Cloudflare)
+
+Cloudflare publica la app como un *Worker* que solo sirve archivos estáticos (`wrangler.jsonc` en la raíz). No hay código de servidor.
 
 Una sola vez, en el panel de Cloudflare (la misma cuenta de jorgegrajales.dev):
 
-1. **Workers & Pages → Create → Pages → Connect to Git** y elige `gethilvana/hilvana`.
-2. Configuración de compilación:
+1. **Workers & Pages → Create application → Import a repository** y elige `gethilvana/hilvana`.
+2. **Set up your application**:
 
    | Campo | Valor |
    |---|---|
-   | Production branch | `main` |
-   | Framework preset | None |
+   | Project name | `hilvana` |
    | Build command | `npm run build && npm run build:web` |
-   | Build output directory | `packages/web/dist` |
-   | Variable de entorno | `NODE_VERSION` = `22` |
+   | Deploy command | `npx wrangler deploy` |
+   | Non-production branch deploy command | `npx wrangler versions upload` |
+   | Path (root directory) | `/` |
+   | Enable Preview builds | Activado (cada PR recibe una URL de prueba) |
+   | Protect with Cloudflare Access | Desactivado (el sitio es público) |
+   | Variables › Variable name / value | `NODE_VERSION` / `22` |
+   | API token | *Create new token* (lo usa Cloudflare para desplegar desde GitHub) |
 
-3. Cuando termine la primera compilación: **Custom domains → Set up a custom domain** → `pdf.jorgegrajales.dev`. Como el dominio ya está en Cloudflare, el registro DNS se crea solo.
-4. **Importante para la privacidad:** no actives *Web Analytics* en este proyecto, ni *Rocket Loader* o *Email Address Obfuscation* en la zona. Inyectan scripts que la política de seguridad bloquearía y que contradicen la promesa de la página.
+3. **Deploy**. Cuando termine: en el Worker, **Settings → Domains & Routes → Add → Custom domain** → `pdf.jorgegrajales.dev`. Como el dominio ya está en Cloudflare, el registro DNS se crea solo.
+4. **Privacidad:** en la zona `jorgegrajales.dev`, **Rules → Configuration Rules → Create rule** con *Hostname equals* `pdf.jorgegrajales.dev`, y apaga **Rocket Loader** y **Email Obfuscation**. Inyectan scripts que la política de seguridad bloquearía. No actives Web Analytics para este sitio.
 
-Desde ahí, cada cambio que se una a `main` se publica solo, y cada PR recibe una URL de vista previa.
+Desde ahí, cada cambio que se una a `main` se publica solo.
 
 ### Comprobar la publicación
 

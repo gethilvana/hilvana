@@ -1,0 +1,17 @@
+// Deploys the web app (packages/web) to Cloudflare as a static-assets-only Worker.
+// Build: npm run build && npm run build:web · Deploy: npx wrangler deploy
+// There is no server code: Cloudflare only serves the files in packages/web/dist,
+// including dist/_headers (security policy) written by the web build.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hilvana",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./packages/web/dist",
+    // Tools are chosen with #/hash routes, so every real path is a file; unknown paths get a 404.
+    "not_found_handling": "404-page"
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": { "enabled": false }
+}
