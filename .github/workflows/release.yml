@@ -15,13 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No registry-url: with it, setup-node writes an .npmrc that points to a placeholder
+      # NODE_AUTH_TOKEN, and npm tries that token instead of trusted publishing (OIDC) → E404.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
           cache: npm
       # Trusted publishing needs npm 11.5.1 or later; Node 22 ships with npm 10.
       - run: npm install -g npm@latest
+      - name: Check the publishing setup (no secrets printed)
+        run: |
+          echo "npm $(npm --version)"
+          if [ -n "${NODE_AUTH_TOKEN+x}" ]; then echo "::error::NODE_AUTH_TOKEN is set; it would override trusted publishing"; exit 1; fi
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then echo "::error::No OIDC token available (permissions: id-token: write)"; exit 1; fi
+          echo "Trusted publishing ready"
       - run: npm ci
       - run: npm run build
       - run: npm test
