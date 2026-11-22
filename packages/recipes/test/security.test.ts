@@ -81,6 +81,24 @@ describe('signDigital step', () => {
     expect(pdfsig(res.bytes).map((s) => [s.name, s.valid])).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
   });
 
+  withPdfsig('signs a signed, protected PDF as it is, keeping its password and its signatures', async () => {
+    const { PDF, P12Signer } = await import('@libpdf/core');
+    const { protect } = await import('@hilvana/core');
+    const prot = await protect(await makePdf(2), { password: 'abierto' });
+    const pdf = await PDF.load(prot, { credentials: 'abierto' });
+    const signed = (await pdf.sign({ signer: await P12Signer.create(ana().bytes, 'clave-ana'), level: 'B-B' })).bytes;
+    const recipe = { version: 1, steps: [{ op: 'signDigital', certificate: 'luis.p12' }], goals: { pageCount: 2 } };
+    const files = [{ name: 'extracto.pdf', bytes: signed, password: 'abierto' }, luis()];
+    const p = await plan(recipe, files, 'es');
+    expect(p.ok).toBe(true);
+    expect(p.warnings.join(' ')).toContain('conserva su protección');
+    expect(p.warnings.join(' ')).not.toContain('se guarda sin contraseña');
+    const res = await run(recipe, files);
+    expect(res.allGoalsMet).toBe(true);
+    await expect(unlock(res.bytes)).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+    expect(pdfsig(res.bytes, 'abierto').map((s) => [s.name, s.valid])).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
+  });
+
   it('explains a missing or wrong certificate password, and a file that is not a certificate', async () => {
     const doc = { name: 'a.pdf', bytes: await makePdf(1) };
     const recipe = { version: 1, steps: [{ op: 'signDigital', certificate: 'ana.p12' }] };

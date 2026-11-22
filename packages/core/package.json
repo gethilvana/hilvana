@@ -1,6 +1,6 @@
 {
   "name": "@hilvana/core",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Hilvana PDF engine: environment-agnostic PDF operations that run locally (browser or Node).",
   "keywords": [
     "pdf",

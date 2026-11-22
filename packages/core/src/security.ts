@@ -1,6 +1,6 @@
 import { HilvanaError } from './errors.js';
 import { countSignatures, dropSignatures, load, stampText, type Anchor, type PdfBytes, type TextOptions } from './operations.js';
-import { unlock } from './unlock.js';
+import { quietDecryption, unlock, type Protection } from './unlock.js';
 
 // ---------------------------------------------------------------------------------------------
 // Protecting with a password
@@ -175,6 +175,8 @@ export interface CertificateSignOptions {
   visible?: VisibleSignature | false;
   /** Signing time (defaults to now). It is the device's clock, not a trusted timestamp. */
   now?: Date;
+  /** Password to open the document, when it needs one. */
+  openPassword?: string;
 }
 
 export interface CertificateSignResult {
@@ -184,6 +186,55 @@ export interface CertificateSignResult {
   visible: boolean;
   /** Signatures the document already had; they stay valid. */
   previousSignatures: number;
+  /**
+   * The protection the result keeps. A protected document that was already signed is signed as
+   * it is, encryption included, because removing the encryption would break its signatures.
+   * Otherwise protection is removed ('none').
+   */
+  protection: Protection;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+type Ctor = Function;
+
+/**
+ * Works around @libpdf/core 0.5: objects read from an encrypted file come back marked as changed,
+ * so an incremental save writes them again. For a signature dictionary that re-encrypts its value
+ * (which the PDF standard keeps unencrypted) and breaks the signature. Here every object read from
+ * the file starts clean; only what signing really changes is written in the new revision.
+ */
+function keepReadObjectsUnchanged(pdf: unknown, PdfDict: Ctor, PdfArray: Ctor, PdfRef: Ctor) {
+  type Obj = { clearDirty?: () => void; [Symbol.iterator]?: () => Iterator<unknown> };
+  const registry = (pdf as { ctx?: { registry?: { resolver?: (ref: unknown) => unknown; setResolver?: (r: (ref: unknown) => unknown) => void; getLoadedObjects?: () => Map<unknown, unknown> } } }).ctx?.registry;
+  if (!registry?.resolver || !registry.setResolver || !registry.getLoadedObjects) {
+    // Without the workaround the earlier signatures would break: refuse rather than damage them.
+    throw new HilvanaError('ENCRYPTED', { reason: 'signing an encrypted, signed PDF is not supported by this version' });
+  }
+  const clean = (obj: unknown): void => {
+    if (!(obj instanceof PdfDict) && !(obj instanceof PdfArray)) return;
+    (obj as Obj).clearDirty?.();
+    for (const item of obj as Iterable<unknown>) {
+      const value = Array.isArray(item) && obj instanceof PdfDict ? item[1] : item;
+      if (!(value instanceof PdfRef)) clean(value);
+    }
+  };
+  for (const obj of registry.getLoadedObjects().values()) clean(obj);
+  const read = registry.resolver;
+  registry.setResolver((ref) => {
+    const obj = read(ref);
+    clean(obj);
+    return obj;
+  });
+  // Signing reloads the document after writing the signature and saves once more: without this,
+  // that last save would rewrite the decrypted objects as a revision the signature does not cover.
+  const doc = pdf as { reload?: (bytes: Uint8Array) => Promise<void> };
+  const reload = doc.reload?.bind(pdf);
+  if (reload) {
+    doc.reload = async (bytes) => {
+      await reload(bytes);
+      keepReadObjectsUnchanged(pdf, PdfDict, PdfArray, PdfRef);
+    };
+  }
 }
 
 /**
@@ -200,16 +251,23 @@ export async function signWithCertificate(bytes: PdfBytes, opts: CertificateSign
   if (now < info.validFrom) throw new HilvanaError('CERTIFICATE_NOT_YET_VALID', { from: info.validFrom.toISOString().slice(0, 10) });
   if (now > info.validTo) throw new HilvanaError('CERTIFICATE_EXPIRED', { to: info.validTo.toISOString().slice(0, 10) });
 
-  const opened = await unlock(bytes);
+  const opened = await unlock(bytes, opts.openPassword);
   let base = opened.bytes;
-  const previous = opened.protection === 'none' ? countSignatures(await load(base)) : 0;
+  const previous = countSignatures(await load(base));
+  const { PDF, PdfDict, PdfArray, PdfRef } = await import('@libpdf/core');
+  if (previous > 0 && opened.protection !== 'none') {
+    // Sign the original, still encrypted, as a new revision: its signatures stay valid.
+    const pdf = await quietDecryption(() => PDF.load(bytes, { credentials: opts.openPassword ?? '' }));
+    keepReadObjectsUnchanged(pdf, PdfDict, PdfArray, PdfRef);
+    const res = await quietDecryption(() => pdf.sign({ signer, reason: opts.reason, location: opts.location, signingTime: now, level: 'B-B' }));
+    return { bytes: res.bytes, signer: info, visible: false, previousSignatures: previous, protection: opened.protection };
+  }
   const drawVisible = !!opts.visible && previous === 0;
   if (drawVisible && opts.visible) {
     const v = opts.visible;
     base = await stampText(base, { text: v.text, pages: v.pages ?? 'last', anchor: v.anchor ?? 'bottom-right', size: v.size ?? 8, color: '#1c2f6b', fonts: v.fonts });
   }
-  const { PDF } = await import('@libpdf/core');
   const pdf = await PDF.load(base);
   const res = await pdf.sign({ signer, reason: opts.reason, location: opts.location, signingTime: now, level: 'B-B' });
-  return { bytes: res.bytes, signer: info, visible: drawVisible, previousSignatures: previous };
+  return { bytes: res.bytes, signer: info, visible: drawVisible, previousSignatures: previous, protection: 'none' };
 }

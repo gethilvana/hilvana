@@ -75,6 +75,26 @@ test('countersigns a signed PDF and keeps the first signature valid', async ({ p
   if (hasPdfsig) expect(await pdfsig(out.bytes)).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
 });
 
+test('signs a signed, restricted PDF as it is, keeping its protection and its first signature', async ({ page }) => {
+  const { PDF, P12Signer } = await import('@libpdf/core');
+  const { protect } = await import('@hilvana/core');
+  const restricted = await protect(new Uint8Array(await readFile(fx('factura-noviembre.pdf'))), { allowModify: false });
+  const pdf = await PDF.load(restricted);
+  const signed = (await pdf.sign({ signer: await P12Signer.create(new Uint8Array(await readFile(certificate('ana.p12'))), 'clave-ana'), level: 'B-B' })).bytes;
+  const file = path.join(await mkdtemp(path.join(tmpdir(), 'hilvana-e2e-')), 'extracto-firmado.pdf');
+  await writeFile(file, signed);
+
+  await open(page, 'certify');
+  await page.locator('.drop input[type=file]').setInputFiles(file);
+  await expect(page.locator('.file-note').nth(1)).toHaveText('Está protegido y firmado: se firma tal cual, así que conserva su protección.');
+  await openCertificate(page, 'luis.p12', 'clave-luis');
+  await runTool(page);
+  await expect(page.locator('.result')).toContainText('conserva su protección');
+  const out = await downloadBytes(page);
+  expect((await inspect(out.bytes)).protection).toBe('permissions');
+  if (hasPdfsig) expect(await pdfsig(out.bytes)).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
+});
+
 test('protects with a password typed twice, and never shows it in the recipe', async ({ page }) => {
   const net = await open(page, 'protect');
   await addFiles(page, 'factura-octubre.pdf');

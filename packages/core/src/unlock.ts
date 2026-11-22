@@ -11,6 +11,27 @@ export interface UnlockResult {
 
 const ENCRYPT = new TextEncoder().encode('/Encrypt');
 
+/**
+ * The decryption library logs a warning for every string it cannot decrypt. Signature values are
+ * never encrypted (the PDF standard says so), so signed encrypted files would flood the console
+ * with false alarms. Those messages, and only those, are dropped while `fn` runs.
+ */
+export async function quietDecryption<T>(fn: () => Promise<T>): Promise<T> {
+  const { warn, error } = console;
+  const filter = (log: (...args: unknown[]) => void) => (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].startsWith('Failed to decrypt object')) return;
+    log(...args);
+  };
+  console.warn = filter(warn);
+  console.error = filter(error);
+  try {
+    return await fn();
+  } finally {
+    console.warn = warn;
+    console.error = error;
+  }
+}
+
 /** Cheap pre-check: an encrypted PDF names its /Encrypt dictionary in the trailer. */
 function mentionsEncrypt(bytes: Uint8Array): boolean {
   outer: for (let i = 0; i <= bytes.length - ENCRYPT.length; i++) {
@@ -59,7 +80,7 @@ export async function unlock(bytes: Uint8Array, password = ''): Promise<UnlockRe
   const { PDF } = await import('@libpdf/core');
   const open = async (pw: string) => {
     try {
-      const pdf = await PDF.load(bytes, { credentials: pw });
+      const pdf = await quietDecryption(() => PDF.load(bytes, { credentials: pw }));
       return pdf.isAuthenticated ? pdf : undefined;
     } catch {
       return undefined; // without the right password the document cannot even be parsed
@@ -77,6 +98,6 @@ export async function unlock(bytes: Uint8Array, password = ''): Promise<UnlockRe
   // Restrictions are removed along with the encryption: the person opened the file themselves,
   // and every surface tells them the result no longer carries those restrictions.
   pdf.removeProtection({ ignorePermissions: true });
-  const out = await pdf.save();
+  const out = await quietDecryption(() => pdf.save());
   return { bytes: out, protection: free ? 'permissions' : 'password' };
 }

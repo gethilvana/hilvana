@@ -125,8 +125,12 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlo
               {d.status === 'locked' && <PasswordForm s={s} doc={d} onUnlock={onUnlock} />}
               {bad && <span class="file-error">{s.file.wrongKind}</span>}
               {!bad && d.info && d.info.signatures > 0 && <span class="file-note">{keepsSignatures ? s.file.signedKept : s.file.signed}</span>}
-              {!bad && d.info?.protection === 'permissions' && <span class="file-note">{s.file.restricted}</span>}
-              {!bad && d.info?.protection === 'password' && <span class="file-note">{s.file.unlocked}</span>}
+              {!bad && keepsSignatures && d.info && d.info.signatures > 0 && d.info.protection !== 'none'
+                ? <span class="file-note">{s.file.protectionKept}</span>
+                : <>
+                  {!bad && d.info?.protection === 'permissions' && <span class="file-note">{s.file.restricted}</span>}
+                  {!bad && d.info?.protection === 'password' && <span class="file-note">{s.file.unlocked}</span>}
+                </>}
               {d.warnings && d.warnings.length > 0 && (
                 <details class="file-warnings">
                   <summary>{s.result.warnings}</summary>
