@@ -21,12 +21,12 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Descifrado local de PDF protegidos solo con permisos, y apertura con contraseña (web y CLI; el MCP nunca recibe contraseñas)
 - [x] Web bilingüe con procesamiento en el navegador, PWA sin conexión y política de seguridad que solo permite el propio dominio (`docs/web.md`)
 - [x] QA por riesgos de la web y del motor: 7 defectos corregidos, 88 pruebas por navegador (`docs/qa/fase-1-web.md`)
-- [ ] Publicación en pdf.jorgegrajales.dev (Cloudflare Pages) y `v0.1.1` en npm
+- [x] Publicación en pdf.jorgegrajales.dev (Cloudflare) y `v0.1.1` en npm
 - [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima)
-- [x] Imágenes → PDF en la web
+- [x] Imágenes → PDF en la web (PNG y JPEG; falta HEIC)
 - [ ] PDF → Word, PDF → imágenes
 - [ ] Word → PDF: cuadros de texto, notas al pie, columnas, encabezado de primera página
-- [ ] Arnés de calidad v1: corpus de PDFs, fidelidad, compresión, acierto del agente
+- [ ] Arnés de calidad v1: corpus de PDFs, fidelidad, compresión, acierto del agente (corpus, OCR, tachado y compresión listos en el benchmark; faltan SSIM y acierto del agente)
 - [ ] Listado en directorios de servidores MCP
 
 ## Fase 2 · Recetas (semanas 11–14)
@@ -35,7 +35,10 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Protección con contraseña y firma con certificado digital
 - [x] Tachado real
 - [x] OCR (español e inglés), en el equipo
-- [ ] Benchmark público v1
+- [x] Benchmark público v1 (`docs/benchmark.md`)
+- [x] QA de la fase 2: brechas frente al PRD y cobertura (`docs/qa/fase-2.md`)
+- [ ] Validador de interior KDP (P2, uso interno)
+- [ ] Puerta de salida: medir recetas guardadas sin romper la privacidad (ver `docs/qa/fase-2.md`, 2.3)
 
 ## Fase 3 · Uso pagado (semanas 15–18)
 
