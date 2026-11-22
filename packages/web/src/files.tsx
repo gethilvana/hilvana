@@ -131,6 +131,7 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlo
                   {!bad && d.info?.protection === 'permissions' && <span class="file-note">{s.file.restricted}</span>}
                   {!bad && d.info?.protection === 'password' && <span class="file-note">{s.file.unlocked}</span>}
                 </>}
+              {!bad && d.info?.missingPages ? <span class="file-note">{s.file.damaged(d.info.missingPages)}</span> : null}
               {d.warnings && d.warnings.length > 0 && (
                 <details class="file-warnings">
                   <summary>{s.result.warnings}</summary>

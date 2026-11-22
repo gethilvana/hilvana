@@ -139,3 +139,31 @@ describe('damaged Word documents (D21)', () => {
     await expect(wordToPdf(docx)).rejects.toMatchObject({ name: 'DocxError', code: 'CORRUPT_DOCX' });
   });
 });
+
+// Found by the public benchmark (docs/benchmark.md) on Apache POI's test documents.
+describe('Word documents from the public benchmark', { timeout: 60_000 }, () => {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const raw = (body: string) => zipSync({
+    '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+    '_rels/.rels': strToU8('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'),
+    'word/document.xml': strToU8(`<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`),
+  });
+
+  it('draws no-break spaces (some embedded fonts lack them)', async () => {
+    const res = await wordToPdf(await build(new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: 'Total a pagar: $ 1.000', font: 'Arial', bold: true, italics: true })] })] }] })));
+    expect((await pageTexts(res.pdf))[0]).toMatch(/Total a pagar: \$ ?1\.000/);
+  });
+
+  it('converts a document whose only paragraph has no text', async () => {
+    const res = await wordToPdf(raw('<w:p><w:pPr><w:rPr><w:rFonts w:ascii="Arial"/></w:rPr></w:pPr></w:p>'));
+    expect(res.pageCount).toBe(1);
+  });
+
+  it('keeps table rows and cells wrapped in content controls', async () => {
+    const cell = (t: string) => `<w:tc><w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
+    const sdt = (inner: string) => `<w:sdt><w:sdtPr/><w:sdtContent>${inner}</w:sdtContent></w:sdt>`;
+    const res = await wordToPdf(raw(`<w:tbl><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/></w:tblGrid><w:tr>${cell('Nota')}${cell('Detalle')}</w:tr>${sdt(sdt(`<w:tr>${sdt(cell('Elija un elemento.'))}${cell('Fila dentro de un control')}</w:tr>`))}</w:tbl>`));
+    const [text] = await pageTexts(res.pdf);
+    for (const s of ['Nota', 'Detalle', 'Elija un elemento.', 'Fila dentro de un control']) expect(text).toContain(s);
+  });
+});

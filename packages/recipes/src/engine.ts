@@ -219,6 +219,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         const info = await core.inspect(byName.get(name)!.bytes);
         pageCounts.set(name, info.pageCount);
         if (info.signatures > 0) warnings.push(t(lang, inPlace ? 'SIGNATURES_KEPT' : 'SIGNED_INPUT', { name }));
+        if (info.missingPages) warnings.push(t(lang, 'MISSING_PAGES', { name, count: info.missingPages }));
         // Signed in place, a protected file keeps its protection: earlier signatures depend on it.
         const protection = prepared.protections.get(name);
         if (inPlace && info.signatures > 0 && protection && protection !== 'none') {

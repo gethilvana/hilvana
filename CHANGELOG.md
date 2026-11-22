@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 · 2026-11-22
+
+- **Public benchmark** (`npm run bench`, [docs/benchmark.md](docs/benchmark.md)). It runs on 130 Word documents from Apache POI and 200 real-world PDFs from pdf.js, both fetched at pinned commits with SHA-256 checksums. It adds 12 synthetic Spanish statements, invoices and letters scanned under 5 conditions, with their exact text. Native Tesseract, LibreOffice and qpdf serve as local references. It measures OCR, redaction, Word conversion, operations on real PDFs and compression.
+- Fixes found by the benchmark, each with a test:
+  - **@hilvana/core**: the `email` pattern finds addresses as OCR mangles them ("@" read as "(D", "0", "Q", "O" or dropped). A name term also catches user names and addresses built from it (`ana.perez`, `ana.64`). Page resources stored as a stream, or broken font entries, no longer make operations fail. `PdfInfo.missingPages` reports pages a damaged file declares but cannot be read, and plans warn about it (`MISSING_PAGES`).
+  - **@hilvana/office**: the OCR text layer keeps every word, even doubtful ones, so mangled e-mail addresses (confidence near zero) stay searchable and can be redacted. On the benchmark, sensitive data left readable after redacting phone scans went from 8 of 60 to 0. Word documents with no-break spaces or paragraphs with no text no longer fail. Table rows and cells inside content controls are kept.
+
 ## 0.8.0 · 2026-11-22
 
 - **@hilvana/office**: OCR on the device, with Tesseract compiled to WebAssembly (`tesseract-wasm`, BSD-2-Clause) and the Spanish and English models (Apache-2.0, from `@tesseract.js-data`). `makeSearchable(bytes)` reads the pages that have no text and adds an invisible text layer, so the PDF looks the same but its text can be searched, copied and redacted. It handles JPEG and Flate scans, 1-bit ones included, and rotated pages. `recognize()` and `placeWords()` support surfaces that render pages themselves. In Node, the engine and models load from the installed packages, with no network.

@@ -36,6 +36,20 @@ function rAttr(el: El | null | undefined, name: string): string | undefined {
 }
 
 /** First descendant with this local name (depth-first). */
+/**
+ * Children named `name`, looking through the wrappers Word puts around rows and cells: content
+ * controls (sdt → sdtContent) and custom XML, nested to any depth.
+ */
+function unwrapped(el: El | null | undefined, name: string): El[] {
+  const out: El[] = [];
+  for (const c of kids(el)) {
+    if (c.localName === name) out.push(c);
+    else if (c.localName === 'sdt') out.push(...unwrapped(kid(c, 'sdtContent'), name));
+    else if (c.localName === 'customXml') out.push(...unwrapped(c, name));
+  }
+  return out;
+}
+
 function find(el: El | null | undefined, name: string): El | undefined {
   if (!el) return undefined;
   for (const c of kids(el)) {
@@ -612,12 +626,10 @@ function readTable(ctx: Context, part: Part, tbl: El): Table {
   const mar = kid(tblPr, 'tblCellMar');
   const pad = (side: string, alt: string, d: number) => twip(attr(kid(mar, side) ?? kid(mar, alt), 'w')) ?? d;
   const rows: TableRow[] = [];
-  for (const tr of kids(tbl, 'tr')) {
+  for (const tr of unwrapped(tbl, 'tr')) {
     const trPr = kid(tr, 'trPr');
     const cells: TableCell[] = [];
-    for (const tc of kids(tr).filter((c) => c.localName === 'tc' || c.localName === 'sdt')) {
-      const cell = tc.localName === 'sdt' ? find(tc, 'tc') : tc;
-      if (!cell) continue;
+    for (const cell of unwrapped(tr, 'tc')) {
       const tcPr = kid(cell, 'tcPr');
       const vm = kid(tcPr, 'vMerge');
       const shading = attr(kid(tcPr, 'shd'), 'fill');

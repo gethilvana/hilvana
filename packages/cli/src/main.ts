@@ -371,8 +371,8 @@ async function main(argv: string[]) {
       const info = { ...(await core.inspect(open.bytes)), byteLength: raw.byteLength, encrypted: open.protection !== 'none', protection: open.protection };
       if (v.json) return void process.stdout.write(JSON.stringify(info, null, 2) + '\n');
       const lines = lang === 'es'
-        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${{ none: 'no', permissions: 'sí, solo restricciones de uso', password: 'sí, con contraseña' }[info.protection]}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`, `Firmas digitales: ${info.signatures}`]
-        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${{ none: 'no', permissions: 'yes, usage restrictions only', password: 'yes, with a password' }[info.protection]}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`, `Digital signatures: ${info.signatures}`];
+        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${{ none: 'no', permissions: 'sí, solo restricciones de uso', password: 'sí, con contraseña' }[info.protection]}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`, `Firmas digitales: ${info.signatures}`, ...(info.missingPages ? [`⚠ Dañado: ${info.missingPages} página(s) declarada(s) no se pudieron leer`] : [])]
+        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${{ none: 'no', permissions: 'yes, usage restrictions only', password: 'yes, with a password' }[info.protection]}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`, `Digital signatures: ${info.signatures}`, ...(info.missingPages ? [`⚠ Damaged: ${info.missingPages} declared page(s) could not be read`] : [])];
       return void process.stdout.write(lines.join('\n') + '\n');
     }
     case 'word': {

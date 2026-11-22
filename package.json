@@ -21,7 +21,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b packages/core packages/office packages/recipes packages/cli packages/mcp --pretty",
     "licenses": "node scripts/check-licenses.mjs",
-    "build:web": "npm run build -w @hilvana/web"
+    "build:web": "npm run build -w @hilvana/web",
+    "bench": "node bench/corpus.mjs && node bench/scans.mjs && node bench/run.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

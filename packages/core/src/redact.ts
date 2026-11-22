@@ -429,7 +429,11 @@ function redactStream(scope: Scope, src: Uint8Array, resources: PDFDict | undefi
       case 'BT': tm = tlm = IDENTITY; break;
       case 'Tf': {
         const name = a[0]?.type === 'name' ? a[0].value : '';
-        gs.font = res?.lookupMaybe(PDFName.of('Font'), PDFDict)?.lookupMaybe(PDFName.of(name), PDFDict);
+        try {
+          gs.font = res?.lookupMaybe(PDFName.of('Font'), PDFDict)?.lookupMaybe(PDFName.of(name), PDFDict);
+        } catch {
+          gs.font = undefined; // a broken font entry: glyph widths fall back to an average
+        }
         gs.size = num(a[1]);
         break;
       }
@@ -480,7 +484,8 @@ function redactStream(scope: Scope, src: Uint8Array, resources: PDFDict | undefi
       }
       case 'Do': {
         const name = a[0]?.type === 'name' ? a[0].value : '';
-        const ref = xobjects()?.get(PDFName.of(name));
+        let ref: PDFObject | undefined;
+        try { ref = xobjects()?.get(PDFName.of(name)); } catch { ref = undefined; }
         const xo = ref instanceof PDFRef ? doc.context.lookup(ref) : undefined;
         if (!(xo instanceof PDFRawStream) || !(ref instanceof PDFRef)) break;
         const subtype = xo.dict.get(PDFName.of('Subtype'));
@@ -694,7 +699,8 @@ export interface TextMatch {
 }
 
 const PATTERNS: Record<RedactPattern, RegExp> = {
-  email: /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu,
+  // Also the forms OCR makes of an address, where "@" is read as "(D", "Q" or "©" (the text is lowercased before matching).
+  email: /[\p{L}\p{N}._%+-]+(?:@|(?<=[._\d][\p{L}\p{N}._-]*)(?<!\.(?:com|co|net|org|edu|gov|io|es|mx|ar|cl|pe|ec|us|info))(?:(?:\(d|©|q|0)\s?|\s[o0]\s|\s)(?=[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.(?:com|co|net|org|edu|gov|io|es|mx|ar|cl|pe|ec|us|info)\b))[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu,
   card: /\b(?:\d[ -]?){12,18}\d\b/g,
   phone: /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{1,4}\)[\s.-]?)?\b\d{3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}\b/g,
   // Six or more digits, possibly grouped: account and ID numbers. Money (decimals, $) is left alone.
@@ -723,6 +729,17 @@ function termRegex(term: string): RegExp | undefined {
     return new RegExp(`(?<!\\d)${digits.split('').join('[\\s.\\-]?')}(?!\\d)`, 'g');
   }
   return new RegExp(t.split(/\s+/).map(escape).join('\\s+'), 'gu');
+}
+
+/**
+ * For a name ("Ana María Pérez"), the user names and addresses built from it, like "ana.perez",
+ * "maria_64" or a mangled "ana.perez(dcorreo.co": a word of the name (4 letters or more) joined to
+ * a dot, underscore, digit or "@". The name word alone elsewhere is left to the term itself.
+ */
+function handleRegex(term: string): RegExp | undefined {
+  const words = fold(term).split(/\s+/).filter((w) => /^\p{L}{4,}$/u.test(w));
+  if (words.length < 2) return undefined;
+  return new RegExp(`(?<![\\p{L}\\p{N}._-])(?:${words.map(escape).join('|')})(?=[\\p{L}\\p{N}]*[._\\d@])[\\p{L}\\p{N}._%+@()©-]*`, 'gu');
 }
 
 // Helvetica widths, to spread a text run's width over its characters more faithfully than evenly.
@@ -782,7 +799,12 @@ export async function openPdfJs() {
  */
 export async function findText(bytes: PdfBytes, query: TextQuery): Promise<TextMatch[]> {
   const regexes: { re: RegExp; check?: (s: string) => boolean }[] = [];
-  for (const t of query.terms ?? []) { const re = termRegex(t); if (re) regexes.push({ re }); }
+  for (const t of query.terms ?? []) {
+    const re = termRegex(t);
+    if (re) regexes.push({ re });
+    const handle = handleRegex(t);
+    if (handle) regexes.push({ re: handle });
+  }
   for (const p of query.patterns ?? []) regexes.push({ re: new RegExp(PATTERNS[p].source, PATTERNS[p].flags), check: p === 'card' ? (s) => luhn(s.replace(/\D/g, '')) : undefined });
   if (!regexes.length) return [];
 
