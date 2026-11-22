@@ -757,7 +757,20 @@ function charBoxes(it: { str?: string; transform?: number[]; width?: number; hei
   });
 }
 
+/** pdf.js 6 uses Promise.withResolvers, which Node.js only has from version 22. */
+export function ensurePromiseWithResolvers() {
+  const P = Promise as unknown as { withResolvers?: unknown };
+  if (typeof P.withResolvers === 'function') return;
+  P.withResolvers = function withResolvers<T>() {
+    let resolve!: (v: T | PromiseLike<T>) => void;
+    let reject!: (e?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  };
+}
+
 async function openPdfJs() {
+  ensurePromiseWithResolvers();
   const g = globalThis as { pdfjsWorker?: unknown };
   if (!g.pdfjsWorker) g.pdfjsWorker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
   return import('pdfjs-dist/legacy/build/pdf.mjs');

@@ -12,5 +12,5 @@ export default defineConfig({
     },
   },
   // Font embedding and real PDFs are slow on shared Windows/macOS runners.
-  test: { include: ['packages/*/test/**/*.test.ts'], testTimeout: 30_000 },
+  test: { include: ['packages/*/test/**/*.test.ts'], testTimeout: 30_000, setupFiles: ['./vitest.setup.ts'] },
 });
