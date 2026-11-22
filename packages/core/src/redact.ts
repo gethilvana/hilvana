@@ -769,7 +769,7 @@ export function ensurePromiseWithResolvers() {
   };
 }
 
-async function openPdfJs() {
+export async function openPdfJs() {
   ensurePromiseWithResolvers();
   const g = globalThis as { pdfjsWorker?: unknown };
   if (!g.pdfjsWorker) g.pdfjsWorker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');

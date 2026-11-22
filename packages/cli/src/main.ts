@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util';
 import * as core from '@hilvana/core';
 import { UnsafeOutputError, safeWrite } from './safewrite.js';
 import { HilvanaError } from '@hilvana/core';
-import { convertWord, fallbackTextFonts, isDocx, type WordEngine } from '@hilvana/office';
+import { convertWord, fallbackTextFonts, isDocx, makeSearchable, type WordEngine } from '@hilvana/office';
 import { RecipeError, localDate, plan, planBatch, recipeJsonSchema, run, runBatch, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
 // Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
@@ -29,6 +29,7 @@ Uso:
   hilvana strip <archivo.pdf> -o <salida.pdf>
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
+  hilvana ocr <escaneo.pdf> [--language spa|eng] [--force] -o <salida.pdf>
   hilvana redact <archivo.pdf> [--find "texto"]... [--pattern email,card,number,phone] [--area "página:x,y,ancho,alto"]... [--list] -o <salida.pdf>
   hilvana protect <archivo.pdf> [--restrict print,copy,modify] -o <salida.pdf>
   hilvana certify <archivo.pdf> --cert <certificado.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <salida.pdf>
@@ -40,6 +41,7 @@ Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Opciones: --lang es|en, --force (reemplaza la salida; nunca una entrada).
 PDF protegidos: los que solo tienen restricciones se abren solos. Para los que piden contraseña,
   usa --password <contraseña> o la variable HILVANA_PDF_PASSWORD (no queda en el historial).
+OCR: agrega a las páginas escaneadas una capa de texto invisible para buscar, copiar y tachar. Todo en tu equipo.
 Tachar: elimina del archivo el texto, las imágenes y las formas bajo cada coincidencia o área (no solo las tapa),
   y comprueba el resultado. --list solo muestra lo que encontraría. Las áreas van en puntos desde abajo a la izquierda.
 Proteger: la contraseña nueva se pide al ejecutar (o HILVANA_NEW_PASSWORD); --restrict solo quita permisos.
@@ -64,6 +66,7 @@ Usage:
   hilvana strip <file.pdf> -o <out.pdf>
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
+  hilvana ocr <scan.pdf> [--language spa|eng] [--force] -o <out.pdf>
   hilvana redact <file.pdf> [--find "text"]... [--pattern email,card,number,phone] [--area "page:x,y,width,height"]... [--list] -o <out.pdf>
   hilvana protect <file.pdf> [--restrict print,copy,modify] -o <out.pdf>
   hilvana certify <file.pdf> --cert <certificate.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <out.pdf>
@@ -75,6 +78,7 @@ Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Options: --lang es|en, --force (replace the output; never an input).
 Protected PDFs: files with only usage restrictions open on their own. For files that need a password,
   use --password <password> or the HILVANA_PDF_PASSWORD variable (kept out of your shell history).
+OCR: adds an invisible text layer to scanned pages so they can be searched, copied and redacted. All on your machine.
 Redact: removes the text, images and shapes under each match or area from the file (not just covers them),
   then checks the result. --list only shows what it would find. Areas are in points from the bottom-left corner.
 Protect: the new password is asked for when it runs (or HILVANA_NEW_PASSWORD); --restrict only removes permissions.
@@ -113,6 +117,7 @@ const options = {
   pattern: { type: 'string' },
   area: { type: 'string', multiple: true },
   list: { type: 'boolean' },
+  language: { type: 'string' },
   cert: { type: 'string' },
   reason: { type: 'string' },
   location: { type: 'string' },
@@ -405,6 +410,28 @@ async function main(argv: string[]) {
       if (rest.length < 1) throw new UsageError(HELP[lang]);
       const out = await core.imagesToPdf(await Promise.all(rest.map(read)), { pageSize: v['page-size'] as 'a4' | undefined });
       return write(v.output ?? defaultOutput(rest[0]!, 'images'), out, rest, v.force, lang);
+    }
+    case 'ocr': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      const language = v.language ?? 'spa';
+      if (language !== 'spa' && language !== 'eng') throw new UsageError(lang === 'es' ? '--language debe ser spa o eng.' : '--language must be spa or eng.');
+      const src = await openPdf(input, await read(input), v, lang);
+      await warnIfSigned(input, src, lang);
+      const { bytes, report } = await makeSearchable(src, {
+        lang: language,
+        force: v.force,
+        onPage: (done, total) => { if (process.stderr.isTTY) process.stderr.write(`\r  OCR ${done}/${total}`); if (done === total && process.stderr.isTTY) process.stderr.write('\n'); },
+      });
+      if (!report.pages.length) {
+        process.stdout.write(`  ${t(lang, report.unreadable.length ? 'note.ocrUnreadable' : 'note.ocrNone', { pages: report.unreadable.join(', ') })}\n`);
+        return;
+      }
+      await write(v.output ?? defaultOutput(input, 'ocr'), bytes, [input], v.force, lang);
+      process.stdout.write(`  ${t(lang, 'note.ocr', { pages: report.pages.join(', '), words: report.words, confidence: Math.round(report.confidence * 100) })}\n`);
+      process.stdout.write(`  ${t(lang, 'note.ocrCheck')}\n`);
+      if (report.unreadable.length) process.stdout.write(`  ⚠ ${t(lang, 'note.ocrUnreadable', { pages: report.unreadable.join(', ') })}\n`);
+      return;
     }
     case 'redact': {
       const [input] = rest;

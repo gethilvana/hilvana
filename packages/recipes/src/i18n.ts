@@ -89,6 +89,14 @@ const messages: Record<Lang, Dict> = {
     'note.redactNothing': 'No se encontró nada que tachar; el documento quedó igual.',
     'note.redactImagesRemoved': '{count} imágenes en un formato que no se puede editar se quitaron completas.',
     'note.redactStructure': 'Se quitaron las etiquetas de accesibilidad, porque podían repetir el texto tachado.',
+    'step.ocr': 'Reconocer el texto de las páginas escaneadas (OCR en {language})',
+    'step.ocrForce': 'Reconocer el texto de todas las páginas (OCR en {language})',
+    'lang.spa': 'español',
+    'lang.eng': 'inglés',
+    'note.ocr': 'OCR: páginas {pages}, {words} palabras, confianza media {confidence} %. Ahora el texto se puede buscar, copiar y tachar.',
+    'note.ocrCheck': 'El OCR puede equivocarse: revisa las cifras y los nombres importantes.',
+    'note.ocrNone': 'Todas las páginas ya tenían texto; no hizo falta OCR.',
+    'note.ocrUnreadable': 'Las páginas {pages} son escaneos en un formato que aquí no se puede leer; en la web sí se pueden.',
     // describe
     'step.merge': 'Unir {files}',
     'step.mergeAll': 'Unir todos los PDF en el orden recibido',
@@ -208,6 +216,14 @@ const messages: Record<Lang, Dict> = {
     'note.redactNothing': 'Nothing to redact was found; the document is unchanged.',
     'note.redactImagesRemoved': '{count} images in a format that cannot be edited were removed whole.',
     'note.redactStructure': 'The accessibility tags were removed, since they could repeat the redacted text.',
+    'step.ocr': 'Recognize the text of scanned pages (OCR in {language})',
+    'step.ocrForce': 'Recognize the text of every page (OCR in {language})',
+    'lang.spa': 'Spanish',
+    'lang.eng': 'English',
+    'note.ocr': 'OCR: pages {pages}, {words} words, mean confidence {confidence} %. The text can now be searched, copied and redacted.',
+    'note.ocrCheck': 'OCR can make mistakes: check important figures and names.',
+    'note.ocrNone': 'Every page already had text; no OCR was needed.',
+    'note.ocrUnreadable': 'Pages {pages} are scans in a format that cannot be read here; the web app can read them.',
     'step.merge': 'Merge {files}',
     'step.mergeAll': 'Merge every PDF in the order received',
     'step.fromImages': 'Build a PDF from the images {files}',
@@ -291,6 +307,7 @@ export function describeStep(step: Step, lang: Lang): string {
       return step.password ? t(lang, 'step.protectPassword') : t(lang, 'step.protectRestrict', { list });
     }
     case 'signDigital': return t(lang, 'step.signDigital', { certificate: step.certificate });
+    case 'ocr': return t(lang, step.force ? 'step.ocrForce' : 'step.ocr', { language: t(lang, `lang.${step.language ?? 'spa'}`) });
     case 'redact': {
       const what: string[] = [];
       const nt = step.terms?.length ?? 0;

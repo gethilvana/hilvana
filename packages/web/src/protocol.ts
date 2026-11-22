@@ -1,4 +1,5 @@
 import type { CertificateInfo, PdfInfo, TextMatch } from '@hilvana/core';
+import type { PageWords } from '@hilvana/office';
 import type { Lang } from '@hilvana/recipes';
 
 export type Kind = 'pdf' | 'word' | 'image' | 'certificate' | 'other';
@@ -13,7 +14,8 @@ export type ToWorker =
   | { type: 'add'; id: string; name: string; bytes: Uint8Array; lang: Lang }
   | { type: 'remove'; id: string }
   | { type: 'unlock'; id: string; password: string; lang: Lang }
-  | { type: 'run'; job: number; recipe: unknown; files: { id: string; name: string; password?: string }[]; lang: Lang }
+  | { type: 'run'; job: number; recipe: unknown; files: { id: string; name: string; password?: string }[]; lang: Lang; ocrWords?: Record<number, PageWords> }
+  | { type: 'ocrPage'; job: number; data: Uint8ClampedArray; width: number; height: number; toPage: [number, number, number, number, number, number]; dpi: number; language: 'spa' | 'eng'; lang: Lang }
   | { type: 'certificate'; job: number; id: string; password: string; lang: Lang }
   | { type: 'batch'; job: number; recipe: unknown; files: { id: string; name: string }[]; lang: Lang }
   | { type: 'describe'; job: number; recipe: unknown; lang: Lang }
@@ -25,4 +27,5 @@ export type FromWorker =
   | { type: 'certificate'; job: number; info: CertificateInfo }
   | { type: 'described'; job: number; steps: string[] }
   | { type: 'found'; job: number; matches: TextMatch[] }
+  | { type: 'ocrWords'; job: number; words: PageWords }
   | { type: 'failed'; job: number; error: string; code?: string };

@@ -34,7 +34,7 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Recetas guardadas y por lote
 - [x] Protección con contraseña y firma con certificado digital
 - [x] Tachado real
-- [ ] OCR (español e inglés)
+- [x] OCR (español e inglés), en el equipo
 - [ ] Benchmark público v1
 
 ## Fase 3 · Uso pagado (semanas 15–18)

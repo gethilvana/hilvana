@@ -1,6 +1,6 @@
 import * as core from '@hilvana/core';
 import { HilvanaError, parsePageRange } from '@hilvana/core';
-import { DocxError, fallbackTextFonts, isDocx, wordToPdf } from '@hilvana/office';
+import { DocxError, fallbackTextFonts, isDocx, makeSearchable, wordToPdf, type OcrAssets, type PageWords } from '@hilvana/office';
 import { DESTRUCTIVE_OPS, FINAL_OPS, Recipe, type Goals, type Step } from './schema.js';
 import { describeStep, formatBytes, localDate, t, type Lang } from './i18n.js';
 
@@ -16,6 +16,8 @@ export interface EngineOptions {
   word?: WordConverter;
   /** Fonts for stamped text outside the standard PDF fonts. Defaults to the bundled open fonts (Node). */
   textFonts?: core.FontSource;
+  /** OCR: where the engine and models come from (default: the installed packages), and words found elsewhere. */
+  ocr?: { assets?: OcrAssets; pageWords?: (page: number) => Promise<PageWords | undefined> };
 }
 
 const defaultWord: WordConverter = (docx) => wordToPdf(docx);
@@ -453,7 +455,7 @@ export async function run(
   for (const [i, step] of steps.entries()) {
     if (inPlace && step.op === 'merge') { doc = originals.find((f) => f.name === docs[0]!.name)!.bytes; continue; }
     try {
-      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals, fonts: opts.textFonts ?? (() => fallbackTextFonts()), passwords });
+      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals, fonts: opts.textFonts ?? (() => fallbackTextFonts()), passwords, ocr: opts.ocr });
     } catch (err) {
       throw new RecipeError([issueFromError(err, lang, i + 1)]);
     }
@@ -504,7 +506,7 @@ export async function run(
 async function apply(
   step: Step,
   doc: Uint8Array | undefined,
-  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals; fonts: core.FontSource; passwords: Map<string, string | undefined> },
+  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals; fonts: core.FontSource; passwords: Map<string, string | undefined>; ocr?: EngineOptions['ocr'] },
 ): Promise<Uint8Array> {
   const need = () => doc as Uint8Array;
   switch (step.op) {
@@ -521,6 +523,16 @@ async function apply(
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());
     case 'split': return need(); // applied after every other step, see run()
+    case 'ocr': {
+      const { lang } = ctx;
+      const { bytes, report } = await makeSearchable(need(), { lang: step.language, force: step.force, assets: ctx.ocr?.assets, pageWords: ctx.ocr?.pageWords });
+      if (report.pages.length) {
+        ctx.notes.push(t(lang, 'note.ocr', { pages: report.pages.join(', '), words: report.words, confidence: Math.round(report.confidence * 100) }));
+        ctx.notes.push(t(lang, 'note.ocrCheck'));
+      } else if (!report.unreadable.length) ctx.notes.push(t(lang, 'note.ocrNone'));
+      if (report.unreadable.length) ctx.notes.push(t(lang, 'note.ocrUnreadable', { pages: report.unreadable.join(', ') }));
+      return bytes;
+    }
     case 'redact': {
       const { lang } = ctx;
       const matches = step.terms?.length || step.patterns?.length ? await core.findText(need(), { terms: step.terms, patterns: step.patterns }) : [];

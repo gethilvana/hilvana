@@ -4,7 +4,7 @@
 // and the only requests made are for the bundled open fonts.
 import * as core from '@hilvana/core';
 import { HilvanaError } from '@hilvana/core';
-import { DocxError, fallbackTextFonts, wordToPdf, type FontLoader } from '@hilvana/office';
+import { DocxError, fallbackTextFonts, placeWords, recognize, wordToPdf, type FontLoader, type OcrAssets } from '@hilvana/office';
 import { Recipe, describeStep, kindOf, run, runBatch, RecipeError, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import type { FromWorker, ToWorker, Output } from './protocol';
 
@@ -15,6 +15,20 @@ const fontLoader: FontLoader = async (family, file) => {
   const res = await fetch(new URL(`../fonts/${family}/${file}`, self.location.href));
   if (!res.ok) return undefined;
   return new Uint8Array(await res.arrayBuffer());
+};
+
+// The OCR engine and models come from this site, like the fonts (see scripts/copy-assets.mjs).
+const ocrAssets: OcrAssets = {
+  async wasm(simd) {
+    const res = await fetch(new URL(`../ocr/tesseract-${__TESSERACT_VERSION__}/${simd ? 'tesseract-core.wasm' : 'tesseract-core-fallback.wasm'}`, self.location.href));
+    if (!res.ok) throw new Error(`OCR engine not available (${res.status})`);
+    return new Uint8Array(await res.arrayBuffer());
+  },
+  async model(lang) {
+    const res = await fetch(new URL(`../ocr/tessdata-${__TESSDATA_VERSION__}/${lang}.traineddata.gz`, self.location.href));
+    if (!res.ok) throw new Error(`OCR model not available (${res.status})`);
+    return new Uint8Array(await res.arrayBuffer());
+  },
 };
 
 let textFonts: Promise<Uint8Array[]> | undefined;
@@ -87,7 +101,11 @@ async function handle(msg: ToWorker): Promise<void> {
           const file = files.get(f.id)!;
           return { name: f.name, bytes: file.original, password: f.password ?? file.password };
         });
-        const res = await run(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
+        const provided = msg.ocrWords;
+        const res = await run(msg.recipe, inputs, {
+          lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true,
+          ocr: { assets: ocrAssets, pageWords: async (page) => provided?.[page] },
+        });
         const outputs: Output[] = res.outputs.map((o) => ({ name: o.filename, bytes: o.bytes, pageCount: o.pageCount }));
         return post({ type: 'done', job: msg.job, outputs, notes: [...res.notes, ...res.goals.filter((g) => !g.met).map((g) => g.message)], warnings: res.warnings }, outputs.map((o) => o.bytes.buffer));
       } catch (err) {
@@ -100,13 +118,21 @@ async function handle(msg: ToWorker): Promise<void> {
           const file = files.get(f.id)!;
           return { name: f.name, bytes: file.original, password: file.password };
         });
-        const res = await runBatch(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
+        const res = await runBatch(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true, ocr: { assets: ocrAssets } });
         const outputs: Output[] = res.outputs.map((o) => ({ name: o.filename, bytes: o.bytes, pageCount: o.pageCount }));
         const done = res.items.filter((i) => i.result);
         const notes = [t(msg.lang, 'batch.done', { ok: res.succeeded, total: res.items.length }), ...done.flatMap((i) => i.result!.goals.filter((g) => !g.met).map((g) => `${i.input}: ${g.message}`))];
         const warnings = [...res.items.flatMap((i) => (i.issues ?? []).map((x) => x.message)), ...new Set(done.flatMap((i) => i.result!.warnings))];
         if (!outputs.length) return post({ type: 'failed', job: msg.job, error: warnings.join(' ') });
         return post({ type: 'done', job: msg.job, outputs, notes, warnings }, outputs.map((o) => o.bytes.buffer));
+      } catch (err) {
+        return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
+      }
+    }
+    case 'ocrPage': {
+      try {
+        const words = await recognize({ data: msg.data, width: msg.width, height: msg.height }, { lang: msg.language, assets: ocrAssets, dpi: msg.dpi });
+        return post({ type: 'ocrWords', job: msg.job, words: placeWords(words, msg.toPage) });
       } catch (err) {
         return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
       }

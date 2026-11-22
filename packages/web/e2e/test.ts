@@ -3,7 +3,7 @@ import { CoverageReport } from 'monocart-coverage-reports';
 import { coverageOptions } from './coverage-options';
 
 /** Every request the app may make: its own files, its fonts and pdf.js data. Nothing else, ever. */
-const ALLOWED = /^http:\/\/localhost:\d+\/(\?[^#]*)?$|^http:\/\/localhost:\d+\/(index\.html|sw\.js|manifest\.webmanifest|icon[\w-]*\.(svg|png)|assets\/[\w.-]+|fonts\/[\w-]+\/[\w.-]+\.woff|pdfjs\/[\w/.-]+)(\?[^#]*)?$/;
+const ALLOWED = /^http:\/\/localhost:\d+\/(\?[^#]*)?$|^http:\/\/localhost:\d+\/(index\.html|sw\.js|manifest\.webmanifest|icon[\w-]*\.(svg|png)|assets\/[\w.-]+|fonts\/[\w-]+\/[\w.-]+\.woff|pdfjs\/[\w/.-]+|ocr\/[\w.-]+\/[\w.-]+\.(wasm|gz))(\?[^#]*)?$/;
 
 export const test = base.extend<{ coverage: void; networkGuard: void; allowExternal: boolean }>({
   allowExternal: [false, { option: true }],

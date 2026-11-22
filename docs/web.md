@@ -23,6 +23,7 @@ Las pruebas de navegador (`packages/web/e2e/privacy.spec.ts`) verifican la polí
 | | Girar páginas | `rotate` |
 | Convertir | Word a PDF | `.docx` en `merge` |
 | | Imágenes a PDF | `fromImages` |
+| | Reconocer texto (OCR), en el navegador | `ocr` |
 | Firmar y marcar | Firmar (dibujada o imagen) | `sign` |
 | | Firma digital (certificado .p12/.pfx) | `signDigital` |
 | | Sello de texto | `stampText` |

@@ -1,4 +1,6 @@
 import type { CertificateInfo, TextMatch } from '@hilvana/core';
+import type { PageWords } from '@hilvana/office';
+import type { Raster } from './thumbs';
 import type { Lang } from '@hilvana/recipes';
 import type { FromWorker, Output, ToWorker } from './protocol';
 
@@ -34,6 +36,7 @@ export class Engine {
     else if (m.type === 'certificate') job.resolve(m.info);
     else if (m.type === 'described') job.resolve(m.steps);
     else if (m.type === 'found') job.resolve(m.matches);
+    else if (m.type === 'ocrWords') job.resolve(m.words);
     else job.reject(Object.assign(new Error(m.error), { code: m.code }));
   }
 
@@ -69,8 +72,17 @@ export class Engine {
   }
 
   /** Passwords in `files` (certificates) are used inside the worker only, never stored. */
-  run(recipe: unknown, files: { id: string; name: string; password?: string }[], lang: Lang) {
-    return this.job((job) => ({ type: 'run', job, recipe, files, lang }));
+  run(recipe: unknown, files: { id: string; name: string; password?: string }[], lang: Lang, ocrWords?: Record<number, PageWords>) {
+    return this.job((job) => ({ type: 'run', job, recipe, files, lang, ocrWords }));
+  }
+
+  /** Recognizes the words of one page drawn by the page itself; the pixels are moved, not copied. */
+  ocrPage(r: Raster, language: 'spa' | 'eng', lang: Lang) {
+    const job = this.nextJob++;
+    return new Promise<PageWords>((resolve, reject) => {
+      this.jobs.set(job, { resolve, reject });
+      this.send({ type: 'ocrPage', job, data: r.data, width: r.width, height: r.height, toPage: r.toPage, dpi: r.dpi, language, lang }, [r.data.buffer]);
+    });
   }
 
   /** Runs the recipe on each document separately; documents that fail are reported in `warnings`. */

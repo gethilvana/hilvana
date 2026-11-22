@@ -155,6 +155,19 @@ describe('recipes that split', () => {
   });
 });
 
+describe('ocr', { timeout: 60_000 }, () => {
+  it('makes a scan searchable, and says when nothing needs it', async () => {
+    await fs.copyFile(fileURLToPath(new URL('../../office/test/fixtures/ocr/escaneo-jpeg.pdf', import.meta.url)), path.join(dir, 'escaneo.pdf'));
+    const r = await hilvana('ocr', 'escaneo.pdf');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/escaneo-ocr\.pdf · 1 página/);
+    expect(r.out).toMatch(/OCR: páginas 1, \d+ palabras/);
+    const none = await hilvana('ocr', 'a.pdf');
+    expect(none.out).toMatch(/ya tenían texto/);
+    expect((await hilvana('ocr', 'escaneo.pdf', '--language', 'fra')).err).toMatch(/spa o eng/);
+  });
+});
+
 describe('redact', { timeout: 60_000 }, () => {
   it('lists, then removes text for real, and rejects bad areas', async () => {
     const { PDFDocument, StandardFonts } = await import('pdf-lib');

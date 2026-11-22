@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Lang } from '@hilvana/recipes';
+import type { PageWords } from '@hilvana/office';
 import { Engine } from './engine';
 import { DropZone, FileList, type Doc } from './files';
 import { initialLang, saveLang, strings, type ToolId } from './i18n';
@@ -43,6 +44,7 @@ export function App() {
   // Images a saved recipe refers to by name (its signature), chosen for this run: name → file name.
   const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -199,7 +201,24 @@ export function App() {
     setResult(null);
     try {
       let res: Result;
-      if (tool.id === 'recipes') {
+      if (tool.id === 'ocr') {
+        // Pages are drawn here, one at a time, and read in the worker: memory stays flat on phones.
+        const preview = first!.preview;
+        const words: Record<number, PageWords> = {};
+        if (preview) {
+          const scans: number[] = [];
+          for (let n = 1; n <= preview.pageCount; n++) if ((await preview.textLength(n)) < 10) scans.push(n);
+          setProgress(s.ocr.preparing);
+          for (const [i, n] of scans.entries()) {
+            if (mine !== runId.current) return;
+            const raster = await preview.raster(n);
+            setProgress(s.ocr.progress(i + 1, scans.length));
+            words[n] = await engine.ocrPage(raster, options.ocrLanguage, lang);
+          }
+        }
+        const recipe = buildRecipe('ocr', options, [first!.name], lang);
+        res = { ...(await engine.run(recipe, [{ id: first!.id, name: first!.name }], lang, words)), recipe };
+      } else if (tool.id === 'recipes') {
         const recipe = savedRecipe!.recipe;
         const files = [...usable.map((d) => ({ id: d.id, name: d.name })), ...imagesIn(recipe).map((n) => ({ id: `img:${n}`, name: n }))];
         const each = applyMode === 'each' && usable.length > 1;
@@ -242,7 +261,7 @@ export function App() {
     } catch (err) {
       if (mine === runId.current) setError((err as Error).message);
     } finally {
-      if (mine === runId.current) setBusy(false);
+      if (mine === runId.current) { setBusy(false); setProgress(null); }
     }
   }
 
@@ -368,7 +387,7 @@ export function App() {
             <div class="action">
               {blocker && docs.length > 0 && !reading && <p class="blocker">{blocker}</p>}
               <button type="button" class="btn btn-primary btn-large" disabled={!canRun} aria-busy={busy} onClick={runTool}>
-                {busy ? text.busy : text.action}
+                {busy ? progress ?? text.busy : text.action}
               </button>
               <Stitch running={busy} class="action-stitch" />
               {error && <p class="error" role="alert"><strong>{s.result.error}.</strong> {error}</p>}

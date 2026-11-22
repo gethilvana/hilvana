@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 · 2026-11-22
+
+- **@hilvana/office**: OCR on the device, with Tesseract compiled to WebAssembly (`tesseract-wasm`, BSD-2-Clause) and the Spanish and English models (Apache-2.0, from `@tesseract.js-data`). `makeSearchable(bytes)` reads the pages that have no text and adds an invisible text layer, so the PDF looks the same but its text can be searched, copied and redacted. It handles JPEG and Flate scans, 1-bit ones included, and rotated pages. `recognize()` and `placeWords()` support surfaces that render pages themselves. In Node, the engine and models load from the installed packages, with no network.
+- **@hilvana/core**: `pagesWithoutText()`, `scannedImages()` (the scans on a page, decoded, with their position) and `addTextLayer()`.
+- **@hilvana/recipes**: new `ocr` step (`language`, `force`). A `redact` step after it finds the scan's text and also paints over its pixels.
+- **hilvana**: `ocr` command (`--language spa|eng`, `--force`).
+- **hilvana-mcp**: the instructions describe the `ocr` step.
+- **Web**: new *Reconocer texto (OCR)* tool in *Convertir*. The page draws one page at a time and the worker reads it, so memory stays flat on phones, and every scan format the browser can display is readable. The engine and models (about 4 MB per language) come from the site itself and are cached for offline use. The *Tachar información* search suggests OCR when a scan has no text.
+
 ## 0.7.0 · 2026-11-22
 
 - **@hilvana/core**: real redaction. `redact(bytes, { areas })` removes what lies under each area from the file instead of covering it:

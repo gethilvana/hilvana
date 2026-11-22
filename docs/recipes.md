@@ -39,6 +39,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `optimize` | — (sin pérdida) | |
 | `compress` | `level?: "lossless" \| "balanced" \| "strong" \| "max"`, `targetBytes?` (por defecto, `goals.maxBytes`) | |
 | `split` | `ranges?: string[]` (sin rangos: un archivo por página). **Solo como último paso** · Last step only | |
+| `ocr` | `language?: "spa" \| "eng"` (por defecto `spa`), `force?: boolean` | |
 | `redact` | `terms?: string[]`, `patterns?: ("email" \| "card" \| "number" \| "phone")[]`, `areas?: {page, x, y, width, height}[]` | sí |
 | `protect` | `password?`, `allowPrint?`, `allowCopy?`, `allowModify?` (por defecto `true`). **Solo como último paso** · Last step only | |
 | `signDigital` | `certificate` (nombre de la entrada `.p12`/`.pfx`), `reason?`, `location?`, `visible?` (por defecto `true`), `pages?` (`last`), `anchor?` (`bottom-right`). **Solo como último paso** · Last step only | |
@@ -48,6 +49,8 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 ```json
 { "version": 1, "steps": [{ "op": "merge" }, { "op": "numberPages" }, { "op": "split", "ranges": ["1-3", "4-last"] }], "output": { "filename": "lote" } }
 ```
+
+**OCR:** reconoce el texto de las páginas escaneadas en tu equipo, con Tesseract compilado a WebAssembly y los modelos de español e inglés, y agrega una capa de texto invisible: el PDF se ve igual, pero su texto se puede buscar, copiar y tachar (un `redact` después de `ocr` encuentra el texto del escaneo y borra también los píxeles). Solo lee las páginas sin texto, salvo con `force`. En Node lee las imágenes de la página directamente (JPEG y Flate, incluidos escaneos de 1 bit); la web dibuja cada página, así que también lee CCITT, JBIG2 y JPEG 2000. El OCR puede equivocarse: revisa cifras y nombres importantes. · On-device OCR (Tesseract as WebAssembly, Spanish and English) that adds an invisible text layer to scanned pages.
 
 **Tachar · Redact:** elimina del archivo lo que hay bajo cada coincidencia o área, no solo lo tapa: las letras (también el texto invisible de un OCR), los píxeles de las imágenes (con su transparencia), las formas que quedan dentro del área, las anotaciones y campos de formulario que la tocan, las miniaturas y las etiquetas de accesibilidad. Luego dibuja recuadros negros y **lee el resultado para comprobar** que no queda texto dentro de ninguna zona; si queda, hace una pasada estricta (quita la línea de texto completa que toca la zona) y, si aun así queda, falla con `REDACTION_INCOMPLETE` en vez de entregar un archivo que filtra. Las áreas van en puntos desde la esquina inferior izquierda. Las imágenes en formatos que no se pueden editar (JPEG 2000, JBIG2, CCITT, JPEG CMYK) se quitan completas. Las páginas escaneadas sin capa de texto no tienen qué buscar: dibuja áreas. Es destructivo (pide confirmación). · Removes what lies under each match or area from the file — glyphs (OCR layers too), image pixels (and their alpha), shapes inside the area, annotations, thumbnails and accessibility tags — then checks the result by reading it back, with a stricter pass if needed; it fails rather than return a leaking file.
 

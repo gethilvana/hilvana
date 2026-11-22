@@ -15,9 +15,22 @@ export interface PageGeometry {
   toView(x: number, y: number): [number, number];
 }
 
+/** A page drawn for OCR: RGBA pixels and the matrix from pixels (y down) to the page (PDF points). */
+export interface Raster {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+  toPage: [number, number, number, number, number, number];
+  dpi: number;
+}
+
 export interface Preview {
   pageCount: number;
   geometry(n: number): Promise<PageGeometry>;
+  /** Characters a reader would extract from the page (spaces excluded). */
+  textLength(n: number): Promise<number>;
+  /** The page drawn at up to `dpi`, never wider or taller than `maxSide` pixels. */
+  raster(n: number, dpi?: number, maxSide?: number): Promise<Raster>;
   /** Object URL of a PNG of the page, at roughly `width` CSS pixels. */
   page(n: number, width: number): Promise<string>;
   destroy(): void;
@@ -45,6 +58,32 @@ export async function openPreview(bytes: Uint8Array): Promise<Preview> {
   const urls = new Map<string, Promise<string>>();
   return {
     pageCount: doc.numPages,
+    async textLength(n) {
+      const items = (await (await doc.getPage(n)).getTextContent()).items as { str?: string }[];
+      return items.reduce((s, it) => s + (it.str ?? '').replace(/\s/g, '').length, 0);
+    },
+    raster(n, dpi = 200, maxSide = 2400) {
+      return serial(async () => {
+        const page = await doc.getPage(n);
+        const base = page.getViewport({ scale: 1 });
+        const scale = Math.min(dpi / 72, maxSide / Math.max(base.width, base.height));
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(vp.width);
+        canvas.height = Math.ceil(vp.height);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvas, viewport: vp }).promise;
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        page.cleanup();
+        const [e, f] = vp.convertToPdfPoint(0, 0) as [number, number];
+        const [ax, ay] = vp.convertToPdfPoint(1, 0) as [number, number];
+        const [cx, cy] = vp.convertToPdfPoint(0, 1) as [number, number];
+        canvas.width = canvas.height = 0; // free the memory now, phones are tight
+        return { data: img.data, width: img.width, height: img.height, toPage: [ax - e, ay - f, cx - e, cy - f, e, f], dpi: scale * 72 };
+      });
+    },
     async geometry(n) {
       const vp = (await doc.getPage(n)).getViewport({ scale: 1 });
       return {
