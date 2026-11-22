@@ -18,7 +18,7 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 
 ## Fase 1 · MVP público (semanas 4–10)
 
-- [ ] Descifrado local de PDF protegidos solo con permisos (sin contraseña de apertura)
+- [x] Descifrado local de PDF protegidos solo con permisos, y apertura con contraseña (web y CLI; el MCP nunca recibe contraseñas)
 - [x] Web bilingüe con procesamiento en el navegador, PWA sin conexión y política de seguridad que solo permite el propio dominio (`docs/web.md`)
 - [x] QA por riesgos de la web y del motor: 7 defectos corregidos, 88 pruebas por navegador (`docs/qa/fase-1-web.md`)
 - [ ] Publicación en pdf.jorgegrajales.dev (Cloudflare Pages) y `v0.1.1` en npm

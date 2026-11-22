@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { inspect } from '@hilvana/core';
+import { HilvanaError, inspect } from '@hilvana/core';
 import { convertWord, type WordEngine } from '@hilvana/office';
 import { RecipeError, kindOf, plan, recipeJsonSchema, run, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
@@ -22,6 +22,17 @@ const fileRef = z.object({
 
 const text = (value: unknown) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }] });
 const fail = (message: string) => ({ isError: true, content: [{ type: 'text' as const, text: message }] });
+
+/**
+ * Passwords never travel through this server: they would pass through the AI model's provider.
+ * When a file needs one, tell the agent how the person can open it themselves.
+ */
+const PASSWORD_HINT = {
+  es: 'El archivo necesita contraseña. No la pidas por el chat: la persona puede abrirlo en https://pdf.jorgegrajales.dev o con `npx hilvana ... --password`, guardar una copia sin protección en la carpeta autorizada y volver a intentarlo.',
+  en: 'The file needs a password. Do not ask for it in the chat: the person can open it at https://pdf.jorgegrajales.dev or with `npx hilvana ... --password`, save an unprotected copy in the allowed folder, and try again.',
+};
+const withPasswordHint = (issues: { code: string }[], l: Lang) =>
+  issues.some((i) => i.code === 'PASSWORD_REQUIRED') ? { ok: false, issues, hint: PASSWORD_HINT[l] } : { ok: false, issues };
 
 async function loadFiles(guard: FolderGuard, refs: { path: string; name?: string }[]) {
   const files: InputFile[] = [];
@@ -109,6 +120,10 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
         const real = await guard.readable(p);
         return text({ path: real, ...(await inspect(new Uint8Array(await fs.readFile(real)))) });
       } catch (err) {
+        if (err instanceof HilvanaError) {
+          const l = defaults.lang ?? 'es';
+          return fail(JSON.stringify({ code: err.code, message: t(l, err.code, err.details), ...(err.code === 'PASSWORD_REQUIRED' ? { hint: PASSWORD_HINT[l] } : {}) }, null, 2));
+        }
         return fail(String((err as Error).message));
       }
     },
@@ -128,9 +143,10 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     async ({ recipe, files: refs, lang, engine }) => {
       try {
         const { files } = await loadFiles(guard, refs);
-        const p = await plan(recipe, files, { lang: lang ?? defaults.lang ?? 'es', word: converter(engine ?? defaults.engine) });
+        const l = lang ?? defaults.lang ?? 'es';
+        const p = await plan(recipe, files, { lang: l, word: converter(engine ?? defaults.engine) });
         const { recipe: _ignored, ...rest } = p;
-        return text(rest);
+        return text(p.issues.some((i) => i.code === 'PASSWORD_REQUIRED') ? { ...rest, hint: PASSWORD_HINT[l] } : rest);
       } catch (err) {
         return fail(String((err as Error).message));
       }
@@ -160,7 +176,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       try {
         const { files, realPaths } = await loadFiles(guard, refs);
         const p = await plan(recipe, files, { lang: l, word });
-        if (!p.ok) return fail(JSON.stringify({ ok: false, issues: p.issues }, null, 2));
+        if (!p.ok) return fail(JSON.stringify(withPasswordHint(p.issues, l), null, 2));
         const splits = p.recipe?.steps.at(-1)?.op === 'split';
         const folder = splits ? await guard.folder(output) : undefined;
         const target = splits ? undefined : await guard.writable(output, { inputs: realPaths, overwrite });

@@ -123,6 +123,25 @@ describe('hilvana-mcp', () => {
     expect(p.warnings).toEqual(['"firmado.pdf" is digitally signed. The result is a new file and does not keep that signature: keep the signed original too.']);
   });
 
+  it('opens PDFs with only restrictions, and never asks for passwords through the chat', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const enc = (n: string) => readFile(new URL(`../../core/test/fixtures/encrypted/${n}`, import.meta.url));
+    await fs.writeFile(path.join(dir, 'extracto.pdf'), await enc('permisos-aes256.pdf'));
+    await fs.writeFile(path.join(dir, 'privado.pdf'), await enc('contrasena-aes256.pdf'));
+    expect(json(await call('pdf_inspect', { path: 'extracto.pdf' }))).toMatchObject({ pageCount: 3, protection: 'permissions' });
+    const locked = await call('pdf_inspect', { path: 'privado.pdf' });
+    expect(locked.isError).toBe(true);
+    expect(JSON.parse(locked.content[0]!.text)).toMatchObject({ code: 'PASSWORD_REQUIRED', hint: expect.stringContaining('Do not ask for it in the chat') });
+    const p = json(await call('recipe_plan', { recipe: { version: 1, steps: [{ op: 'merge' }] }, files: [{ path: 'privado.pdf' }], lang: 'en' }));
+    expect(p.hint).toMatch(/Do not ask for it in the chat/);
+    const res = json(await call('recipe_run', { recipe: { version: 1, steps: [{ op: 'numberPages' }] }, files: [{ path: 'extracto.pdf' }], output: 'extracto-numerado.pdf' }));
+    expect(res).toMatchObject({ ran: true, pageCount: 3 });
+    expect(res.warnings[0]).toMatch(/had usage restrictions/);
+    // The password field is not part of the tool's input: a file reference only has a path (and a name).
+    const tools = await client.listTools();
+    expect(JSON.stringify(tools.tools.find((x) => x.name === 'recipe_run')!.inputSchema)).not.toContain('password');
+  });
+
   it('asks for confirmation before destructive steps', async () => {
     const args = {
       recipe: { version: 1, steps: [{ op: 'remove', pages: '1' }] },

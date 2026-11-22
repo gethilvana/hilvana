@@ -150,6 +150,12 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-si
 .file-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-meta { color: var(--ink-2); font-size: var(--t-s); }
 .file-error { color: var(--alert); font-size: var(--t-s); }
+.file.is-locked { border-color: var(--rule); background: var(--paper); }
+.file-password { display: grid; gap: 0.3rem; margin-top: 0.5rem; max-width: 26rem; }
+.file-password label { font-weight: 700; font-size: var(--t-s); }
+.file-password-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.file-password input { flex: 1 1 9rem; min-width: 0; min-height: 40px; padding: 0.45rem 0.6rem; border: 1px solid var(--rule); border-radius: 8px; }
+.file-password input:focus { border-color: var(--thread); }
 .file-note { color: var(--ink-2); font-size: var(--t-s); padding-left: 1.2rem; position: relative; }
 .file-note::before { content: ''; position: absolute; left: 0.1rem; top: 0.45em; width: 0.6rem; height: 0.6rem; border-radius: 50%; border: 2px solid #b7791f; }
 .file-actions { display: flex; gap: 0.15rem; }

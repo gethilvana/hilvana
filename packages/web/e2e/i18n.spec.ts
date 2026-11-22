@@ -5,7 +5,8 @@ import { addBuffers, addFiles, download, open, recipe, runTool } from './helpers
 test('engine errors are in English when the page is in English', async ({ page }) => {
   await open(page, 'compress', 'en');
   await addFiles(page, 'con-contrasena.pdf');
-  await expect(page.locator('.file-error')).toContainText('The PDF is protected');
+  await expect(page.locator('.file-error')).toHaveText('This PDF needs a password to open.');
+  await expect(page.getByLabel('Password for this PDF')).toBeVisible();
 });
 
 test('Word errors are in English too (D16)', async ({ page }) => {

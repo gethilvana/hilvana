@@ -118,6 +118,27 @@ describe('signed PDFs', () => {
   });
 });
 
+describe('protected PDFs', () => {
+  const enc = (n: string) => fs.readFile(new URL(`../../core/test/fixtures/encrypted/${n}`, import.meta.url));
+  it('open files with only restrictions on their own, saying so', async () => {
+    await fs.writeFile(path.join(dir, 'extracto.pdf'), await enc('permisos-aes256.pdf'));
+    expect((await hilvana('inspect', 'extracto.pdf')).out).toMatch(/Protegido: sí, solo restricciones de uso/);
+    const r = await hilvana('number', 'extracto.pdf', '-o', 'extracto-num.pdf');
+    expect(r.code).toBe(0);
+    expect(r.err).toMatch(/tenía restricciones de uso/);
+  });
+  it('ask for --password, reject a wrong one, open with the right one', async () => {
+    await fs.writeFile(path.join(dir, 'privado.pdf'), await enc('contrasena-aes256.pdf'));
+    const none = await hilvana('rotate', 'privado.pdf', '--angle', '90', '-o', 'p1.pdf');
+    expect(none.code).not.toBe(0);
+    expect(none.err).toMatch(/necesita una contraseña[\s\S]*--password/);
+    expect((await hilvana('rotate', 'privado.pdf', '--angle', '90', '--password', 'mala', '-o', 'p2.pdf')).err).toMatch(/La contraseña no abre/);
+    const ok = await hilvana('rotate', 'privado.pdf', '--angle', '90', '--password', 'abierto', '-o', 'p3.pdf');
+    expect(ok.code).toBe(0);
+    expect((await hilvana('inspect', 'p3.pdf')).out).toMatch(/Protegido: no/);
+  });
+});
+
 describe('recipes that split', () => {
   it('write each part into the -o folder, creating it', async () => {
     await fs.writeFile(path.join(dir, 'dividir.json'), JSON.stringify({ version: 1, steps: [{ op: 'split', ranges: ['1', '2-last'] }] }));

@@ -4,6 +4,8 @@ export type HilvanaErrorCode =
   | 'PAGE_OUT_OF_RANGE'
   | 'NO_INPUTS'
   | 'ENCRYPTED'
+  | 'PASSWORD_REQUIRED'
+  | 'WRONG_PASSWORD'
   | 'INVALID_PDF'
   | 'UNSUPPORTED_IMAGE'
   | 'WOULD_REMOVE_ALL_PAGES'

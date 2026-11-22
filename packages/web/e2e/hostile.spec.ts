@@ -3,19 +3,35 @@ import { test, expect } from './test';
 import { strToU8, zipSync } from 'fflate';
 import { addBuffers, addFiles, download, fx, makePdf, open, pageTexts, runTool } from './helpers';
 
-test('a password-protected PDF is explained, not processed', async ({ page }) => {
-  await open(page, 'compress');
-  await addFiles(page, 'con-contrasena.pdf');
-  await expect(page.locator('.file-error')).toContainText('El PDF está protegido (con contraseña o con restricciones de uso)');
+test('a password-protected PDF asks for its password in the file row, and then works', async ({ page }) => {
+  await open(page, 'merge');
+  await addFiles(page, 'con-contrasena.pdf', 'factura-noviembre.pdf');
+  const row = page.locator('.file').first();
+  await expect(row.locator('.file-error')).toHaveText('Este PDF necesita una contraseña para abrirse.');
+  await expect(page.locator('.blocker')).toHaveText('Escribe la contraseña de los archivos protegidos, o quítalos, para continuar.');
   await expect(page.locator('.action .btn-primary')).toBeDisabled();
+  await row.getByLabel('Contraseña de este PDF').fill('mala');
+  await row.getByRole('button', { name: 'Abrir' }).click();
+  await expect(row.locator('.file-error')).toHaveText('La contraseña no abre este PDF.');
+  await row.getByLabel('Contraseña de este PDF').fill('abierto');
+  await row.getByRole('button', { name: 'Abrir' }).click();
+  await expect(row.locator('.file-note')).toHaveText('Abierto con su contraseña: el resultado se guardará sin contraseña.');
+  await expect(row.locator('.file-meta')).toContainText('2 páginas');
+  await runTool(page);
+  const { inspect } = await import('@hilvana/core');
+  const out = await download(page);
+  expect(out.pdf.getPageCount()).toBe(5);
+  expect((await inspect(new Uint8Array(out.bytes))).protection).toBe('none');
 });
 
-test('a PDF with only permission restrictions is explained, not processed', async ({ page }) => {
-  // Known limitation (phase 1 roadmap): opened without a password, but restricted. Rejected with a clear message for now.
-  await open(page, 'merge');
-  await addFiles(page, 'solo-permisos.pdf', 'factura-noviembre.pdf');
-  await expect(page.locator('.file').first().locator('.file-error')).toContainText('restricciones de uso');
-  await expect(page.locator('.action .btn-primary')).toBeDisabled();
+test('a PDF with only usage restrictions opens on its own, and says the result drops them', async ({ page }) => {
+  await open(page, 'stamp');
+  await addFiles(page, 'solo-permisos.pdf');
+  await expect(page.locator('.file-note')).toHaveText('Tenía restricciones de uso: el resultado se guardará sin ellas. Hazlo solo con documentos que tengas derecho a modificar.');
+  await runTool(page);
+  await expect(page.locator('.result .notes-warn')).toContainText('tenía restricciones de uso');
+  const texts = await pageTexts((await download(page)).bytes);
+  expect(texts[0]).toContain('Recibido');
 });
 
 test('an empty file is explained', async ({ page }) => {

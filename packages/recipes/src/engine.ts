@@ -32,6 +32,44 @@ function convertOnce(convert: WordConverter, bytes: Uint8Array): ReturnType<Word
 export interface InputFile {
   name: string;
   bytes: Uint8Array;
+  /** Password to open this PDF, when it needs one. Used only to decrypt it here, never stored or sent. */
+  password?: string;
+}
+
+// Each protected file is unlocked once, even though plan() and run() both need it.
+const unlocked = new WeakMap<Uint8Array, Map<string, Promise<core.UnlockResult>>>();
+function unlockOnce(bytes: Uint8Array, password = ''): Promise<core.UnlockResult> {
+  let byPassword = unlocked.get(bytes);
+  if (!byPassword) unlocked.set(bytes, (byPassword = new Map()));
+  let p = byPassword.get(password);
+  if (!p) byPassword.set(password, (p = core.unlock(bytes, password)));
+  return p;
+}
+
+/**
+ * Replaces protected PDFs with their unlocked copies. Files with only usage restrictions open on
+ * their own; files that need a password open with the one given for them. Says what was removed.
+ */
+async function unlockInputs(files: InputFile[], lang: Lang): Promise<{ files: InputFile[]; warnings: string[]; issues: Issue[]; failed: Set<string> }> {
+  const out: InputFile[] = [];
+  const warnings: string[] = [];
+  const issues: Issue[] = [];
+  const failed = new Set<string>();
+  for (const f of files) {
+    if (kindOf(f.bytes) !== 'pdf') { out.push(f); continue; }
+    try {
+      const res = await unlockOnce(f.bytes, f.password);
+      if (res.protection === 'permissions') warnings.push(t(lang, 'UNLOCKED_PERMISSIONS', { name: f.name }));
+      if (res.protection === 'password') warnings.push(t(lang, 'UNLOCKED_PASSWORD', { name: f.name }));
+      out.push({ name: f.name, bytes: res.bytes });
+    } catch (err) {
+      failed.add(f.name);
+      const issue = issueFromError(err, lang);
+      issues.push({ ...issue, message: `"${f.name}": ${issue.message}` });
+      out.push(f);
+    }
+  }
+  return { files: out, warnings, issues, failed };
 }
 
 export interface Issue {
@@ -123,7 +161,9 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
     return { ok: false, issues: [{ code: 'SCHEMA', message: t(lang, 'SCHEMA', { issues }) }], steps: [], goals: [], destructiveSteps: [], warnings: [] };
   }
   const recipe = parsed.data;
-  const issues: Issue[] = [];
+  const prepared = await unlockInputs(files, lang);
+  files = prepared.files;
+  const issues: Issue[] = [...prepared.issues];
   const byName = new Map(files.map((f) => [f.name, f]));
   const kinds = new Map(files.map((f) => [f.name, kindOf(f.bytes)]));
   const docNames = files.filter((f) => ['pdf', 'word'].includes(kinds.get(f.name)!)).map((f) => f.name);
@@ -131,8 +171,9 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
   const hasWord = docNames.some((n) => kinds.get(n) === 'word');
 
   const pageCounts = new Map<string, number>();
-  const warnings: string[] = [];
+  const warnings: string[] = [...prepared.warnings];
   for (const name of docNames) {
+    if (prepared.failed.has(name)) continue; // already explained
     try {
       if (kinds.get(name) === 'word') {
         const res = await convertOnce(convert, byName.get(name)!.bytes);
@@ -301,6 +342,7 @@ export async function run(
     throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) }]);
   }
   const recipe = p.recipe;
+  files = (await unlockInputs(files, lang)).files; // cached: already unlocked during plan()
   // Word inputs become their converted PDF; everything downstream only sees PDFs.
   const byName = new Map<string, Uint8Array>();
   const docs: InputFile[] = [];

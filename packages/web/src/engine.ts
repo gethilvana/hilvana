@@ -43,6 +43,14 @@ export class Engine {
     });
   }
 
+  /** Opens a password-protected PDF already added under `id`. The password stays in this browser. */
+  unlock(id: string, password: string, lang: Lang): Promise<Added> {
+    return new Promise((resolve) => {
+      this.added.set(id, resolve);
+      this.send({ type: 'unlock', id, password, lang });
+    });
+  }
+
   remove(id: string) {
     if (this._worker) this.send({ type: 'remove', id });
   }

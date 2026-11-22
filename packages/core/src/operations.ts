@@ -2,6 +2,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRef, PDFString, PDFHexStrin
 import { drawVisualText, prepareText, textWidth, visualFrame, type FontSource, type VisualFrame } from './text.js';
 import { HilvanaError } from './errors.js';
 import { parsePageRange } from './pages.js';
+import { unlock, type Protection } from './unlock.js';
 
 /** Raw PDF bytes. Every operation takes bytes and returns new bytes; inputs are never mutated. */
 export type PdfBytes = Uint8Array;
@@ -22,6 +23,12 @@ export interface PdfInfo {
   };
   /** True when any of the identifying metadata fields above is set. */
   hasMetadata: boolean;
+  /**
+   * How the original file was protected. 'permissions': usage restrictions only (it opens without a
+   * password); Hilvana unlocks these automatically and the result no longer carries the restrictions.
+   * 'password': it was opened with its password (see unlock()).
+   */
+  protection: Protection;
   /**
    * Digital signatures in the file (signature dictionaries, including document timestamps).
    * Any change Hilvana makes rewrites the file, so the result no longer carries a valid signature.
@@ -89,7 +96,9 @@ export async function load(bytes: PdfBytes): Promise<PDFDocument> {
     doc = await PDFDocument.load(bytes, { updateMetadata: false });
   } catch (err) {
     const message = String((err as Error)?.message ?? err);
-    if (/encrypt/i.test(message)) throw new HilvanaError('ENCRYPTED');
+    // Files with only usage restrictions open without a password: unlock them and carry on.
+    // A file that needs a password raises PASSWORD_REQUIRED; callers unlock it first with unlock().
+    if (/encrypt/i.test(message)) return load((await unlock(bytes)).bytes);
     throw new HilvanaError('INVALID_PDF', { reason: message.slice(0, 200) });
   }
   assertStructure(doc);
@@ -107,21 +116,18 @@ async function save(doc: PDFDocument, opts: { objectStreams?: boolean } = {}): P
  * so it is safe to share with a planning model.
  */
 export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
-  let encrypted = false;
+  // Encrypted files are read through their unlocked copy (D17: never report them as invalid).
+  // Those that need a password raise PASSWORD_REQUIRED.
+  const { bytes: open, protection } = await unlock(bytes);
+  if (protection !== 'none') return { ...(await inspect(open)), byteLength: bytes.byteLength, encrypted: true, protection };
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(bytes, { updateMetadata: false, ignoreEncryption: true });
-    encrypted = doc.isEncrypted;
   } catch (err) {
     throw new HilvanaError('INVALID_PDF', { reason: String((err as Error)?.message ?? err).slice(0, 200) });
   }
-  // An encrypted file often cannot even be walked without decrypting it: say so, not "invalid" (D17).
-  try {
-    assertStructure(doc);
-  } catch (err) {
-    if (encrypted) throw new HilvanaError('ENCRYPTED');
-    throw err;
-  }
+  if (doc.isEncrypted) throw new HilvanaError('ENCRYPTED'); // encrypted, but unlock() could not say how
+  assertStructure(doc);
   const metadata = {
     title: doc.getTitle(),
     author: doc.getAuthor(),
@@ -134,11 +140,12 @@ export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
   return {
     pageCount: doc.getPageCount(),
     byteLength: bytes.byteLength,
-    encrypted,
     pages: doc.getPages().map((p) => ({ width: p.getWidth(), height: p.getHeight(), rotation: p.getRotation().angle })),
     metadata: clean,
     hasMetadata: Object.keys(clean).length > 0,
     signatures: countSignatures(doc),
+    encrypted: false,
+    protection: 'none',
   };
 }
 
