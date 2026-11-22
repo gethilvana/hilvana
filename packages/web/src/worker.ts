@@ -21,7 +21,8 @@ let textFonts: Promise<Uint8Array[]> | undefined;
 const loadTextFonts = () => (textFonts ??= fallbackTextFonts(fontLoader));
 
 // Files stay here, by id, so each Word file is converted once and bytes cross threads once.
-const files = new Map<string, { name: string; bytes: Uint8Array; protection?: core.Protection }>();
+// `original` and `password` are kept for signing a protected, signed PDF as it is.
+const files = new Map<string, { name: string; bytes: Uint8Array; original: Uint8Array; password?: string; protection?: core.Protection }>();
 const word: WordConverter = (docx) => wordToPdf(docx, { fonts: fontLoader });
 const converted = new WeakMap<Uint8Array, ReturnType<WordConverter>>();
 const convertOnce: WordConverter = (docx) => {
@@ -45,7 +46,7 @@ async function handle(msg: ToWorker): Promise<void> {
   switch (msg.type) {
     case 'unlock':
     case 'add': {
-      if (msg.type === 'add') files.set(msg.id, { name: msg.name, bytes: msg.bytes });
+      if (msg.type === 'add') files.set(msg.id, { name: msg.name, bytes: msg.bytes, original: msg.bytes });
       const file = files.get(msg.id);
       if (!file) return;
       const kind = kindOf(file.bytes);
@@ -53,9 +54,11 @@ async function handle(msg: ToWorker): Promise<void> {
         if (kind === 'pdf') {
           // Protected PDFs are unlocked here, once; the worker keeps the unlocked copy, so recipes
           // never need the password again. Files with only usage restrictions open on their own.
-          const open = await core.unlock(file.bytes, msg.type === 'unlock' ? msg.password : '');
+          const password = msg.type === 'unlock' ? msg.password : '';
+          const open = await core.unlock(file.original, password);
           file.bytes = open.bytes;
           file.protection = open.protection;
+          file.password = password || undefined;
           const info = { ...(await core.inspect(open.bytes)), protection: open.protection };
           // Copy for previews: the worker keeps its own bytes.
           const preview = open.bytes.slice();
@@ -78,14 +81,13 @@ async function handle(msg: ToWorker): Promise<void> {
       return;
     case 'run': {
       try {
-        const inputs: InputFile[] = msg.files.map((f) => ({ name: f.name, bytes: files.get(f.id)!.bytes, password: f.password }));
-        const res = await run(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
-        // Inputs were unlocked when added, so the engine no longer sees their protection: say it here.
-        const unlockedNotes = msg.files.flatMap((f) => {
-          const p = files.get(f.id)?.protection;
-          return p === 'permissions' ? [t(msg.lang, 'UNLOCKED_PERMISSIONS', { name: f.name })] : p === 'password' ? [t(msg.lang, 'UNLOCKED_PASSWORD', { name: f.name })] : [];
+        // The engine gets each file as it arrived (with its password), so it can say what protection
+        // it removed, or sign a protected, signed PDF as it is. Unlocking again is cached by bytes.
+        const inputs: InputFile[] = msg.files.map((f) => {
+          const file = files.get(f.id)!;
+          return { name: f.name, bytes: file.original, password: f.password ?? file.password };
         });
-        res.warnings.unshift(...unlockedNotes);
+        const res = await run(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
         const outputs: Output[] = res.outputs.map((o) => ({ name: o.filename, bytes: o.bytes, pageCount: o.pageCount }));
         return post({ type: 'done', job: msg.job, outputs, notes: [...res.notes, ...res.goals.filter((g) => !g.met).map((g) => g.message)], warnings: res.warnings }, outputs.map((o) => o.bytes.buffer));
       } catch (err) {

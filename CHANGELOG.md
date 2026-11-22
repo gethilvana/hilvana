@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 · 2026-11-22
+
+- **@hilvana/core**: signing a PDF that is both protected and already signed (like bank statements that are signed and restricted) no longer drops its earlier signatures. The document is signed as it is, encryption included, so the earlier signatures stay valid and the protection is kept (`CertificateSignResult.protection`); `openPassword` opens one that needs a password. This works around an issue in `@libpdf/core` 0.5 that rewrote objects read from encrypted files, re-encrypting earlier signature values and adding a revision after the new signature. The decryption library's false alarms about signature values no longer reach the console.
+- **@hilvana/recipes**: in that case the plan says the protection is kept (`PROTECTION_KEPT`) instead of saying it is removed, and the goals are checked by opening the result with the input's password.
+- **hilvana** (`certify`) and **Web** (*Firma digital*): same behavior; the web file row says the protection is kept.
+
 ## 0.5.0 · 2026-11-21
 
 - **@hilvana/core**: `protect(bytes, opts)` encrypts with AES-256, with a password to open and/or usage restrictions (print, copy, modify). `signWithCertificate(bytes, opts)` signs with a `.p12`/`.pfx` certificate (RSA or elliptic curve, legacy `.pfx` included), PAdES B-B, entirely on the device: no time-stamping server. It appends the signature without rewriting the file, so earlier signatures stay valid, and draws an optional visible line only on documents with no signatures yet. `readCertificate()` describes who signs, the issuer and the validity. New error codes `INVALID_CERTIFICATE`, `WRONG_CERTIFICATE_PASSWORD`, `CERTIFICATE_EXPIRED`, `CERTIFICATE_NOT_YET_VALID`. Signatures are checked in tests with Poppler's `pdfsig`, an independent validator.

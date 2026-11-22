@@ -52,18 +52,20 @@ function unlockOnce(bytes: Uint8Array, password = ''): Promise<core.UnlockResult
  * Replaces protected PDFs with their unlocked copies. Files with only usage restrictions open on
  * their own; files that need a password open with the one given for them. Says what was removed.
  */
-async function unlockInputs(files: InputFile[], lang: Lang): Promise<{ files: InputFile[]; warnings: string[]; issues: Issue[]; failed: Set<string> }> {
+async function unlockInputs(files: InputFile[], lang: Lang): Promise<{ files: InputFile[]; warnings: string[]; issues: Issue[]; failed: Set<string>; protections: Map<string, core.Protection> }> {
   const out: InputFile[] = [];
   const warnings: string[] = [];
+  const protections = new Map<string, core.Protection>();
   const issues: Issue[] = [];
   const failed = new Set<string>();
   for (const f of files) {
     if (kindOf(f.bytes) !== 'pdf') { out.push(f); continue; }
     try {
       const res = await unlockOnce(f.bytes, f.password);
+      protections.set(f.name, res.protection);
       if (res.protection === 'permissions') warnings.push(t(lang, 'UNLOCKED_PERMISSIONS', { name: f.name }));
       if (res.protection === 'password') warnings.push(t(lang, 'UNLOCKED_PASSWORD', { name: f.name }));
-      out.push({ name: f.name, bytes: res.bytes });
+      out.push({ name: f.name, bytes: res.bytes, password: f.password });
     } catch (err) {
       failed.add(f.name);
       const issue = issueFromError(err, lang);
@@ -71,7 +73,7 @@ async function unlockInputs(files: InputFile[], lang: Lang): Promise<{ files: In
       out.push(f);
     }
   }
-  return { files: out, warnings, issues, failed };
+  return { files: out, warnings, issues, failed, protections };
 }
 
 export interface Issue {
@@ -215,6 +217,12 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         const info = await core.inspect(byName.get(name)!.bytes);
         pageCounts.set(name, info.pageCount);
         if (info.signatures > 0) warnings.push(t(lang, inPlace ? 'SIGNATURES_KEPT' : 'SIGNED_INPUT', { name }));
+        // Signed in place, a protected file keeps its protection: earlier signatures depend on it.
+        const protection = prepared.protections.get(name);
+        if (inPlace && info.signatures > 0 && protection && protection !== 'none') {
+          const removed = t(lang, protection === 'password' ? 'UNLOCKED_PASSWORD' : 'UNLOCKED_PERMISSIONS', { name });
+          warnings.splice(warnings.indexOf(removed), 1, t(lang, 'PROTECTION_KEPT', { name }));
+        }
       }
     } catch (err) {
       if (err instanceof DocxError) issues.push({ code: err.code, message: t(lang, err.code, { name }) });
@@ -464,7 +472,7 @@ export async function run(
   const outputs: RunOutput[] = [];
   const goals: GoalResult[] = [];
   // A result protected with a password is opened with it, only to check it here.
-  const openWith = last.op === 'protect' ? last.password : undefined;
+  const openWith = last.op === 'protect' ? last.password : inPlace ? passwords.get(docs[0]!.name) : undefined;
   for (const part of parts) {
     const info = await core.inspect(openWith ? (await core.unlock(part.bytes, openWith)).bytes : part.bytes);
     const filename = safeFilename(part.label ? `${base}-${part.label.replace(/[^\w-]+/g, '_')}` : base) + '.pdf';
@@ -518,6 +526,8 @@ async function apply(
       const res = await core.signWithCertificate(need(), {
         certificate,
         password,
+        // Only a document signed as it is can still be protected; its own password opens it.
+        openPassword: ctx.pdfs.length === 1 ? ctx.passwords.get(ctx.pdfs[0]!.name) : undefined,
         reason: step.reason,
         location: step.location,
         visible: step.visible === false ? false : {

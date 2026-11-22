@@ -399,20 +399,24 @@ async function main(argv: string[]) {
       const certificate = await read(v.cert);
       const password = await certPassword(v.cert, lang);
       const raw = await read(input);
-      // Signed files are signed as they are, so their signatures stay valid; protected ones are opened first.
+      // Signed files are signed as they are, so their signatures (and any protection) stay valid.
       const opened = await core.unlock(raw, passwordOf(v));
-      const src = opened.protection === 'none' ? raw : await openPdf(input, raw, v, lang);
       const who = await core.readCertificate(certificate, password);
-      const res = await core.signWithCertificate(src, {
+      const res = await core.signWithCertificate(raw, {
         certificate,
         password,
+        openPassword: passwordOf(v) || undefined,
         reason: v.reason,
         location: v.location,
         visible: v.invisible ? false : { text: t(lang, 'visible.signed', { name: who.name, date: localDate() }), pages: v.pages, anchor: v.anchor as core.Anchor | undefined, fonts: () => fallbackTextFonts() },
       });
-      await write(v.output ?? defaultOutput(input, 'signed'), res.bytes, [input, v.cert], v.force, lang);
+      const name = path.basename(input);
+      if (res.protection !== 'none') process.stderr.write(`⚠ ${t(lang, 'PROTECTION_KEPT', { name })}\n`);
+      else if (opened.protection === 'permissions') process.stderr.write(`⚠ ${t(lang, 'UNLOCKED_PERMISSIONS', { name })}\n`);
+      else if (opened.protection === 'password') process.stderr.write(`⚠ ${t(lang, 'UNLOCKED_PASSWORD', { name })}\n`);
+      await write(v.output ?? defaultOutput(input, 'signed'), res.bytes, [input, v.cert], v.force, lang, res.protection === 'password' ? passwordOf(v) : undefined);
       process.stdout.write(`  ${t(lang, 'note.signed', { name: res.signer.name, issuer: res.signer.issuer, to: localDate(res.signer.validTo) })}\n`);
-      if (res.previousSignatures > 0) process.stdout.write(`  ${t(lang, 'SIGNATURES_KEPT', { name: path.basename(input) })}\n`);
+      if (res.previousSignatures > 0) process.stdout.write(`  ${t(lang, 'SIGNATURES_KEPT', { name })}\n`);
       else if (!res.visible) process.stdout.write(`  ${t(lang, 'note.signedInvisible')}\n`);
       if (res.signer.selfSigned) process.stdout.write(`  ⚠ ${t(lang, 'SELF_SIGNED_CERTIFICATE', { name: path.basename(v.cert) })}\n`);
       return;

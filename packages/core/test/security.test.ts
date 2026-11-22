@@ -2,7 +2,7 @@
  * Protecting with a password and signing with a certificate. Signatures are checked with pdfsig
  * (Poppler), an independent validator, not with the library that made them.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { HilvanaError, countSignatures, inspect, load, protect, readCertificate, signWithCertificate, unlock } from '@hilvana/core';
 import { makePdf, makeSignedPdf } from './helpers.js';
@@ -68,6 +68,41 @@ describe('signing with a certificate', () => {
   withPdfsig('signs a PDF that only had usage restrictions', async () => {
     const res = await signWithCertificate(encrypted('permisos-aes256.pdf'), { certificate: cert('ana.p12'), password: 'clave-ana', visible: false });
     expect(pdfsig(res.bytes)[0]!.valid).toBe(true);
+  });
+
+  /** A document signed after it was protected, like bank statements that are signed and restricted. */
+  async function signedProtected(opts: { password?: string; allowModify?: boolean }) {
+    const { PDF, P12Signer } = await import('@libpdf/core');
+    const prot = await protect(await makePdf(2), { allowCopy: false, ...opts });
+    const pdf = await PDF.load(prot, { credentials: opts.password ?? '' });
+    return (await pdf.sign({ signer: await P12Signer.create(cert('ana.p12'), 'clave-ana'), level: 'B-B' })).bytes;
+  }
+
+  withPdfsig('countersigns a signed, restricted PDF as it is: both signatures and the restrictions stay', async () => {
+    const original = await signedProtected({ allowModify: false });
+    expect(pdfsig(original).map((x) => x.valid)).toEqual([true]);
+    const noise: unknown[] = [];
+    const spy = vi.spyOn(console, 'warn').mockImplementation((...a) => { noise.push(a); });
+    try {
+      const res = await signWithCertificate(original, { certificate: cert('luis.p12'), password: 'clave-luis' });
+      expect(res).toMatchObject({ previousSignatures: 1, protection: 'permissions', visible: false });
+      expect(pdfsig(res.bytes).map((x) => [x.name, x.valid])).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
+      // Nothing is written after the new signature: it covers the whole file.
+      expect(pdfsig(res.bytes)[1]!.wholeFile).toBe(true);
+      expect((await unlock(res.bytes)).protection).toBe('permissions');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(noise).toEqual([]);
+  });
+
+  withPdfsig('countersigns a signed PDF that needs a password, only with that password, and keeps it', async () => {
+    const original = await signedProtected({ password: 'abierto' });
+    await expect(signWithCertificate(original, { certificate: cert('luis.p12'), password: 'clave-luis' })).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+    const res = await signWithCertificate(original, { certificate: cert('luis.p12'), password: 'clave-luis', openPassword: 'abierto' });
+    expect(res.protection).toBe('password');
+    await expect(unlock(res.bytes)).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+    expect(pdfsig(res.bytes, 'abierto').map((x) => [x.name, x.valid])).toEqual([['Ana Prueba', true], ['Luis Prueba', true]]);
   });
 
   it('refuses expired and not-yet-valid certificates, before touching the document', async () => {
