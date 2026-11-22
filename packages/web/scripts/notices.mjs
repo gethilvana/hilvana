@@ -46,6 +46,9 @@ for (const [dir, p] of entries) {
   const files = licenseFiles(dir);
   if (files.length === 0) text += `License: ${p.license}\n`;
   for (const f of files) text += `\n${readFileSync(path.join(dir, f), 'utf8').trim()}\n`;
+  if (p.name.startsWith('@tesseract.js-data/')) {
+    text += `\nThe trained model in this package comes from the Tesseract OCR project\n(https://github.com/tesseract-ocr/tessdata_best), licensed under the Apache License 2.0,\nintegerized by the Tesseract.js project.\n`;
+  }
   // pdf.js ships fonts with their own licenses (PDFium/Foxit and Liberation).
   const fontsDir = path.join(dir, 'standard_fonts');
   if (p.name === 'pdfjs-dist' && existsSync(fontsDir)) {

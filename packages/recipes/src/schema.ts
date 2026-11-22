@@ -76,6 +76,12 @@ export const SplitStep = z.object({
     .describe('One output file per range, in order (e.g. ["1-3", "4-last"]). Omit for one file per page.'),
 }).strict().describe('Last step only: splits the document into several output files.');
 
+export const OcrStep = z.object({
+  op: z.literal('ocr'),
+  language: z.enum(['spa', 'eng']).optional().describe('Language of the scans: spa (Spanish, default) or eng (English).'),
+  force: z.boolean().optional().describe('Also read pages that already have text. By default only pages without text are read.'),
+}).strict().describe('OCR on this device: adds an invisible text layer to scanned pages so they can be searched, copied and redacted. The pages look the same.');
+
 export const RedactStep = z.object({
   op: z.literal('redact'),
   terms: z.array(z.string().min(1).max(200)).max(200).optional()
@@ -122,6 +128,7 @@ export const Step = z.discriminatedUnion('op', [
   OptimizeStep,
   CompressStep,
   SplitStep,
+  OcrStep,
   RedactStep,
   ProtectStep,
   SignDigitalStep,

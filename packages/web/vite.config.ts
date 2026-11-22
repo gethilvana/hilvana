@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { readdirSync, statSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 
 /**
  * The privacy promise, enforced by the browser: the page may only talk to its own origin.
@@ -46,7 +47,7 @@ function csp(): Plugin {
 
 /**
  * Writes dist/sw.js: the app shell is cached on install so the site works offline;
- * fonts and pdf.js assets are cached the first time they are used.
+ * fonts, pdf.js assets and the OCR engine are cached the first time they are used.
  */
 function serviceWorker(): Plugin {
   let outDir = 'dist';
@@ -64,7 +65,7 @@ function serviceWorker(): Plugin {
         }
       };
       walk(outDir);
-      const shell = ['./', ...files.filter((f) => !/^(fonts|pdfjs)\//.test(f) && !/^(sw\.js|_headers|_redirects)$/.test(f)).map((f) => `./${f}`)];
+      const shell = ['./', ...files.filter((f) => !/^(fonts|pdfjs|ocr)\//.test(f) && !/^(sw\.js|_headers|_redirects)$/.test(f)).map((f) => `./${f}`)];
       const version = createHash('sha256').update(shell.join('\n')).update(files.map((f) => statSync(path.join(outDir, f)).size).join(',')).digest('hex').slice(0, 12);
       const template = readFileSync(new URL('./src/sw-template.js', import.meta.url), 'utf8');
       writeFileSync(path.join(outDir, 'sw.js'), template.replace('__VERSION__', version).replace('__SHELL__', JSON.stringify(shell)));
@@ -73,8 +74,18 @@ function serviceWorker(): Plugin {
   };
 }
 
+const require = createRequire(import.meta.url);
+const versionOf = (name: string) => (require(`${name}/package.json`) as { version: string }).version;
+// tesseract-wasm hides its package.json behind "exports": read it from its main file's folder.
+const tesseractVersion = (JSON.parse(readFileSync(path.join(path.dirname(require.resolve('tesseract-wasm')), '..', 'package.json'), 'utf8')) as { version: string }).version;
+
 export default defineConfig({
   base: './',
+  // Versioned folders for the OCR engine and models (see scripts/copy-assets.mjs).
+  define: {
+    __TESSERACT_VERSION__: JSON.stringify(tesseractVersion),
+    __TESSDATA_VERSION__: JSON.stringify(versionOf('@tesseract.js-data/spa')),
+  },
   esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
   worker: { format: 'es' },
   resolve: {

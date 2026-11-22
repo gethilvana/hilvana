@@ -2,7 +2,7 @@ import type { Lang } from '@hilvana/recipes';
 
 export type ToolId =
   | 'merge' | 'pages' | 'split' | 'rotate'
-  | 'word' | 'images'
+  | 'word' | 'images' | 'ocr'
   | 'sign' | 'certify' | 'stamp' | 'number' | 'watermark'
   | 'compress' | 'metadata' | 'redact' | 'protect'
   | 'recipes';
@@ -125,6 +125,15 @@ const es = {
     noTimestamp: 'La hora de la firma es la de este equipo; no se consulta un servidor de sellado de tiempo.',
     missing: 'Elige tu certificado y ábrelo con su contraseña.',
   },
+  ocr: {
+    language: 'Idioma del documento',
+    spa: 'Español',
+    eng: 'Inglés',
+    hint: 'El texto se reconoce en este equipo. La primera vez se descargan el motor y el modelo del idioma (unos 4 MB) desde este mismo sitio; después funciona sin conexión.',
+    preparing: 'Preparando el reconocimiento…',
+    progress: (n: number, total: number) => `Reconociendo página ${n} de ${total}…`,
+    noScans: 'Todas las páginas ya tienen texto: no hace falta OCR.',
+  },
   redact: {
     terms: 'Textos o números a tachar',
     termsHint: 'Uno por línea. Los números se encuentran con o sin espacios, puntos o guiones; no importan mayúsculas ni tildes.',
@@ -134,7 +143,7 @@ const es = {
     number: 'Números de cuenta o identificación (6 o más dígitos)',
     phone: 'Teléfonos',
     searching: 'Buscando…',
-    found: (n: number, pages: string) => (n === 0 ? 'No se encontró en el texto del documento.' : n === 1 ? `1 coincidencia, en la página ${pages}.` : `${n} coincidencias, en las páginas ${pages}.`),
+    found: (n: number, pages: string) => (n === 0 ? 'No se encontró en el texto del documento. Si es un escaneo, usa primero Reconocer texto (OCR), o dibuja un recuadro.' : n === 1 ? `1 coincidencia, en la página ${pages}.` : `${n} coincidencias, en las páginas ${pages}.`),
     list: 'Ver qué se encontró',
     draw: 'También puedes dibujar un recuadro sobre la página: sirve para escaneos, fotos y firmas.',
     page: (n: number, total: number) => `Página ${n} de ${total}`,
@@ -222,6 +231,7 @@ const es = {
     split: { name: 'Dividir', purpose: 'Separa un PDF en varios archivos.', action: 'Dividir archivo', busy: 'Dividiendo…' },
     rotate: { name: 'Girar páginas', purpose: 'Endereza páginas escaneadas de lado o al revés.', action: 'Girar páginas', busy: 'Girando…' },
     word: { name: 'Word a PDF', purpose: 'Convierte documentos .docx a PDF con texto seleccionable.', action: 'Convertir a PDF', busy: 'Convirtiendo…' },
+    ocr: { name: 'Reconocer texto (OCR)', purpose: 'Convierte un escaneo en un PDF donde puedes buscar, copiar y tachar el texto. Se ve igual que antes.', action: 'Reconocer texto', busy: 'Reconociendo…' },
     images: { name: 'Imágenes a PDF', purpose: 'Convierte fotos o capturas en un solo PDF.', action: 'Crear PDF', busy: 'Creando…' },
     sign: { name: 'Firmar', purpose: 'Pon tu firma en la página que elijas.', action: 'Firmar documento', busy: 'Firmando…' },
     stamp: { name: 'Sello de texto', purpose: 'Agrega un texto como "Recibido" con la fecha de hoy.', action: 'Agregar sello', busy: 'Sellando…' },
@@ -349,6 +359,15 @@ const en: Strings = {
     noTimestamp: 'The signing time is this device\'s clock; no time-stamping server is contacted.',
     missing: 'Choose your certificate and open it with its password.',
   },
+  ocr: {
+    language: 'Document language',
+    spa: 'Spanish',
+    eng: 'English',
+    hint: 'Text is recognized on this device. The first time, the engine and the language model (about 4 MB) download from this same site; after that it works offline.',
+    preparing: 'Getting recognition ready…',
+    progress: (n: number, total: number) => `Recognizing page ${n} of ${total}…`,
+    noScans: 'Every page already has text: no OCR needed.',
+  },
   redact: {
     terms: 'Text or numbers to redact',
     termsHint: 'One per line. Numbers are found with or without spaces, dots or dashes; case and accents do not matter.',
@@ -358,7 +377,7 @@ const en: Strings = {
     number: 'Account or ID numbers (6 or more digits)',
     phone: 'Phone numbers',
     searching: 'Searching…',
-    found: (n: number, pages: string) => (n === 0 ? 'Not found in the document\'s text.' : n === 1 ? `1 match, on page ${pages}.` : `${n} matches, on pages ${pages}.`),
+    found: (n: number, pages: string) => (n === 0 ? 'Not found in the document\'s text. If it is a scan, use Recognize text (OCR) first, or draw a box.' : n === 1 ? `1 match, on page ${pages}.` : `${n} matches, on pages ${pages}.`),
     list: 'See what was found',
     draw: 'You can also draw a box on the page: useful for scans, photos and signatures.',
     page: (n: number, total: number) => `Page ${n} of ${total}`,
@@ -446,6 +465,7 @@ const en: Strings = {
     split: { name: 'Split', purpose: 'Break a PDF into several files.', action: 'Split file', busy: 'Splitting…' },
     rotate: { name: 'Rotate pages', purpose: 'Straighten scanned pages that are sideways or upside down.', action: 'Rotate pages', busy: 'Rotating…' },
     word: { name: 'Word to PDF', purpose: 'Convert .docx documents to PDF with selectable text.', action: 'Convert to PDF', busy: 'Converting…' },
+    ocr: { name: 'Recognize text (OCR)', purpose: 'Turn a scan into a PDF whose text you can search, copy and redact. It looks the same as before.', action: 'Recognize text', busy: 'Recognizing…' },
     images: { name: 'Images to PDF', purpose: 'Turn photos or screenshots into a single PDF.', action: 'Create PDF', busy: 'Creating…' },
     sign: { name: 'Sign', purpose: 'Put your signature on the page you choose.', action: 'Sign document', busy: 'Signing…' },
     stamp: { name: 'Text stamp', purpose: 'Add a text such as "Received" with today\'s date.', action: 'Add stamp', busy: 'Stamping…' },

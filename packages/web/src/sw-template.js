@@ -22,7 +22,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  const lazy = /\/(fonts|pdfjs)\//.test(url.pathname);
+  const lazy = /\/(fonts|pdfjs|ocr)\//.test(url.pathname);
   event.respondWith((async () => {
     // ignoreVary: some servers send "Vary: Origin" for module scripts, which would make every lookup miss.
     const hit = await caches.match(req, { ignoreSearch: true, ignoreVary: true });

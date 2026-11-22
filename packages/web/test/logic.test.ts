@@ -37,6 +37,7 @@ const options: fc.Arbitrary<Options> = fc.record({
   allowCopy: fc.boolean(),
   allowModify: fc.boolean(),
   redactTerms: fc.string({ maxLength: 200 }),
+  ocrLanguage: fc.constantFrom('spa', 'eng' as const),
   redactPatterns: fc.subarray(['email', 'card', 'number', 'phone'] as const),
   redactAreas: fc.array(fc.record({ page: fc.integer({ min: 1, max: 50 }), x: fc.double({ min: -100, max: 1000, noNaN: true }), y: fc.double({ min: -100, max: 1000, noNaN: true }), width: fc.double({ min: 1, max: 600, noNaN: true }), height: fc.double({ min: 1, max: 600, noNaN: true }) }), { maxLength: 5 }),
 }) as fc.Arbitrary<Options>;

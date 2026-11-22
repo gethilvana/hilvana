@@ -289,6 +289,13 @@ export function ToolOptions({ s, tool, o, set }: { s: Strings; tool: string; o: 
           {o.splitMode === 'ranges' && <Text label={f.ranges} value={o.ranges} placeholder="1-3; 4-last" hint={f.rangesHint} onChange={(v) => set('ranges', v)} />}
         </div>
       );
+    case 'ocr':
+      return (
+        <div class="field-group">
+          <Select<Options['ocrLanguage']> label={s.ocr.language} value={o.ocrLanguage} onChange={(v) => set('ocrLanguage', v)} options={[['spa', s.ocr.spa], ['eng', s.ocr.eng]]} />
+          <p class="hint">{s.ocr.hint}</p>
+        </div>
+      );
     case 'images':
       return <Select<Options['pageSize']> label={f.pageSize} value={o.pageSize} onChange={(v) => set('pageSize', v)} options={[['image', s.pageSizes.image], ['a4', s.pageSizes.a4], ['letter', s.pageSizes.letter]]} />;
     case 'sign':

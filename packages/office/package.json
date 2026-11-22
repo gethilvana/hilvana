@@ -1,14 +1,17 @@
 {
   "name": "@hilvana/office",
-  "version": "0.7.0",
-  "description": "Hilvana office conversions that run locally: Word (.docx) to PDF with real, selectable text.",
+  "version": "0.8.0",
+  "description": "Hilvana office conversions that run locally: Word (.docx) to PDF with real, selectable text, and OCR that makes scanned PDFs searchable.",
   "keywords": [
     "docx",
     "word",
     "pdf",
     "convert",
     "word-to-pdf",
-    "local"
+    "local",
+    "ocr",
+    "tesseract",
+    "scanned"
   ],
   "license": "MIT",
   "author": "Jorge Grajales (https://jorgegrajales.dev)",
@@ -51,8 +54,12 @@
     "@fontsource/noto-sans-symbols-2": "^5.3.0",
     "@fontsource/tinos": "^5.3.0",
     "@pdf-lib/fontkit": "^1.1.1",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/spa": "1.0.0",
     "@xmldom/xmldom": "^0.9.12",
     "fflate": "^0.8.3",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "tesseract-wasm": "^0.11.0",
+    "@hilvana/core": "0.8.0"
   }
 }

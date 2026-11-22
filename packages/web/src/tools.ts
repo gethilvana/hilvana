@@ -22,6 +22,7 @@ export const TOOLS: Tool[] = [
   { id: 'rotate', group: 'arrange', accept: 'docs', single: true },
   { id: 'word', group: 'convert', accept: 'word', single: false },
   { id: 'images', group: 'convert', accept: 'images', single: false },
+  { id: 'ocr', group: 'convert', accept: 'docs', single: true },
   { id: 'sign', group: 'mark', accept: 'docs', single: true },
   { id: 'certify', group: 'mark', accept: 'docs', single: true },
   { id: 'stamp', group: 'mark', accept: 'docs', single: true },
@@ -79,6 +80,7 @@ export interface Options {
   redactPatterns: RedactPattern[];
   /** Rectangles drawn on pages, in PDF points. */
   redactAreas: RedactArea[];
+  ocrLanguage: 'spa' | 'eng';
 }
 
 export type RedactPattern = 'email' | 'card' | 'number' | 'phone';
@@ -116,6 +118,7 @@ export function defaultOptions(s: { stampDefault: string; numberDefault: string;
     redactTerms: '',
     redactPatterns: [],
     redactAreas: [],
+    ocrLanguage: 'spa',
   };
 }
 
@@ -146,8 +149,8 @@ export function compactRange(pages: number[]): string {
 }
 
 const SUFFIX: Record<Lang, Partial<Record<ToolId, string>>> = {
-  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido', redact: 'tachado' },
-  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected', redact: 'redacted' },
+  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido', redact: 'tachado', ocr: 'buscable' },
+  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected', redact: 'redacted', ocr: 'searchable' },
 };
 
 /** Names of the extra inputs some tools use, and the new password for "protect" (never kept in Options). */
@@ -202,6 +205,7 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
         ...(o.redactAreas.length ? { areas: o.redactAreas.map((a) => ({ page: a.page, x: r(a.x), y: r(a.y), width: r(a.width), height: r(a.height) })) } : {}),
       }]);
     }
+    case 'ocr': return base([{ op: 'ocr', language: o.ocrLanguage }]);
     case 'recipes': throw new Error('Saved recipes are run as saved, not built from options.');
     case 'split': {
       const ranges = splitRanges(o);
