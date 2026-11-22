@@ -145,12 +145,14 @@ describe('D14 · form fields survive merge and page selection', () => {
 });
 
 // D17: qpdf-style encrypted files (object streams) were reported as invalid instead of protected.
-describe('encrypted PDFs are reported as protected (D17)', () => {
-  it.each(['con-contrasena.pdf', 'solo-permisos.pdf'])('%s', async (name) => {
-    const { readFile } = await import('node:fs/promises');
-    const bytes = new Uint8Array(await readFile(new URL(`../../web/e2e/fixtures/${name}`, import.meta.url)));
-    await expect(inspect(bytes)).rejects.toMatchObject({ code: 'ENCRYPTED' });
-    await expect(load(bytes)).rejects.toMatchObject({ code: 'ENCRYPTED' });
+describe('encrypted PDFs are never reported as invalid (D17)', () => {
+  const fixture = async (name: string) => new Uint8Array(await (await import('node:fs/promises')).readFile(new URL(`../../web/e2e/fixtures/${name}`, import.meta.url)));
+  it('a file that needs a password asks for it', async () => {
+    await expect(inspect(await fixture('con-contrasena.pdf'))).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+    await expect(load(await fixture('con-contrasena.pdf'))).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+  });
+  it('a file with only restrictions opens', async () => {
+    expect((await inspect(await fixture('solo-permisos.pdf'))).protection).toBe('permissions');
   });
 });
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 · 2026-11-21
+
+- **@hilvana/core**: new `unlock(bytes, password?)`. PDFs with only usage restrictions (no password to open, like many bank statements) are unlocked automatically by `load()` and `inspect()`; PDFs that need a password open with it. RC4 (40/128), AES-128 and AES-256 are supported, through `@libpdf/core` (MIT), loaded only when a file is encrypted. New error codes `PASSWORD_REQUIRED` and `WRONG_PASSWORD`; `ENCRYPTED` now means an unsupported scheme (for example certificate-based). `PdfInfo.protection` says how the file was protected.
+- **@hilvana/recipes**: `InputFile.password`; plans warn when restrictions or a password were removed (`UNLOCKED_PERMISSIONS`, `UNLOCKED_PASSWORD`).
+- **hilvana**: `--password` (or `HILVANA_PDF_PASSWORD`, kept out of shell history); `inspect` shows the kind of protection.
+- **hilvana-mcp**: opens files with only restrictions. It never takes passwords: when a file needs one, it tells the agent how the person can open it themselves.
+- **Web**: protected files open on their own or with a password typed in the file row, in the browser only.
+
 ## 0.3.0 · 2026-11-21
 
 - **@hilvana/core**: `inspect()` reports `signatures` (digital signatures in the file). Changed files no longer carry broken signatures: a signature covers exact bytes, so after any change readers would show it as tampered. Its visible appearance stays on the page. New `countSignatures()` and `dropSignatures()`.

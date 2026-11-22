@@ -98,7 +98,7 @@ test.describe('the build that gets deployed', () => {
     // Tripwire for new domains. Known identifiers that are never fetched: links people may click,
     // XML/XFA namespaces, JSON-Schema ids (zod), license comments and examples inside library code.
     // Even if code tried to load one, the Content-Security-Policy would block it.
-    const allowed = /^https?:\/\/(github\.com\/gethilvana\/hilvana|www\.w3\.org\/|ns\.adobe\.com\/|purl\.org\/|schemas\.openxmlformats\.org\/|schemas\.microsoft\.com\/|mozilla\.github\.io\/pdf\.js|github\.com\/mozilla\/pdf\.js|bugzil\.la|crbug\.com|github\.com\/Hopding\/pdf-lib|feross\.org|github\.com\/ashtuchkin\/iconv-lite\/wiki|www\.xfa\.org\/schema\/|json-schema\.org\/draft|www\.apache\.org\/licenses\/|example\.com|foo\.bar|\$\{|\[\$\{)/;
+    const allowed = /^https?:\/\/(github\.com\/gethilvana\/hilvana|www\.w3\.org\/|ns\.adobe\.com\/|purl\.org\/|schemas\.openxmlformats\.org\/|schemas\.microsoft\.com\/|mozilla\.github\.io\/pdf\.js|github\.com\/mozilla\/pdf\.js|bugzil\.la|crbug\.com|github\.com\/Hopding\/pdf-lib|feross\.org|github\.com\/ashtuchkin\/iconv-lite\/wiki|github\.com\/nodeca\/pako|www\.xfa\.org\/schema\/|json-schema\.org\/draft|www\.apache\.org\/licenses\/|example\.com|foo\.bar|\$\{|\[\$\{)/;
     const found = new Set<string>();
     for (const f of [...files.map((x) => path.join(dist, 'assets', x))]) {
       for (const m of (await readFile(f, 'utf8')).matchAll(/https?:\/\/[^\s"'`)<>\\]+/g)) if (!allowed.test(m[0])) found.add(m[0]);

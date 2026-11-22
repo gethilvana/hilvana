@@ -34,6 +34,8 @@ Uso:
 
 Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Opciones: --lang es|en, --force (reemplaza la salida; nunca una entrada).
+PDF protegidos: los que solo tienen restricciones se abren solos. Para los que piden contraseña,
+  usa --password <contraseña> o la variable HILVANA_PDF_PASSWORD (no queda en el historial).
 Word: --engine native usa el motor integrado; libreoffice usa LibreOffice si está instalado;
       auto (por defecto) usa el integrado y recurre a LibreOffice si tuvo que omitir contenido.
 Todo se procesa en tu equipo. Ningún archivo sale de él.
@@ -58,6 +60,8 @@ Usage:
 
 Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Options: --lang es|en, --force (replace the output; never an input).
+Protected PDFs: files with only usage restrictions open on their own. For files that need a password,
+  use --password <password> or the HILVANA_PDF_PASSWORD variable (kept out of your shell history).
 Word: --engine native uses the built-in engine; libreoffice uses a local LibreOffice install;
       auto (default) uses the built-in one and falls back to LibreOffice if it had to drop content.
 Everything runs on your machine. No file leaves it.
@@ -84,6 +88,7 @@ const options = {
   force: { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
   'dry-run': { type: 'boolean' },
+  password: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -162,6 +167,16 @@ function parseSize(v: string, lang: Lang): number {
   return Math.floor(n * (unit === 'k' ? 1024 : unit === 'm' ? 1024 ** 2 : unit === 'g' ? 1024 ** 3 : 1));
 }
 
+const passwordOf = (v: Values) => v.password ?? process.env.HILVANA_PDF_PASSWORD ?? '';
+
+/** Opens a protected PDF here (restrictions on their own, a password when given) and says what was removed. */
+async function openPdf(file: string, bytes: Uint8Array, v: Values, lang: Lang): Promise<Uint8Array> {
+  const res = await core.unlock(bytes, passwordOf(v));
+  if (res.protection === 'permissions') process.stderr.write(`⚠ ${t(lang, 'UNLOCKED_PERMISSIONS', { name: path.basename(file) })}\n`);
+  if (res.protection === 'password') process.stderr.write(`⚠ ${t(lang, 'UNLOCKED_PASSWORD', { name: path.basename(file) })}\n`);
+  return res.bytes;
+}
+
 /** Changing a signed PDF always produces a new, unsigned file: say so before the person relies on it. */
 async function warnIfSigned(file: string, bytes: Uint8Array, lang: Lang) {
   const info = await core.inspect(bytes).catch(() => undefined);
@@ -178,7 +193,7 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
   if (!SINGLE.includes(cmd)) throw new UsageError(`✗ ${lang === 'es' ? `Comando desconocido: "${cmd}". Usa hilvana --help.` : `Unknown command: "${cmd}". Run hilvana --help.`}`);
   const [input] = positionals;
   if (!input) throw new UsageError(HELP[lang]);
-  const src = await read(input);
+  const src = await openPdf(input, await read(input), v, lang);
   await warnIfSigned(input, src, lang);
   const anchor = v.anchor as core.Anchor | undefined;
   let out: Uint8Array;
@@ -241,11 +256,13 @@ async function main(argv: string[]) {
   switch (cmd) {
     case 'inspect': {
       if (!rest[0]) throw new UsageError(HELP[lang]);
-      const info = await core.inspect(await read(rest[0]));
+      const raw = await read(rest[0]);
+      const open = await core.unlock(raw, passwordOf(v));
+      const info = { ...(await core.inspect(open.bytes)), byteLength: raw.byteLength, encrypted: open.protection !== 'none', protection: open.protection };
       if (v.json) return void process.stdout.write(JSON.stringify(info, null, 2) + '\n');
       const lines = lang === 'es'
-        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${info.encrypted ? 'sí' : 'no'}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`, `Firmas digitales: ${info.signatures}`]
-        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${info.encrypted ? 'yes' : 'no'}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`, `Digital signatures: ${info.signatures}`];
+        ? [`Páginas: ${info.pageCount}`, `Tamaño: ${(info.byteLength / 1024).toFixed(1)} KB`, `Protegido: ${{ none: 'no', permissions: 'sí, solo restricciones de uso', password: 'sí, con contraseña' }[info.protection]}`, `Metadatos: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'ninguno'}`, `Firmas digitales: ${info.signatures}`]
+        : [`Pages: ${info.pageCount}`, `Size: ${(info.byteLength / 1024).toFixed(1)} KB`, `Encrypted: ${{ none: 'no', permissions: 'yes, usage restrictions only', password: 'yes, with a password' }[info.protection]}`, `Metadata: ${info.hasMetadata ? JSON.stringify(info.metadata) : 'none'}`, `Digital signatures: ${info.signatures}`];
       return void process.stdout.write(lines.join('\n') + '\n');
     }
     case 'word': {
@@ -271,8 +288,9 @@ async function main(argv: string[]) {
           printWarnings(path.basename(p), res.warnings, lang);
           parts.push(res.pdf);
         } else {
-          await warnIfSigned(p, bytes, lang);
-          parts.push(bytes);
+          const open = await openPdf(p, bytes, v, lang);
+          await warnIfSigned(p, open, lang);
+          parts.push(open);
         }
       }
       const out = await core.merge(parts);
@@ -295,7 +313,8 @@ async function main(argv: string[]) {
         if (err instanceof SyntaxError) throw new UsageError(`✗ ${lang === 'es' ? 'La receta no es un JSON válido' : 'The recipe is not valid JSON'}: ${err.message}`);
         throw err;
       }
-      const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p) })));
+      const password = passwordOf(v) || undefined;
+      const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p), password })));
       const word = wordConverter(v, lang);
       const p = await plan(recipe, files, { lang, word });
       process.stdout.write(p.steps.join('\n') + '\n');
@@ -335,7 +354,12 @@ main(process.argv.slice(2)).catch((err) => {
   const lang = detectLang(process.argv.includes('--lang') ? process.argv[process.argv.indexOf('--lang') + 1] : undefined);
   if (err instanceof UsageError) process.stderr.write(err.message + '\n');
   else if (err instanceof RecipeError) process.stderr.write(err.issues.map((i) => `✗ ${i.step ? `[${i.step}] ` : ''}${i.message}`).join('\n') + '\n');
-  else if (err instanceof HilvanaError) process.stderr.write(`✗ ${t(lang, err.code, err.details)}\n`);
+  else if (err instanceof HilvanaError) {
+    process.stderr.write(`✗ ${t(lang, err.code, err.details)}\n`);
+    if (err.code === 'PASSWORD_REQUIRED' || err.code === 'WRONG_PASSWORD') {
+      process.stderr.write(lang === 'es' ? '  Usa --password <contraseña> (o la variable HILVANA_PDF_PASSWORD).\n' : '  Use --password <password> (or the HILVANA_PDF_PASSWORD variable).\n');
+    }
+  }
   else if ((err as { name?: string }).name === 'DocxError') process.stderr.write(`✗ ${t(lang, (err as { code: string }).code, { name: 'docx' })}\n`);
   else if ((err as NodeJS.ErrnoException).code === 'ENOENT') process.stderr.write(`✗ ${(lang === 'es' ? 'No encuentro el archivo: ' : 'File not found: ') + (err as NodeJS.ErrnoException).path}\n`);
   else process.stderr.write(`✗ ${(err as Error).message}\n`);

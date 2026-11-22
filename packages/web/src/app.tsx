@@ -106,14 +106,23 @@ export function App() {
       const doc = fresh[i]!;
       const bytes = new Uint8Array(await file.arrayBuffer());
       const added = await engine.add(doc.id, doc.name, bytes, lang);
-      if (added.error) return update(doc.id, { status: 'error', kind: added.kind, error: added.error });
-      const patch: Partial<Doc> = { status: 'ready', kind: added.kind, info: added.info, warnings: added.warnings };
-      if (added.kind === 'image') patch.imageUrl = URL.createObjectURL(file);
-      if (added.preview) {
-        try { patch.preview = await openPreview(added.preview); } catch { /* previews are optional */ }
-      }
-      update(doc.id, patch);
+      await applyAdded(doc.id, added, file);
     }));
+  }
+
+  async function applyAdded(id: string, added: Awaited<ReturnType<Engine['add']>>, file?: File) {
+    if (added.error) return update(id, { status: added.needsPassword ? 'locked' : 'error', kind: added.kind, error: added.error });
+    const patch: Partial<Doc> = { status: 'ready', kind: added.kind, info: added.info, warnings: added.warnings, error: undefined };
+    if (added.kind === 'image' && file) patch.imageUrl = URL.createObjectURL(file);
+    if (added.preview) {
+      try { patch.preview = await openPreview(added.preview); } catch { /* previews are optional */ }
+    }
+    update(id, patch);
+  }
+
+  async function unlockFile(id: string, password: string) {
+    update(id, { status: 'reading', error: undefined });
+    await applyAdded(id, await engine.unlock(id, password, lang));
   }
 
   const usable = docs.filter((d) => d.status === 'ready' && d.kind && accepts(tool, d.kind));
@@ -121,7 +130,8 @@ export function App() {
   const first = usable[0];
 
   let blocker: string | null = null;
-  if (!usable.length) blocker = s.needFiles({ docs: s.accepts.pdfWord, word: s.accepts.word, images: s.accepts.images }[tool.accept]);
+  if (docs.some((d) => d.status === 'locked')) blocker = s.needUnlock;
+  else if (!usable.length) blocker = s.needFiles({ docs: s.accepts.pdfWord, word: s.accepts.word, images: s.accepts.images }[tool.accept]);
   else if (tool.id === 'merge' && usable.length < 2) blocker = s.needTwo;
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
   else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
@@ -247,6 +257,7 @@ export function App() {
                 if (tool.id === 'pages' || tool.id === 'rotate') setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
                 return list.filter((x) => x.id !== id);
               })}
+              onUnlock={unlockFile}
               onMove={(id, by) => setDocs((list) => {
                 const i = list.findIndex((d) => d.id === id);
                 const j = i + by;

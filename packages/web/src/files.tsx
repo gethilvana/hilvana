@@ -10,7 +10,7 @@ export interface Doc {
   id: string;
   name: string;
   size: number;
-  status: 'reading' | 'ready' | 'error';
+  status: 'reading' | 'ready' | 'error' | 'locked';
   kind?: Kind;
   info?: PdfInfo;
   preview?: Preview;
@@ -76,13 +76,29 @@ function Thumb({ doc }: { doc: Doc }) {
   return <span class="thumb">{url ? <img src={url} alt="" /> : <span class="thumb-blank" />}</span>;
 }
 
-export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove }: {
+function PasswordForm({ s, doc, onUnlock }: { s: Strings; doc: Doc; onUnlock: (id: string, password: string) => void }) {
+  const [password, setPassword] = useState('');
+  const id = `pw-${doc.id}`;
+  return (
+    <form class="file-password" onSubmit={(e) => { e.preventDefault(); if (password) onUnlock(doc.id, password); }}>
+      <label for={id}>{s.file.passwordLabel}</label>
+      <div class="file-password-row">
+        <input id={id} type="password" autocomplete="off" value={password} onInput={(e) => setPassword(e.currentTarget.value)} aria-describedby={`${id}-hint`} />
+        <button type="submit" class="btn btn-thread btn-small" disabled={!password}>{s.file.open}</button>
+      </div>
+      <p class="hint" id={`${id}-hint`}>{s.file.passwordHint}</p>
+    </form>
+  );
+}
+
+export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlock }: {
   s: Strings;
   docs: Doc[];
   ordered: boolean;
   wrongKind: (d: Doc) => boolean;
   onRemove: (id: string) => void;
   onMove: (id: string, by: -1 | 1) => void;
+  onUnlock: (id: string, password: string) => void;
 }) {
   if (!docs.length) return null;
   return (
@@ -91,7 +107,7 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove }: {
       {docs.map((d, i) => {
         const bad = d.status === 'ready' && wrongKind(d);
         return (
-          <li key={d.id} class={`file ${bad || d.status === 'error' ? 'is-bad' : ''}`}>
+          <li key={d.id} class={`file ${bad || d.status === 'error' ? 'is-bad' : ''} ${d.status === 'locked' ? 'is-locked' : ''}`}>
             <Thumb doc={d} />
             <div class="file-main">
               <span class="file-name">{d.name}</span>
@@ -103,9 +119,12 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove }: {
                   d.kind === 'word' ? s.file.converted : null,
                 ].filter(Boolean).join(', ')}
               </span>
-              {d.status === 'error' && <span class="file-error" role="alert">{d.error}</span>}
+              {(d.status === 'error' || d.status === 'locked') && <span class="file-error" role="alert">{d.error}</span>}
+              {d.status === 'locked' && <PasswordForm s={s} doc={d} onUnlock={onUnlock} />}
               {bad && <span class="file-error">{s.file.wrongKind}</span>}
               {!bad && d.info && d.info.signatures > 0 && <span class="file-note">{s.file.signed}</span>}
+              {!bad && d.info?.protection === 'permissions' && <span class="file-note">{s.file.restricted}</span>}
+              {!bad && d.info?.protection === 'password' && <span class="file-note">{s.file.unlocked}</span>}
               {d.warnings && d.warnings.length > 0 && (
                 <details class="file-warnings">
                   <summary>{s.result.warnings}</summary>
