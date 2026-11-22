@@ -155,6 +155,32 @@ describe('recipes that split', () => {
   });
 });
 
+describe('redact', { timeout: 60_000 }, () => {
+  it('lists, then removes text for real, and rejects bad areas', async () => {
+    const { PDFDocument, StandardFonts } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    doc.addPage([400, 200]).drawText('Cuenta 555 666 777 y correo ana@example.com', { x: 20, y: 100, size: 12, font });
+    await fs.writeFile(path.join(dir, 'datos.pdf'), await doc.save());
+    const list = await hilvana('redact', 'datos.pdf', '--find', '555666777', '--pattern', 'email', '--list');
+    expect(list.code).toBe(0);
+    expect(list.out).toMatch(/pág\. 1: 555 666 777/);
+    expect(list.out).toMatch(/2 coincidencias, 0 áreas/);
+    await expect(fs.stat(path.join(dir, 'datos-redacted.pdf'))).rejects.toThrow();
+    const r = await hilvana('redact', 'datos.pdf', '--find', '555666777', '--pattern', 'email', '--area', '1:0,0,10,10');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/Verificado/);
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const task = pdfjs.getDocument({ data: new Uint8Array(await fs.readFile(path.join(dir, 'datos-redacted.pdf'))), verbosity: 0 });
+    const text = (await (await (await task.promise).getPage(1)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ');
+    await task.destroy();
+    expect(text).toContain('Cuenta');
+    expect(text).not.toMatch(/555|666|777|ana@example/);
+    expect((await hilvana('redact', 'datos.pdf', '--area', '1:abc')).err).toMatch(/Área no válida/);
+    expect((await hilvana('redact', 'datos.pdf', '--pattern', 'dni')).err).toMatch(/--pattern acepta/);
+  });
+});
+
 describe('run --each', { timeout: 60_000 }, () => {
   it('applies a recipe to each document into a folder, and keeps going past a failing one', async () => {
     await fs.writeFile(path.join(dir, 'numerar.json'), JSON.stringify({ version: 1, steps: [{ op: 'numberPages' }], output: { filename: '{name}-num' } }));

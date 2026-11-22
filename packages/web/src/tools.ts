@@ -29,6 +29,7 @@ export const TOOLS: Tool[] = [
   { id: 'watermark', group: 'mark', accept: 'docs', single: true },
   { id: 'compress', group: 'reduce', accept: 'docs', single: true },
   { id: 'metadata', group: 'reduce', accept: 'docs', single: true },
+  { id: 'redact', group: 'reduce', accept: 'docs', single: true },
   { id: 'protect', group: 'reduce', accept: 'docs', single: true },
   { id: 'recipes', group: 'automate', accept: 'docs', single: false },
 ];
@@ -73,7 +74,17 @@ export interface Options {
   allowPrint: boolean;
   allowCopy: boolean;
   allowModify: boolean;
+  /** Words or numbers to redact, one per line. */
+  redactTerms: string;
+  redactPatterns: RedactPattern[];
+  /** Rectangles drawn on pages, in PDF points. */
+  redactAreas: RedactArea[];
 }
+
+export type RedactPattern = 'email' | 'card' | 'number' | 'phone';
+export interface RedactArea { page: number; x: number; y: number; width: number; height: number }
+
+export const redactTerms = (o: Pick<Options, 'redactTerms'>) => o.redactTerms.split('\n').map((t) => t.trim()).filter(Boolean);
 
 export function defaultOptions(s: { stampDefault: string; numberDefault: string; watermarkDefault: string }): Options {
   return {
@@ -102,6 +113,9 @@ export function defaultOptions(s: { stampDefault: string; numberDefault: string;
     allowPrint: true,
     allowCopy: true,
     allowModify: true,
+    redactTerms: '',
+    redactPatterns: [],
+    redactAreas: [],
   };
 }
 
@@ -132,8 +146,8 @@ export function compactRange(pages: number[]): string {
 }
 
 const SUFFIX: Record<Lang, Partial<Record<ToolId, string>>> = {
-  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido' },
-  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected' },
+  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido', redact: 'tachado' },
+  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected', redact: 'redacted' },
 };
 
 /** Names of the extra inputs some tools use, and the new password for "protect" (never kept in Options). */
@@ -178,6 +192,16 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
       ...(o.allowCopy ? {} : { allowCopy: false }),
       ...(o.allowModify ? {} : { allowModify: false }),
     }]);
+    case 'redact': {
+      const terms = redactTerms(o);
+      const r = (n: number) => Math.round(n * 100) / 100;
+      return base([{
+        op: 'redact',
+        ...(terms.length ? { terms } : {}),
+        ...(o.redactPatterns.length ? { patterns: o.redactPatterns } : {}),
+        ...(o.redactAreas.length ? { areas: o.redactAreas.map((a) => ({ page: a.page, x: r(a.x), y: r(a.y), width: r(a.width), height: r(a.height) })) } : {}),
+      }]);
+    }
     case 'recipes': throw new Error('Saved recipes are run as saved, not built from options.');
     case 'split': {
       const ranges = splitRanges(o);

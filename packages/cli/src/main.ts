@@ -29,6 +29,7 @@ Uso:
   hilvana strip <archivo.pdf> -o <salida.pdf>
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
+  hilvana redact <archivo.pdf> [--find "texto"]... [--pattern email,card,number,phone] [--area "página:x,y,ancho,alto"]... [--list] -o <salida.pdf>
   hilvana protect <archivo.pdf> [--restrict print,copy,modify] -o <salida.pdf>
   hilvana certify <archivo.pdf> --cert <certificado.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <salida.pdf>
   hilvana run <receta.json> <archivos...> [-o <salida.pdf | carpeta si la receta termina en split>] [--dry-run] [--yes]
@@ -39,6 +40,8 @@ Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Opciones: --lang es|en, --force (reemplaza la salida; nunca una entrada).
 PDF protegidos: los que solo tienen restricciones se abren solos. Para los que piden contraseña,
   usa --password <contraseña> o la variable HILVANA_PDF_PASSWORD (no queda en el historial).
+Tachar: elimina del archivo el texto, las imágenes y las formas bajo cada coincidencia o área (no solo las tapa),
+  y comprueba el resultado. --list solo muestra lo que encontraría. Las áreas van en puntos desde abajo a la izquierda.
 Proteger: la contraseña nueva se pide al ejecutar (o HILVANA_NEW_PASSWORD); --restrict solo quita permisos.
 Firma digital: certificado .p12/.pfx; su contraseña se pide al ejecutar (o HILVANA_CERT_PASSWORD).
   La clave privada no sale de tu equipo. En "run", los .p12/.pfx usan esa contraseña.
@@ -61,6 +64,7 @@ Usage:
   hilvana strip <file.pdf> -o <out.pdf>
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
+  hilvana redact <file.pdf> [--find "text"]... [--pattern email,card,number,phone] [--area "page:x,y,width,height"]... [--list] -o <out.pdf>
   hilvana protect <file.pdf> [--restrict print,copy,modify] -o <out.pdf>
   hilvana certify <file.pdf> --cert <certificate.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <out.pdf>
   hilvana run <recipe.json> <files...> [-o <out.pdf | folder when the recipe ends with split>] [--dry-run] [--yes]
@@ -71,6 +75,8 @@ Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Options: --lang es|en, --force (replace the output; never an input).
 Protected PDFs: files with only usage restrictions open on their own. For files that need a password,
   use --password <password> or the HILVANA_PDF_PASSWORD variable (kept out of your shell history).
+Redact: removes the text, images and shapes under each match or area from the file (not just covers them),
+  then checks the result. --list only shows what it would find. Areas are in points from the bottom-left corner.
 Protect: the new password is asked for when it runs (or HILVANA_NEW_PASSWORD); --restrict only removes permissions.
 Digital signature: a .p12/.pfx certificate; its password is asked for when it runs (or HILVANA_CERT_PASSWORD).
   The private key never leaves your machine. In "run", .p12/.pfx inputs use that password.
@@ -103,6 +109,10 @@ const options = {
   each: { type: 'boolean' },
   password: { type: 'string' },
   restrict: { type: 'string' },
+  find: { type: 'string', multiple: true },
+  pattern: { type: 'string' },
+  area: { type: 'string', multiple: true },
+  list: { type: 'boolean' },
   cert: { type: 'string' },
   reason: { type: 'string' },
   location: { type: 'string' },
@@ -395,6 +405,35 @@ async function main(argv: string[]) {
       if (rest.length < 1) throw new UsageError(HELP[lang]);
       const out = await core.imagesToPdf(await Promise.all(rest.map(read)), { pageSize: v['page-size'] as 'a4' | undefined });
       return write(v.output ?? defaultOutput(rest[0]!, 'images'), out, rest, v.force, lang);
+    }
+    case 'redact': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      const PATTERNS = ['email', 'card', 'number', 'phone'] as const;
+      const patterns = (v.pattern ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+      const bad = patterns.filter((x) => !(PATTERNS as readonly string[]).includes(x));
+      if (bad.length) throw new UsageError(lang === 'es' ? `--pattern acepta email, card, number y phone (no "${bad.join(', ')}").` : `--pattern takes email, card, number and phone (not "${bad.join(', ')}").`);
+      const areas = (v.area ?? []).map((spec) => {
+        const m = /^\s*(\d+)\s*:\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*$/.exec(spec);
+        if (!m) throw new UsageError(lang === 'es' ? `Área no válida: "${spec}". Formato: página:x,y,ancho,alto (por ejemplo 1:72,700,200,20).` : `Invalid area: "${spec}". Format: page:x,y,width,height (for example 1:72,700,200,20).`);
+        return { page: Number(m[1]), x: Number(m[2]), y: Number(m[3]), width: Number(m[4]), height: Number(m[5]) };
+      });
+      const terms = v.find ?? [];
+      if (!terms.length && !patterns.length && !areas.length) throw new UsageError(lang === 'es' ? '✗ Di qué tachar: --find, --pattern o --area.' : '✗ Say what to redact: --find, --pattern or --area.');
+      const src = await openPdf(input, await read(input), v, lang);
+      await warnIfSigned(input, src, lang);
+      const matches = terms.length || patterns.length ? await core.findText(src, { terms, patterns: patterns as core.RedactPattern[] }) : [];
+      for (const m of matches) process.stdout.write(`  ${lang === 'es' ? 'pág.' : 'p.'} ${m.page}: ${m.text}\n`);
+      process.stdout.write(lang === 'es' ? `  ${matches.length} coincidencias, ${areas.length} áreas.\n` : `  ${matches.length} matches, ${areas.length} areas.\n`);
+      if (v.list) return;
+      const all = [...matches.flatMap((m) => m.areas), ...areas];
+      if (!all.length) return void process.stdout.write(`  ${t(lang, 'note.redactNothing')}\n`);
+      const { bytes, report } = await core.redact(src, { areas: all });
+      await write(v.output ?? defaultOutput(input, 'redacted'), bytes, [input], v.force, lang);
+      process.stdout.write(`  ${t(lang, 'note.redactChecked')}\n`);
+      if (report.imagesRemoved) process.stdout.write(`  ${t(lang, 'note.redactImagesRemoved', { count: report.imagesRemoved })}\n`);
+      if (report.structureRemoved) process.stdout.write(`  ${t(lang, 'note.redactStructure')}\n`);
+      return;
     }
     case 'protect': {
       const [input] = rest;

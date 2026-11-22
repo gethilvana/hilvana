@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0 · 2026-11-22
+
+- **@hilvana/core**: real redaction. `redact(bytes, { areas })` removes what lies under each area from the file instead of covering it:
+  - the glyphs (OCR text layers included), while the text around them keeps its place;
+  - the pixels of images, transparency masks included (images it cannot edit are removed whole);
+  - shapes inside the area, and the annotations and form values over it;
+  - thumbnails and accessibility tags.
+
+  It then draws the boxes and reads the result back. A page that still shows text inside an area gets a stricter pass, and if text is still there it throws `REDACTION_INCOMPLETE` instead of returning the file. `findText(bytes, { terms, patterns })` finds words and numbers (ignoring case, accents and separators in numbers) and emails, card numbers (checked with Luhn), long account or ID numbers (amounts are left alone) and phone numbers, and returns the areas that cover them. Built on a new content-stream reader that keeps byte spans.
+- **@hilvana/recipes**: new destructive `redact` step (`terms`, `patterns`, `areas`). Its description does not repeat the text being redacted. New codes `NOTHING_TO_REDACT`, `REDACTION_UNSUPPORTED`, `REDACTION_INCOMPLETE`.
+- **hilvana**: `redact` command (`--find`, `--pattern`, `--area page:x,y,w,h`, `--list`).
+- **hilvana-mcp**: the instructions describe the `redact` step.
+- **Web**: new *Tachar información* tool. It searches as you type, outlines the matches on a large page view where you can draw areas (for scans, photos and signatures), and reports what was removed and checked. The page no longer loads the engine on the main thread: since 0.5.0 it was bundled there by mistake (1.8 MB to 0.5 MB); a test now guards it. Inside the worker, pdf.js uses its modern build.
+
 ## 0.6.0 · 2026-11-22
 
 - **@hilvana/recipes**: batches. `planBatch()` and `runBatch()` apply one recipe to each PDF or Word input separately, sharing the other inputs (a signature image). A document that fails does not stop the others; output names are made unique. Recipes that name documents or build from images cannot run as a batch (`BATCH_NAMED_FILES`, `BATCH_FROM_IMAGES`).

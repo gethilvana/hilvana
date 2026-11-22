@@ -7,8 +7,17 @@ GlobalWorkerOptions.workerSrc = workerUrl;
 
 const assets = (dir: string) => new URL(`pdfjs/${dir}/`, document.baseURI).href;
 
+/** A page's size in points and conversions between view and PDF coordinates (view: scale 1, y down). */
+export interface PageGeometry {
+  width: number;
+  height: number;
+  toPdf(x: number, y: number): [number, number];
+  toView(x: number, y: number): [number, number];
+}
+
 export interface Preview {
   pageCount: number;
+  geometry(n: number): Promise<PageGeometry>;
   /** Object URL of a PNG of the page, at roughly `width` CSS pixels. */
   page(n: number, width: number): Promise<string>;
   destroy(): void;
@@ -36,6 +45,15 @@ export async function openPreview(bytes: Uint8Array): Promise<Preview> {
   const urls = new Map<string, Promise<string>>();
   return {
     pageCount: doc.numPages,
+    async geometry(n) {
+      const vp = (await doc.getPage(n)).getViewport({ scale: 1 });
+      return {
+        width: vp.width,
+        height: vp.height,
+        toPdf: (x, y) => vp.convertToPdfPoint(x, y) as [number, number],
+        toView: (x, y) => vp.convertToViewportPoint(x, y) as [number, number],
+      };
+    },
     page(n, width) {
       const key = `${n}@${width}`;
       let url = urls.get(key);

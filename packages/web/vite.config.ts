@@ -77,6 +77,14 @@ export default defineConfig({
   base: './',
   esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
   worker: { format: 'es' },
+  resolve: {
+    // The engine uses pdf.js's legacy build so it also runs on Node 20. Browsers get the modern
+    // build, the same one the page uses for previews: smaller, and without polyfills.
+    alias: [
+      { find: /^pdfjs-dist\/legacy\/build\/pdf\.mjs$/, replacement: 'pdfjs-dist/build/pdf.mjs' },
+      { find: /^pdfjs-dist\/legacy\/build\/pdf\.worker\.mjs$/, replacement: 'pdfjs-dist/build/pdf.worker.mjs' },
+    ],
+  },
   build: {
     target: 'es2022',
     // Source maps only for coverage runs; the published site ships without them.
