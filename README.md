@@ -32,6 +32,7 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Firma digital con certificado (.p12/.pfx, PAdES) | `hilvana certify` | `signDigital` |
 | Proteger con contraseña (AES-256) o restringir el uso | `hilvana protect` | `protect` |
 | Ejecutar una receta completa | `hilvana run` | — |
+| Aplicar una receta a cada archivo (lote) | `hilvana run --each` | — |
 
 ### Una receta
 
@@ -130,6 +131,7 @@ npx hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
 npx hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
 npx hilvana compress scan.pdf --target 2MB  # gentlest setting that fits (docs/compression.md)
 npx hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
+npx hilvana run stamp.json invoices/*.pdf --each -o stamped/   # the recipe on each file
 npx hilvana certify contract.pdf --cert my-certificate.p12 -o contract-signed.pdf   # asks for the certificate password
 npx hilvana protect statement.pdf -o statement-locked.pdf                       # asks for the new password
 ```

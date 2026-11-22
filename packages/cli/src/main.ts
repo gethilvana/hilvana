@@ -8,7 +8,7 @@ import * as core from '@hilvana/core';
 import { UnsafeOutputError, safeWrite } from './safewrite.js';
 import { HilvanaError } from '@hilvana/core';
 import { convertWord, fallbackTextFonts, isDocx, type WordEngine } from '@hilvana/office';
-import { RecipeError, localDate, plan, recipeJsonSchema, run, t, type Lang, type WordConverter } from '@hilvana/recipes';
+import { RecipeError, localDate, plan, planBatch, recipeJsonSchema, run, runBatch, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
 // Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
 const VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
@@ -32,6 +32,7 @@ Uso:
   hilvana protect <archivo.pdf> [--restrict print,copy,modify] -o <salida.pdf>
   hilvana certify <archivo.pdf> --cert <certificado.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <salida.pdf>
   hilvana run <receta.json> <archivos...> [-o <salida.pdf | carpeta si la receta termina en split>] [--dry-run] [--yes]
+  hilvana run <receta.json> <documentos...> --each [-o <carpeta>]   (la receta a cada documento por separado)
   hilvana schema
 
 Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
@@ -63,6 +64,7 @@ Usage:
   hilvana protect <file.pdf> [--restrict print,copy,modify] -o <out.pdf>
   hilvana certify <file.pdf> --cert <certificate.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <out.pdf>
   hilvana run <recipe.json> <files...> [-o <out.pdf | folder when the recipe ends with split>] [--dry-run] [--yes]
+  hilvana run <recipe.json> <documents...> --each [-o <folder>]   (the recipe on each document separately)
   hilvana schema
 
 Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
@@ -98,6 +100,7 @@ const options = {
   force: { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
   'dry-run': { type: 'boolean' },
+  each: { type: 'boolean' },
   password: { type: 'string' },
   restrict: { type: 'string' },
   cert: { type: 'string' },
@@ -312,6 +315,32 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
   await write(v.output ?? defaultOutput(input, cmd), out, [input, ...(v.image ? [v.image] : [])], v.force, lang);
 }
 
+/** `run --each`: the recipe on each document separately, every result into one folder. */
+async function runEach(recipe: unknown, files: { name: string; bytes: Uint8Array; password?: string }[], inputs: string[], v: Values, lang: Lang, word: WordConverter) {
+  const p = await planBatch(recipe, files, { lang, word });
+  process.stdout.write(p.steps.join('\n') + '\n');
+  if (p.items.length) process.stdout.write((lang === 'es' ? `Para cada uno de ${p.items.length} documentos.` : `For each of ${p.items.length} documents.`) + '\n');
+  for (const w of p.warnings) process.stdout.write(`  ⚠ ${w}\n`);
+  // Documents that cannot run are reported and skipped; only a broken recipe stops the batch.
+  const fatal = p.issues.filter((i) => !p.items.length || i.code === 'SCHEMA' || i.code.startsWith('BATCH_') || i.code === 'NO_PDF_INPUTS');
+  if (fatal.length) throw new RecipeError(fatal);
+  for (const i of p.issues) process.stdout.write(`  ✗ ${i.message}\n`);
+  if (v['dry-run']) return;
+  let confirmed = !!v.yes;
+  if (p.destructiveSteps.length > 0 && !confirmed) {
+    confirmed = await confirm(lang === 'es' ? '¿Ejecutar? Hay pasos que eliminan contenido [s/N] ' : 'Run it? Some steps remove content [y/N] ');
+    if (!confirmed) throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) + (lang === 'es' ? ' (usa --yes)' : ' (use --yes)') }]);
+  }
+  const res = await runBatch(recipe, files, { lang, confirmed, word });
+  const dir = v.output ?? path.dirname(inputs[0]!);
+  await fs.mkdir(dir, { recursive: true });
+  for (const o of res.outputs) await write(path.join(dir, o.filename), o.bytes, inputs, v.force, lang);
+  for (const item of res.items) for (const i of item.issues ?? []) process.stderr.write(`✗ ${i.message}\n`);
+  process.stdout.write(`  ${t(lang, 'batch.done', { ok: res.succeeded, total: res.items.length })}\n`);
+  if (res.failed > 0) process.exitCode = 1;
+  else if (res.items.some((i) => i.result && !i.result.allGoalsMet)) process.exitCode = 3;
+}
+
 async function main(argv: string[]) {
   const { values: v, positionals } = parseArgs({ args: argv, options, allowPositionals: true });
   const lang = detectLang(v.lang);
@@ -438,6 +467,7 @@ async function main(argv: string[]) {
       const certPw = inputs.some(isCert) ? await certPassword(inputs.find(isCert)!, lang) : undefined;
       const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p), password: isCert(p) ? certPw : password })));
       const word = wordConverter(v, lang);
+      if (v.each) return runEach(recipe, files, inputs, v, lang, word);
       const p = await plan(recipe, files, { lang, word });
       process.stdout.write(p.steps.join('\n') + '\n');
       if (p.goals.length) process.stdout.write((lang === 'es' ? 'Objetivos:\n' : 'Goals:\n') + p.goals.map((g) => `  • ${g}`).join('\n') + '\n');

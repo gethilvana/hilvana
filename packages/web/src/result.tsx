@@ -56,7 +56,37 @@ function ZipLink({ s, outputs, name }: { s: Strings; outputs: Output[]; name: st
   return <a class="btn btn-primary" href={url} download={name}>{s.result.downloadZip}</a>;
 }
 
-export function ResultPanel({ s, result, onReset }: { s: Strings; result: Result; onReset: () => void }) {
+/** Save the recipe of this result for later, in this browser, under a name the person chooses. */
+function SaveRecipe({ s, defaultName, onSave }: { s: Strings; defaultName: string; onSave: (name: string) => boolean }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(defaultName);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  if (status?.ok) return <p class="hint" role="status">{status.text}</p>;
+  if (!open) return <button type="button" class="btn btn-quiet" onClick={() => setOpen(true)}>{s.saved.save}</button>;
+  return (
+    <form class="save-recipe" onSubmit={(e) => {
+      e.preventDefault();
+      if (!name.trim()) return;
+      const ok = onSave(name.trim());
+      setStatus({ ok, text: ok ? s.saved.savedOk(name.trim()) : s.saved.saveFailed });
+    }}>
+      <label for="recipe-name">{s.saved.saveName}</label>
+      <div class="file-password-row">
+        <input id="recipe-name" type="text" maxLength={120} value={name} onInput={(e) => setName(e.currentTarget.value)} />
+        <button type="submit" class="btn btn-thread btn-small" disabled={!name.trim()}>{s.saved.saveAction}</button>
+      </div>
+      {status && !status.ok && <p class="file-error" role="alert">{status.text}</p>}
+    </form>
+  );
+}
+
+export function ResultPanel({ s, result, onReset, save }: {
+  s: Strings;
+  result: Result;
+  onReset: () => void;
+  /** Offered when the recipe can be saved; `blocked` explains why it cannot. */
+  save?: { defaultName: string; onSave: (name: string) => boolean } | { blocked: true };
+}) {
   const [copied, setCopied] = useState(false);
   const json = result.recipe ? JSON.stringify(result.recipe, null, 2) : '';
   return (
@@ -78,6 +108,7 @@ export function ResultPanel({ s, result, onReset }: { s: Strings; result: Result
           }}>{copied ? s.result.copied : s.result.copy}</button>
         </details>
       )}
+      {save && ('blocked' in save ? <p class="hint">{s.saved.cannotSave}</p> : <SaveRecipe s={s} defaultName={save.defaultName} onSave={save.onSave} />)}
       <button type="button" class="btn btn-quiet" onClick={onReset}>{s.result.again}</button>
     </section>
   );

@@ -155,6 +155,30 @@ describe('recipes that split', () => {
   });
 });
 
+describe('run --each', { timeout: 60_000 }, () => {
+  it('applies a recipe to each document into a folder, and keeps going past a failing one', async () => {
+    await fs.writeFile(path.join(dir, 'numerar.json'), JSON.stringify({ version: 1, steps: [{ op: 'numberPages' }], output: { filename: '{name}-num' } }));
+    const r = await hilvana('run', 'numerar.json', 'a.pdf', 'b con espacio.pdf', 'contrato.docx', '--each', '-o', 'lote');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/Para cada uno de 3 documentos/);
+    expect(r.out).toMatch(/3 de 3 archivos procesados/);
+    expect((await fs.readdir(path.join(dir, 'lote'))).sort()).toEqual(['a-num.pdf', 'b con espacio-num.pdf', 'contrato-num.pdf']);
+
+    await fs.writeFile(path.join(dir, 'quitar3.json'), JSON.stringify({ version: 1, steps: [{ op: 'remove', pages: '3' }] }));
+    const partial = await hilvana('run', 'quitar3.json', 'a.pdf', 'b con espacio.pdf', '--each', '--yes', '-o', 'lote2');
+    expect(partial.code).toBe(1);
+    expect(partial.err).toMatch(/"b con espacio\.pdf": La página 3 no existe/);
+    expect(await fs.readdir(path.join(dir, 'lote2'))).toEqual(['a-hilvana.pdf']);
+  });
+
+  it('refuses a recipe that names documents', async () => {
+    await fs.writeFile(path.join(dir, 'nombrada.json'), JSON.stringify({ version: 1, steps: [{ op: 'merge', files: ['a.pdf'] }] }));
+    const r = await hilvana('run', 'nombrada.json', 'a.pdf', '--each', '-o', 'lote3');
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/no puede nombrar archivos/);
+  });
+});
+
 describe('protect and certify', { timeout: 60_000 }, () => {
   it('protects with a password from the environment, never from a flag', async () => {
     const r = await hilvanaWith({ HILVANA_NEW_PASSWORD: 'secreto' }, 'protect', 'a.pdf', '-o', 'protegido.pdf');

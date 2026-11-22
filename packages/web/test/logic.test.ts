@@ -39,7 +39,7 @@ const options: fc.Arbitrary<Options> = fc.record({
 }) as fc.Arbitrary<Options>;
 
 describe('recipes built by the web tools', () => {
-  const recipeTools = TOOLS; // every tool, split included, runs a recipe
+  const recipeTools = TOOLS.filter((t) => t.id !== 'recipes'); // every tool but saved recipes builds one
 
   it('are always valid against the recipe schema, for any option the UI can produce', () => {
     fc.assert(fc.property(options, fc.constantFrom(...recipeTools.map((t) => t.id)), fc.constantFrom('es', 'en' as const), (o, tool, lang) => {
@@ -162,5 +162,21 @@ describe('security tools', () => {
     expect(r.steps).toEqual([{ op: 'protect', password: 'secreto', allowCopy: false }]);
     expect(JSON.stringify(redactRecipe(r))).not.toContain('secreto');
     expect(buildRecipe('protect', { ...o, allowPrint: false }, ['a.pdf'], 'es').steps).toEqual([{ op: 'protect', allowPrint: false }]);
+  });
+});
+
+describe('saved recipes', async () => {
+  const { reusable, secretIn, imagesIn, fileNameFor } = await import('../src/saved');
+  it('forget the files a merge was made with, so they apply to new files', () => {
+    expect(reusable({ version: 1, steps: [{ op: 'merge', files: ['a.pdf'] }, { op: 'numberPages' }] }).steps).toEqual([{ op: 'merge' }, { op: 'numberPages' }]);
+  });
+  it('are never saved with a secret', () => {
+    expect(secretIn({ version: 1, steps: [{ op: 'signDigital', certificate: 'c.p12' }] })).toBe('certificate');
+    expect(secretIn({ version: 1, steps: [{ op: 'protect', password: '••••••' }] })).toBe('password');
+    expect(secretIn({ version: 1, steps: [{ op: 'protect', allowCopy: false }] })).toBeUndefined();
+  });
+  it('know which images they need, and get a safe file name', () => {
+    expect(imagesIn({ version: 1, steps: [{ op: 'sign', image: 'firma.png' }, { op: 'sign', image: 'firma.png' }] })).toEqual(['firma.png']);
+    expect(fileNameFor('Sello «Recibido» / 2026')).toBe('sello-recibido-2026.json');
   });
 });

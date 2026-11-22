@@ -31,6 +31,7 @@ Las pruebas de navegador (`packages/web/e2e/privacy.spec.ts`) verifican la polí
 | Reducir y proteger | Comprimir | `compress` |
 | | Quitar metadatos | `stripMetadata` |
 | | Proteger con contraseña (o restringir el uso) | `protect` |
+| Automatizar | Mis recetas (guardadas en el navegador; por archivo o juntas) | la receta guardada |
 
 Cada resultado ofrece **Ver como receta**: la misma acción en JSON, lista para `npx hilvana run` o para un agente con el servidor MCP. Las contraseñas nunca aparecen en ella; el certificado, su clave y las contraseñas viven solo en la memoria de la página y del worker, y se olvidan al cambiar de herramienta.
 

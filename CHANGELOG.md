@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 · 2026-11-22
+
+- **@hilvana/recipes**: batches. `planBatch()` and `runBatch()` apply one recipe to each PDF or Word input separately, sharing the other inputs (a signature image). A document that fails does not stop the others; output names are made unique. Recipes that name documents or build from images cannot run as a batch (`BATCH_NAMED_FILES`, `BATCH_FROM_IMAGES`).
+- **hilvana**: `run --each` writes one result per document into the `-o` folder, and reports which documents failed (exit code 1).
+- **hilvana-mcp**: `each: true` in `recipe_plan` and `recipe_run`.
+- **Web**: *Guardar receta* on every result, and a new *Mis recetas* tool (group *Automatizar*) that applies a saved recipe to each file or to all of them merged, asks for the image a signing recipe needs, and imports and exports recipes as `.json`. Recipes are kept only in this browser, without the names of the files they were made with; recipes that need a certificate or a password are never saved.
+
 ## 0.5.1 · 2026-11-22
 
 - **@hilvana/core**: signing a PDF that is both protected and already signed (like bank statements that are signed and restricted) no longer drops its earlier signatures. The document is signed as it is, encryption included, so the earlier signatures stay valid and the protection is kept (`CertificateSignResult.protection`); `openPassword` opens one that needs a password. This works around an issue in `@libpdf/core` 0.5 that rewrote objects read from encrypted files, re-encrypting earlier signature values and adding a revision after the new signature. The decryption library's false alarms about signature values no longer reach the console.

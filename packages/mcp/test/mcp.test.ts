@@ -115,6 +115,20 @@ describe('hilvana-mcp', () => {
     expect(await fs.readdir(path.join(dir, 'partes2'))).toEqual(['a-hilvana-2.pdf']);
   });
 
+  it('runs a recipe on each document into a folder (batch)', async () => {
+    await fs.mkdir(path.join(dir, 'lote'));
+    const recipe = { version: 1, steps: [{ op: 'numberPages' }], output: { filename: '{name}-num' } };
+    const files = [{ path: 'a.pdf' }, { path: 'b.pdf' }, { path: 'contrato.docx' }];
+    const p = json(await call('recipe_plan', { recipe, files, each: true }));
+    expect(p).toMatchObject({ ok: true, documents: ['a.pdf', 'b.pdf', 'contrato.docx'], outputCount: 3 });
+    const res = json(await call('recipe_run', { recipe, files, output: 'lote', each: true }));
+    expect(res).toMatchObject({ ran: true, succeeded: 3, failed: 0 });
+    expect((await fs.readdir(path.join(dir, 'lote'))).sort()).toEqual(['a-num.pdf', 'b-num.pdf', 'contrato-num.pdf']);
+    const named = await call('recipe_run', { recipe: { version: 1, steps: [{ op: 'merge', files: ['a.pdf'] }] }, files, output: 'lote', each: true });
+    expect(named.isError).toBe(true);
+    expect(named.content[0]!.text).toMatch(/BATCH_NAMED_FILES/);
+  });
+
   it('refuses recipes that need a secret, but allows restricting use', async () => {
     const sign = { version: 1, steps: [{ op: 'signDigital', certificate: 'ana.p12' }] };
     const pw = { version: 1, steps: [{ op: 'protect', password: 'x' }] };
