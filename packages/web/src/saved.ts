@@ -28,6 +28,14 @@ function store(list: SavedRecipe[]): boolean {
   }
 }
 
+/**
+ * A copy of a recipe safe to show or share: passwords replaced. Same rule as redactRecipe() in
+ * @hilvana/recipes, kept here so the page does not load the engine (it runs in the worker).
+ */
+export function hidePasswords<T extends { steps: { op: string }[] }>(recipe: T): T {
+  return { ...recipe, steps: recipe.steps.map((s) => (s.op === 'protect' && 'password' in s && s.password ? { ...s, password: '••••••' } : s)) };
+}
+
 /** Why a recipe cannot be saved: it needs a secret, which is never stored. */
 export function secretIn(recipe: SavedRecipe['recipe']): 'certificate' | 'password' | undefined {
   for (const s of recipe.steps) {

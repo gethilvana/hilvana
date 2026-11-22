@@ -111,6 +111,17 @@ async function handle(msg: ToWorker): Promise<void> {
         return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
       }
     }
+    case 'find': {
+      try {
+        const file = files.get(msg.id);
+        if (!file) return post({ type: 'found', job: msg.job, matches: [] });
+        const pdf = kindOf(file.bytes) === 'word' ? (await convertOnce(file.bytes)).pdf : file.bytes;
+        const matches = await core.findText(pdf, { terms: msg.terms, patterns: msg.patterns as core.RedactPattern[] });
+        return post({ type: 'found', job: msg.job, matches });
+      } catch (err) {
+        return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
+      }
+    }
     case 'describe': {
       const parsed = Recipe.safeParse(msg.recipe);
       if (!parsed.success) {

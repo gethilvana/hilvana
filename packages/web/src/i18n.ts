@@ -4,7 +4,7 @@ export type ToolId =
   | 'merge' | 'pages' | 'split' | 'rotate'
   | 'word' | 'images'
   | 'sign' | 'certify' | 'stamp' | 'number' | 'watermark'
-  | 'compress' | 'metadata' | 'protect'
+  | 'compress' | 'metadata' | 'redact' | 'protect'
   | 'recipes';
 
 interface ToolText {
@@ -125,6 +125,28 @@ const es = {
     noTimestamp: 'La hora de la firma es la de este equipo; no se consulta un servidor de sellado de tiempo.',
     missing: 'Elige tu certificado y ábrelo con su contraseña.',
   },
+  redact: {
+    terms: 'Textos o números a tachar',
+    termsHint: 'Uno por línea. Los números se encuentran con o sin espacios, puntos o guiones; no importan mayúsculas ni tildes.',
+    patterns: 'También buscar',
+    email: 'Correos electrónicos',
+    card: 'Números de tarjeta',
+    number: 'Números de cuenta o identificación (6 o más dígitos)',
+    phone: 'Teléfonos',
+    searching: 'Buscando…',
+    found: (n: number, pages: string) => (n === 0 ? 'No se encontró en el texto del documento.' : n === 1 ? `1 coincidencia, en la página ${pages}.` : `${n} coincidencias, en las páginas ${pages}.`),
+    list: 'Ver qué se encontró',
+    draw: 'También puedes dibujar un recuadro sobre la página: sirve para escaneos, fotos y firmas.',
+    page: (n: number, total: number) => `Página ${n} de ${total}`,
+    prev: 'Página anterior',
+    next: 'Página siguiente',
+    canvas: (n: number) => `Página ${n}: arrastra para dibujar un área a tachar`,
+    areas: 'Áreas dibujadas',
+    removeArea: (i: number, page: number) => `Quitar el área ${i} (página ${page})`,
+    area: (i: number, page: number) => `Área ${i}, página ${page}`,
+    nothing: 'Escribe qué tachar, elige un tipo de dato o dibuja un área.',
+    how: 'Lo que quede bajo cada recuadro se elimina del archivo (texto, partes de imágenes y formas), no solo se tapa. Después se lee el resultado para comprobarlo.',
+  },
   protect: {
     password: 'Contraseña nueva',
     confirm: 'Repite la contraseña',
@@ -209,6 +231,7 @@ const es = {
     metadata: { name: 'Quitar metadatos', purpose: 'Borra el autor, el título y otros datos que el archivo guarda de ti.', action: 'Quitar metadatos', busy: 'Limpiando…' },
     certify: { name: 'Firma digital', purpose: 'Firma con tu certificado digital (.p12 o .pfx) sin que salga de tu equipo.', action: 'Firmar con certificado', busy: 'Firmando…' },
     recipes: { name: 'Mis recetas', purpose: 'Repite una receta guardada con otros archivos, uno por uno o todos juntos.', action: 'Aplicar receta', busy: 'Aplicando…' },
+    redact: { name: 'Tachar información', purpose: 'Elimina de verdad números de cuenta, nombres o cualquier parte de la página antes de compartir el PDF.', action: 'Tachar y guardar', busy: 'Tachando…' },
     protect: { name: 'Proteger con contraseña', purpose: 'Cifra el PDF para que solo se abra con una contraseña, o limita lo que se puede hacer con él.', action: 'Proteger PDF', busy: 'Protegiendo…' },
   } satisfies Record<ToolId, ToolText>,
 };
@@ -326,6 +349,28 @@ const en: Strings = {
     noTimestamp: 'The signing time is this device\'s clock; no time-stamping server is contacted.',
     missing: 'Choose your certificate and open it with its password.',
   },
+  redact: {
+    terms: 'Text or numbers to redact',
+    termsHint: 'One per line. Numbers are found with or without spaces, dots or dashes; case and accents do not matter.',
+    patterns: 'Also find',
+    email: 'Email addresses',
+    card: 'Card numbers',
+    number: 'Account or ID numbers (6 or more digits)',
+    phone: 'Phone numbers',
+    searching: 'Searching…',
+    found: (n: number, pages: string) => (n === 0 ? 'Not found in the document\'s text.' : n === 1 ? `1 match, on page ${pages}.` : `${n} matches, on pages ${pages}.`),
+    list: 'See what was found',
+    draw: 'You can also draw a box on the page: useful for scans, photos and signatures.',
+    page: (n: number, total: number) => `Page ${n} of ${total}`,
+    prev: 'Previous page',
+    next: 'Next page',
+    canvas: (n: number) => `Page ${n}: drag to draw an area to redact`,
+    areas: 'Drawn areas',
+    removeArea: (i: number, page: number) => `Remove area ${i} (page ${page})`,
+    area: (i: number, page: number) => `Area ${i}, page ${page}`,
+    nothing: 'Type what to redact, choose a kind of data or draw an area.',
+    how: 'Whatever lies under each box is removed from the file (text, parts of images and shapes), not just covered. The result is then read back to check it.',
+  },
   protect: {
     password: 'New password',
     confirm: 'Repeat the password',
@@ -410,6 +455,7 @@ const en: Strings = {
     metadata: { name: 'Remove metadata', purpose: 'Erase the author, title and other details the file keeps about you.', action: 'Remove metadata', busy: 'Cleaning…' },
     certify: { name: 'Digital signature', purpose: 'Sign with your digital certificate (.p12 or .pfx) without it leaving your device.', action: 'Sign with certificate', busy: 'Signing…' },
     recipes: { name: 'My recipes', purpose: 'Repeat a saved recipe on other files, one by one or all together.', action: 'Apply recipe', busy: 'Applying…' },
+    redact: { name: 'Redact', purpose: 'Truly remove account numbers, names or any part of the page before you share the PDF.', action: 'Redact and save', busy: 'Redacting…' },
     protect: { name: 'Password protect', purpose: 'Encrypt the PDF so it only opens with a password, or limit what can be done with it.', action: 'Protect PDF', busy: 'Protecting…' },
   },
 };

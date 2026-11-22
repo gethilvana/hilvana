@@ -301,6 +301,13 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         if (step.visible !== false) checkRange(step.pages ?? 'last');
         break;
       }
+      case 'redact': {
+        if (!step.terms?.length && !step.patterns?.length && !step.areas?.length) issues.push({ code: 'NOTHING_TO_REDACT', message: t(lang, 'NOTHING_TO_REDACT', { index: n }), step: n });
+        for (const a of step.areas ?? []) {
+          if (pages !== undefined && a.page > pages) issues.push({ code: 'PAGE_OUT_OF_RANGE', message: t(lang, 'PAGE_OUT_OF_RANGE', { page: a.page, pageCount: pages }), step: n });
+        }
+        break;
+      }
       case 'split': {
         if (i !== steps.length - 1) issues.push({ code: 'SPLIT_NOT_LAST', message: t(lang, 'SPLIT_NOT_LAST', { index: n }), step: n });
         for (const r of step.ranges ?? []) {
@@ -514,6 +521,22 @@ async function apply(
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());
     case 'split': return need(); // applied after every other step, see run()
+    case 'redact': {
+      const { lang } = ctx;
+      const matches = step.terms?.length || step.patterns?.length ? await core.findText(need(), { terms: step.terms, patterns: step.patterns }) : [];
+      const areas = [...matches.flatMap((m) => m.areas), ...(step.areas ?? [])];
+      if (!areas.length) {
+        ctx.notes.push(t(lang, 'note.redactNothing'));
+        return need();
+      }
+      const { bytes, report } = await core.redact(need(), { areas });
+      const pagesList = report.pages.join(', ');
+      ctx.notes.push(t(lang, 'note.redact', { matches: matches.length, areas: step.areas?.length ?? 0, pages: pagesList }));
+      ctx.notes.push(t(lang, 'note.redactChecked'));
+      if (report.imagesRemoved) ctx.notes.push(t(lang, 'note.redactImagesRemoved', { count: report.imagesRemoved }));
+      if (report.structureRemoved) ctx.notes.push(t(lang, 'note.redactStructure'));
+      return bytes;
+    }
     case 'protect': {
       const out = await core.protect(need(), step);
       if (step.password) ctx.notes.push(t(ctx.lang, 'note.protected'));

@@ -36,6 +36,9 @@ const options: fc.Arbitrary<Options> = fc.record({
   allowPrint: fc.boolean(),
   allowCopy: fc.boolean(),
   allowModify: fc.boolean(),
+  redactTerms: fc.string({ maxLength: 200 }),
+  redactPatterns: fc.subarray(['email', 'card', 'number', 'phone'] as const),
+  redactAreas: fc.array(fc.record({ page: fc.integer({ min: 1, max: 50 }), x: fc.double({ min: -100, max: 1000, noNaN: true }), y: fc.double({ min: -100, max: 1000, noNaN: true }), width: fc.double({ min: 1, max: 600, noNaN: true }), height: fc.double({ min: 1, max: 600, noNaN: true }) }), { maxLength: 5 }),
 }) as fc.Arbitrary<Options>;
 
 describe('recipes built by the web tools', () => {
@@ -178,5 +181,22 @@ describe('saved recipes', async () => {
   it('know which images they need, and get a safe file name', () => {
     expect(imagesIn({ version: 1, steps: [{ op: 'sign', image: 'firma.png' }, { op: 'sign', image: 'firma.png' }] })).toEqual(['firma.png']);
     expect(fileNameFor('Sello «Recibido» / 2026')).toBe('sello-recibido-2026.json');
+  });
+});
+
+describe('the page stays light', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  it('only the worker loads the engine; the page imports its types', () => {
+    const dir = new URL('../src/', import.meta.url);
+    for (const f of readdirSync(dir).filter((n) => /\.tsx?$/.test(n) && n !== 'worker.ts')) {
+      const src = readFileSync(new URL(f, dir), 'utf8');
+      expect(src, f).not.toMatch(/^import (?!type )[^;]*from '@hilvana\/(core|office|recipes)'/m);
+    }
+  });
+  it('hides passwords exactly like the engine does', async () => {
+    const { redactRecipe } = await import('@hilvana/recipes');
+    const { hidePasswords } = await import('../src/saved');
+    const r = { version: 1 as const, steps: [{ op: 'merge' as const }, { op: 'protect' as const, password: 'x', allowCopy: false }] };
+    expect(hidePasswords(r)).toEqual(redactRecipe(r));
   });
 });

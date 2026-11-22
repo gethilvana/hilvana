@@ -14,7 +14,9 @@ export type HilvanaErrorCode =
   | 'UNSUPPORTED_IMAGE'
   | 'WOULD_REMOVE_ALL_PAGES'
   | 'INVALID_ARGUMENT'
-  | 'UNSUPPORTED_CHARACTERS';
+  | 'UNSUPPORTED_CHARACTERS'
+  | 'REDACTION_UNSUPPORTED'
+  | 'REDACTION_INCOMPLETE';
 
 /** Error with a stable code so every surface (web, CLI, MCP) can localize it. */
 export class HilvanaError extends Error {

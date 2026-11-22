@@ -30,6 +30,7 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Comprimir (o llegar a un peso objetivo) sin rasterizar el texto | `hilvana compress` | `compress` |
 | Imágenes a PDF | `hilvana images` | `fromImages` |
 | Firma digital con certificado (.p12/.pfx, PAdES) | `hilvana certify` | `signDigital` |
+| Tachar de verdad (texto, imágenes y formas bajo cada zona) | `hilvana redact` | `redact` |
 | Proteger con contraseña (AES-256) o restringir el uso | `hilvana protect` | `protect` |
 | Ejecutar una receta completa | `hilvana run` | — |
 | Aplicar una receta a cada archivo (lote) | `hilvana run --each` | — |
@@ -134,6 +135,7 @@ npx hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 npx hilvana run stamp.json invoices/*.pdf --each -o stamped/   # the recipe on each file
 npx hilvana certify contract.pdf --cert my-certificate.p12 -o contract-signed.pdf   # asks for the certificate password
 npx hilvana protect statement.pdf -o statement-locked.pdf                       # asks for the new password
+npx hilvana redact statement.pdf --find 123456789 --pattern email -o shared.pdf # removed from the file, not covered
 ```
 
 ### With Claude (MCP)

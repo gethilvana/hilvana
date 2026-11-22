@@ -76,6 +76,18 @@ export const SplitStep = z.object({
     .describe('One output file per range, in order (e.g. ["1-3", "4-last"]). Omit for one file per page.'),
 }).strict().describe('Last step only: splits the document into several output files.');
 
+export const RedactStep = z.object({
+  op: z.literal('redact'),
+  terms: z.array(z.string().min(1).max(200)).max(200).optional()
+    .describe('Words or numbers to remove wherever they appear. Numbers match with or without spaces, dots or dashes. Case and accents are ignored.'),
+  patterns: z.array(z.enum(['email', 'card', 'number', 'phone'])).max(4).optional()
+    .describe('Kinds of personal data to find: email addresses, card numbers (checked with Luhn), numbers of 6 or more digits (accounts, IDs; amounts with decimals are left alone), phone numbers.'),
+  areas: z.array(z.object({
+    page: z.number().int().positive(),
+    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+  }).strict()).max(500).optional().describe('Rectangles to remove, in PDF points from the bottom-left corner of the page. Use them for scanned pages, photos and signatures.'),
+}).strict().describe('Real redaction: removes the text, image pixels and shapes under each match or area from the file, then covers them with black boxes. The result is checked by reading its text again.');
+
 export const ProtectStep = z.object({
   op: z.literal('protect'),
   password: z.string().min(1).max(128).optional()
@@ -110,6 +122,7 @@ export const Step = z.discriminatedUnion('op', [
   OptimizeStep,
   CompressStep,
   SplitStep,
+  RedactStep,
   ProtectStep,
   SignDigitalStep,
 ]);
@@ -139,7 +152,7 @@ export type Recipe = z.infer<typeof Recipe>;
 export const recipeJsonSchema = () => z.toJSONSchema(Recipe);
 
 /** Steps that drop content or overwrite information; running them requires explicit confirmation. */
-export const DESTRUCTIVE_OPS = new Set<Step['op']>(['select', 'remove', 'stripMetadata', 'setMetadata']);
+export const DESTRUCTIVE_OPS = new Set<Step['op']>(['select', 'remove', 'stripMetadata', 'setMetadata', 'redact']);
 
 /** Steps that produce the final file(s); a recipe can end with at most one of them. */
 export const FINAL_OPS = new Set<Step['op']>(['split', 'protect', 'signDigital']);

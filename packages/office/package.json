@@ -1,6 +1,6 @@
 {
   "name": "@hilvana/office",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Hilvana office conversions that run locally: Word (.docx) to PDF with real, selectable text.",
   "keywords": [
     "docx",

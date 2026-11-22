@@ -1,4 +1,4 @@
-import type { CertificateInfo } from '@hilvana/core';
+import type { CertificateInfo, TextMatch } from '@hilvana/core';
 import type { Lang } from '@hilvana/recipes';
 import type { FromWorker, Output, ToWorker } from './protocol';
 
@@ -33,6 +33,7 @@ export class Engine {
     if (m.type === 'done') job.resolve({ outputs: m.outputs, notes: m.notes, warnings: m.warnings });
     else if (m.type === 'certificate') job.resolve(m.info);
     else if (m.type === 'described') job.resolve(m.steps);
+    else if (m.type === 'found') job.resolve(m.matches);
     else job.reject(Object.assign(new Error(m.error), { code: m.code }));
   }
 
@@ -75,6 +76,11 @@ export class Engine {
   /** Runs the recipe on each document separately; documents that fail are reported in `warnings`. */
   batch(recipe: unknown, files: { id: string; name: string }[], lang: Lang) {
     return this.job((job) => ({ type: 'batch', job, recipe, files, lang }));
+  }
+
+  /** Finds text to redact in a file already added under `id`. */
+  find(id: string, terms: string[], patterns: string[], lang: Lang) {
+    return this.job<TextMatch[]>((job) => ({ type: 'find', job, id, terms, patterns, lang }));
   }
 
   /** Validates a recipe and describes its steps, without any file. */

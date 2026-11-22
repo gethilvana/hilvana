@@ -39,6 +39,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `optimize` | — (sin pérdida) | |
 | `compress` | `level?: "lossless" \| "balanced" \| "strong" \| "max"`, `targetBytes?` (por defecto, `goals.maxBytes`) | |
 | `split` | `ranges?: string[]` (sin rangos: un archivo por página). **Solo como último paso** · Last step only | |
+| `redact` | `terms?: string[]`, `patterns?: ("email" \| "card" \| "number" \| "phone")[]`, `areas?: {page, x, y, width, height}[]` | sí |
 | `protect` | `password?`, `allowPrint?`, `allowCopy?`, `allowModify?` (por defecto `true`). **Solo como último paso** · Last step only | |
 | `signDigital` | `certificate` (nombre de la entrada `.p12`/`.pfx`), `reason?`, `location?`, `visible?` (por defecto `true`), `pages?` (`last`), `anchor?` (`bottom-right`). **Solo como último paso** · Last step only | |
 
@@ -46,6 +47,12 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 
 ```json
 { "version": 1, "steps": [{ "op": "merge" }, { "op": "numberPages" }, { "op": "split", "ranges": ["1-3", "4-last"] }], "output": { "filename": "lote" } }
+```
+
+**Tachar · Redact:** elimina del archivo lo que hay bajo cada coincidencia o área, no solo lo tapa: las letras (también el texto invisible de un OCR), los píxeles de las imágenes (con su transparencia), las formas que quedan dentro del área, las anotaciones y campos de formulario que la tocan, las miniaturas y las etiquetas de accesibilidad. Luego dibuja recuadros negros y **lee el resultado para comprobar** que no queda texto dentro de ninguna zona; si queda, hace una pasada estricta (quita la línea de texto completa que toca la zona) y, si aun así queda, falla con `REDACTION_INCOMPLETE` en vez de entregar un archivo que filtra. Las áreas van en puntos desde la esquina inferior izquierda. Las imágenes en formatos que no se pueden editar (JPEG 2000, JBIG2, CCITT, JPEG CMYK) se quitan completas. Las páginas escaneadas sin capa de texto no tienen qué buscar: dibuja áreas. Es destructivo (pide confirmación). · Removes what lies under each match or area from the file — glyphs (OCR layers too), image pixels (and their alpha), shapes inside the area, annotations, thumbnails and accessibility tags — then checks the result by reading it back, with a stricter pass if needed; it fails rather than return a leaking file.
+
+```json
+{ "version": 1, "steps": [{ "op": "redact", "terms": ["123 456 789"], "patterns": ["email"], "areas": [{ "page": 1, "x": 400, "y": 60, "width": 150, "height": 50 }] }] }
 ```
 
 **Proteger · Protect:** cifra el resultado con AES-256. Con `password`, solo se abre con ella; sin ella, solo restringe el uso (imprimir, copiar, modificar), algo que los lectores respetan pero no garantiza privacidad. Necesita una contraseña o al menos una restricción (`NOTHING_TO_PROTECT`). La receta que se muestra o comparte debe pasar por `redactRecipe()`, que reemplaza la contraseña. · Encrypts the result with AES-256: `password` is needed to open it; without one, only usage restrictions apply. Use `redactRecipe()` before showing or sharing a recipe.

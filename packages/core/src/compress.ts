@@ -124,7 +124,7 @@ function filters(dict: PDFDict): string[] {
 }
 
 /** Decoded bytes of a stream, or undefined when its filter is not supported here. */
-function decodeStream(s: PDFRawStream): Uint8Array | undefined {
+export function decodeStream(s: PDFRawStream): Uint8Array | undefined {
   const f = filters(s.dict);
   if (f.length === 0) return s.contents;
   if (f.length === 1 && f[0] === '/FlateDecode') {
@@ -292,7 +292,7 @@ function* tokenize(buf: Uint8Array): Generator<{ kind: 'operand' | 'op'; value: 
 
 /* ------------------------------------------------------------------ images */
 
-function components(doc: PDFDocument, cs: PDFObject | undefined): number | undefined {
+export function components(doc: PDFDocument, cs: PDFObject | undefined): number | undefined {
   const v = cs instanceof PDFRef ? doc.context.lookup(cs) : cs;
   if (v === PDFName.of('DeviceRGB') || v === PDFName.of('CalRGB')) return 3;
   if (v === PDFName.of('DeviceGray') || v === PDFName.of('CalGray')) return 1;
@@ -475,7 +475,7 @@ function deflateUncompressedStreams(doc: PDFDocument) {
 }
 
 /** Deletes objects no longer reachable from the document catalog or info dictionary (e.g. replaced images). */
-function removeUnreachable(doc: PDFDocument) {
+export function removeUnreachable(doc: PDFDocument) {
   const ctx = doc.context;
   const seen = new Set<string>();
   const queue: PDFObject[] = [ctx.trailerInfo.Root, ctx.trailerInfo.Info].filter(Boolean) as PDFObject[];
@@ -504,7 +504,7 @@ function removeUnreachable(doc: PDFDocument) {
  * jpeg-js returns a Node Buffer whenever a CommonJS `module` exists, which bundlers define in browsers
  * too, where Buffer does not exist (D22). Lend it the one method it calls, only for this synchronous call.
  */
-function encodeJpeg(rgba: Uint8Array, width: number, height: number, quality: number): Uint8Array {
+export function encodeJpeg(rgba: Uint8Array, width: number, height: number, quality: number): Uint8Array {
   const g = globalThis as { Buffer?: unknown };
   const lend = typeof g.Buffer === 'undefined';
   if (lend) g.Buffer = { from: (bytes: ArrayLike<number>) => Uint8Array.from(bytes) };

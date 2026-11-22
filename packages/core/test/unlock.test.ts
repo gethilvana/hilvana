@@ -10,10 +10,11 @@ const original = async () => new Uint8Array(await readFile(new URL('../../web/e2
 
 async function texts(bytes: Uint8Array): Promise<string[]> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 }).promise;
+  const task = pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 });
+  const doc = await task.promise;
   const out: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) out.push((await (await doc.getPage(i)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ').replace(/\s+/g, ' ').trim());
-  await doc.destroy();
+  await task.destroy();
   return out;
 }
 

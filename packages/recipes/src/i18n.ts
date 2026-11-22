@@ -72,6 +72,23 @@ const messages: Record<Lang, Dict> = {
     'note.signed': 'Firmado por {name} (emitido por {issuer}; válido hasta {to}).',
     'note.signedInvisible': 'La firma no tiene marca visible: se ve en el panel de firmas del lector de PDF.',
     'note.protected': 'Para abrir el resultado se necesita la contraseña. Si la olvidas, no hay forma de recuperarla.',
+    NOTHING_TO_REDACT: 'El paso {index} no dice qué tachar: agrega textos, tipos de datos o áreas.',
+    REDACTION_UNSUPPORTED: 'Este PDF tiene contenido que Hilvana todavía no puede tachar con seguridad, así que no se cambió.',
+    REDACTION_INCOMPLETE: 'No se pudo comprobar que el texto tachado desapareciera (páginas {pages}), así que no se entregó el resultado.',
+    'step.redact': 'Tachar de verdad: {what}',
+    'redact.terms': '{count} textos',
+    'redact.term': '1 texto',
+    'redact.areas': '{count} áreas',
+    'redact.area': '1 área',
+    'redact.email': 'correos',
+    'redact.card': 'números de tarjeta',
+    'redact.number': 'números de cuenta o identificación',
+    'redact.phone': 'teléfonos',
+    'note.redact': 'Tachado: {matches} coincidencias y {areas} áreas dibujadas, en las páginas {pages}. Lo que había debajo se eliminó del archivo.',
+    'note.redactChecked': 'Verificado: al leer el resultado, ya no hay texto dentro de las zonas tachadas.',
+    'note.redactNothing': 'No se encontró nada que tachar; el documento quedó igual.',
+    'note.redactImagesRemoved': '{count} imágenes en un formato que no se puede editar se quitaron completas.',
+    'note.redactStructure': 'Se quitaron las etiquetas de accesibilidad, porque podían repetir el texto tachado.',
     // describe
     'step.merge': 'Unir {files}',
     'step.mergeAll': 'Unir todos los PDF en el orden recibido',
@@ -174,6 +191,23 @@ const messages: Record<Lang, Dict> = {
     'note.signed': 'Signed by {name} (issued by {issuer}; valid until {to}).',
     'note.signedInvisible': 'The signature has no visible mark: it shows in the PDF reader\'s signature panel.',
     'note.protected': 'Opening the result needs the password. If you forget it, there is no way to recover it.',
+    NOTHING_TO_REDACT: 'Step {index} does not say what to redact: add text, kinds of data or areas.',
+    REDACTION_UNSUPPORTED: 'This PDF has content Hilvana cannot redact safely yet, so it was not changed.',
+    REDACTION_INCOMPLETE: 'Could not confirm that the redacted text is gone (pages {pages}), so no result was produced.',
+    'step.redact': 'Redact for real: {what}',
+    'redact.terms': '{count} texts',
+    'redact.term': '1 text',
+    'redact.areas': '{count} areas',
+    'redact.area': '1 area',
+    'redact.email': 'email addresses',
+    'redact.card': 'card numbers',
+    'redact.number': 'account or ID numbers',
+    'redact.phone': 'phone numbers',
+    'note.redact': 'Redacted: {matches} matches and {areas} drawn areas, on pages {pages}. What was underneath was removed from the file.',
+    'note.redactChecked': 'Checked: reading the result back, there is no text left inside the redacted areas.',
+    'note.redactNothing': 'Nothing to redact was found; the document is unchanged.',
+    'note.redactImagesRemoved': '{count} images in a format that cannot be edited were removed whole.',
+    'note.redactStructure': 'The accessibility tags were removed, since they could repeat the redacted text.',
     'step.merge': 'Merge {files}',
     'step.mergeAll': 'Merge every PDF in the order received',
     'step.fromImages': 'Build a PDF from the images {files}',
@@ -257,6 +291,15 @@ export function describeStep(step: Step, lang: Lang): string {
       return step.password ? t(lang, 'step.protectPassword') : t(lang, 'step.protectRestrict', { list });
     }
     case 'signDigital': return t(lang, 'step.signDigital', { certificate: step.certificate });
+    case 'redact': {
+      const what: string[] = [];
+      const nt = step.terms?.length ?? 0;
+      if (nt) what.push(nt === 1 ? t(lang, 'redact.term') : t(lang, 'redact.terms', { count: nt }));
+      for (const p of step.patterns ?? []) what.push(t(lang, `redact.${p}`));
+      const na = step.areas?.length ?? 0;
+      if (na) what.push(na === 1 ? t(lang, 'redact.area') : t(lang, 'redact.areas', { count: na }));
+      return t(lang, 'step.redact', { what: what.join(', ') || '—' });
+    }
   }
 }
 

@@ -29,7 +29,7 @@
     "docx": "^9.16.0",
     "fast-check": "^4.10.3",
     "fast-png": "^7.0.1",
-    "pdfjs-dist": "^4.10.38",
+    "pdfjs-dist": "^6.5.438",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
   }

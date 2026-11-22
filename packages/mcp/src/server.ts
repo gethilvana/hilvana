@@ -76,7 +76,8 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     { name: 'hilvana', version: VERSION },
     {
       instructions: [
-        'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
+        'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, compress, redact, split, protect, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
+        'To redact for real use the redact step: {"op":"redact","terms":["123456789"],"patterns":["email","number"]} removes the text, image pixels and shapes under each match from the file (not just covers them) and checks the result; "areas" (page, x, y, width, height in points from the bottom-left) covers scanned parts. It is destructive: show the plan and get the user\'s agreement first.',
         'To make files smaller use the compress step: {"op":"compress"} with goals.maxBytes aims for that size automatically; levels are lossless, balanced (150 dpi images, default), strong (110 dpi) and max (72 dpi). Text is never rasterized.',
         'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
         'Recipes can end with protect (allowPrint/allowCopy/allowModify false restricts use). Password protection and signDigital (certificate signatures) need a secret and are refused here: never ask for passwords in the chat; point the person to https://pdf.jorgegrajales.dev or `npx hilvana protect` / `npx hilvana certify`.',

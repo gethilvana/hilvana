@@ -30,6 +30,7 @@ Las pruebas de navegador (`packages/web/e2e/privacy.spec.ts`) verifican la polí
 | | Marca de agua | `watermark` |
 | Reducir y proteger | Comprimir | `compress` |
 | | Quitar metadatos | `stripMetadata` |
+| | Tachar información (buscar textos y datos, o dibujar áreas) | `redact` |
 | | Proteger con contraseña (o restringir el uso) | `protect` |
 | Automatizar | Mis recetas (guardadas en el navegador; por archivo o juntas) | la receta guardada |
 

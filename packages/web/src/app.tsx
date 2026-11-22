@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { redactRecipe, type Lang } from '@hilvana/recipes';
+import type { Lang } from '@hilvana/recipes';
 import { Engine } from './engine';
 import { DropZone, FileList, type Doc } from './files';
 import { initialLang, saveLang, strings, type ToolId } from './i18n';
@@ -7,9 +7,10 @@ import { PageGrid, SignaturePad, ToolOptions } from './options';
 import { ResultPanel, type Result } from './result';
 import { CertificatePanel, ProtectPanel, type Certificate } from './security';
 import { RecipesPanel, type ApplyMode } from './recipes';
-import { imagesIn, loadRecipes, saveRecipe, secretIn, type SavedRecipe } from './saved';
+import { RedactPanel } from './redact';
+import { hidePasswords, imagesIn, loadRecipes, saveRecipe, secretIn, type SavedRecipe } from './saved';
 import { openPreview } from './thumbs';
-import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, splitRanges, type Options } from './tools';
+import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, redactTerms, splitRanges, type Options } from './tools';
 import { Dialog, PrivacyNote, Stitch, Wordmark } from './ui';
 
 const SOURCE = 'https://github.com/gethilvana/hilvana';
@@ -79,7 +80,7 @@ export function App() {
     setBusy(false);
     setResult(null);
     setError(null);
-    setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
+    setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [], redactAreas: [] }));
     clearSecrets();
     setRecipes(loadRecipes()); // another tab may have saved some
     setDocs((current) => {
@@ -141,7 +142,7 @@ export function App() {
       if (tool.single) list.forEach(drop);
       return tool.single ? fresh : [...list, ...fresh];
     });
-    if (tool.id === 'pages' || tool.id === 'rotate') setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
+    if (tool.id === 'pages' || tool.id === 'rotate' || tool.id === 'redact') setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [], redactAreas: [] }));
     await Promise.all(chosen.map(async (file, i) => {
       const doc = fresh[i]!;
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -182,6 +183,7 @@ export function App() {
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
   else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
   else if (tool.id === 'certify' && cert?.status !== 'ready') blocker = s.certify.missing;
+  else if (tool.id === 'redact' && !redactTerms(options).length && !options.redactPatterns.length && !options.redactAreas.length) blocker = s.redact.nothing;
   else if (tool.id === 'recipes' && !savedRecipe) blocker = s.saved.pick;
   else if (tool.id === 'recipes' && imagesIn(savedRecipe!.recipe).some((n) => !recipeImages[n])) blocker = s.saved.imageMissing(imagesIn(savedRecipe!.recipe).find((n) => !recipeImages[n])!);
   else if (tool.id === 'protect' && newPassword && newPassword !== newPassword2) blocker = s.protect.mismatch;
@@ -230,7 +232,7 @@ export function App() {
         res = {
           ...r,
           // The recipe shown can be copied and shared: no secrets, and the usual signature name.
-          recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : redactRecipe(recipe),
+          recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : hidePasswords(recipe),
           ...(tool.id === 'split' ? { zipName: `${first!.name.replace(/\.[^.]+$/, '')}-${lang === 'es' ? 'partes' : 'parts'}.zip` } : {}),
         };
       }
@@ -313,7 +315,7 @@ export function App() {
               onRemove={(id) => setDocs((list) => {
                 const d = list.find((x) => x.id === id);
                 if (d) drop(d);
-                if (tool.id === 'pages' || tool.id === 'rotate') setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
+                if (tool.id === 'pages' || tool.id === 'rotate' || tool.id === 'redact') setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [], redactAreas: [] }));
                 return list.filter((x) => x.id !== id);
               })}
               onUnlock={unlockFile}
@@ -341,6 +343,8 @@ export function App() {
               }} selected={recipeId} onSelect={setRecipeId} mode={applyMode} onMode={setApplyMode}
               manyFiles={usable.length > 1} images={recipeImages} onImage={chooseRecipeImage} />
             )}
+
+            {tool.id === 'redact' && first && <RedactPanel key={first.id} s={s} lang={lang} engine={engine} docId={first.id} preview={first.preview} o={options} set={setOption} />}
 
             {tool.id === 'protect' && first && <ProtectPanel s={s} password={newPassword} confirm={newPassword2} onPassword={setNewPassword} onConfirm={setNewPassword2} o={options} set={setOption} />}
 
@@ -385,7 +389,7 @@ export function App() {
               setDocs((list) => { list.forEach(drop); return []; });
               setSignature(null);
               clearSecrets();
-              setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
+              setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [], redactAreas: [] }));
             }} />}
           </div>
         </main>
