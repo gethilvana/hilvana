@@ -19,18 +19,20 @@ Las pruebas de navegador (`packages/web/e2e/privacy.spec.ts`) verifican la polí
 |---|---|---|
 | Unir y ordenar | Unir PDF (incluye Word) | `merge` |
 | | Organizar páginas (quitar, reordenar) | `select` |
-| | Dividir (por página o por rangos, con .zip) | `core.split` / `core.burst` |
+| | Dividir (por página o por rangos, con .zip) | `split` |
 | | Girar páginas | `rotate` |
 | Convertir | Word a PDF | `.docx` en `merge` |
 | | Imágenes a PDF | `fromImages` |
 | Firmar y marcar | Firmar (dibujada o imagen) | `sign` |
+| | Firma digital (certificado .p12/.pfx) | `signDigital` |
 | | Sello de texto | `stampText` |
 | | Numerar páginas | `numberPages` |
 | | Marca de agua | `watermark` |
-| Reducir y limpiar | Comprimir | `compress` |
+| Reducir y proteger | Comprimir | `compress` |
 | | Quitar metadatos | `stripMetadata` |
+| | Proteger con contraseña (o restringir el uso) | `protect` |
 
-Cada resultado ofrece **Ver como receta**: la misma acción en JSON, lista para `npx hilvana run` o para un agente con el servidor MCP.
+Cada resultado ofrece **Ver como receta**: la misma acción en JSON, lista para `npx hilvana run` o para un agente con el servidor MCP. Las contraseñas nunca aparecen en ella; el certificado, su clave y las contraseñas viven solo en la memoria de la página y del worker, y se olvidan al cambiar de herramienta.
 
 ## Desarrollo
 

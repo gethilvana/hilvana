@@ -22,9 +22,15 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - name: Independent signature validator (pdfsig)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - run: npm ci
       - run: npm run build
       - run: npm test
+        env:
+          # On Linux the certificate signatures must be checked by pdfsig, not skipped.
+          HILVANA_REQUIRE_PDFSIG: ${{ matrix.os == 'ubuntu-latest' && '1' || '' }}
       - name: License policy (no AGPL/GPL in production dependencies)
         if: matrix.os == 'ubuntu-latest' && matrix.node == 22
         run: npm run licenses
@@ -44,6 +50,7 @@ jobs:
       - run: npm run build:web
       - run: npx playwright install --with-deps chromium firefox webkit
         working-directory: packages/web
+      - run: sudo apt-get install -y poppler-utils
       - run: npm run e2e -w @hilvana/web
       - uses: actions/upload-artifact@v4
         if: failure()

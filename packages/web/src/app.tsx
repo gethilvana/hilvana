@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { Lang } from '@hilvana/recipes';
+import { redactRecipe, type Lang } from '@hilvana/recipes';
 import { Engine } from './engine';
 import { DropZone, FileList, type Doc } from './files';
 import { initialLang, saveLang, strings, type ToolId } from './i18n';
 import { PageGrid, SignaturePad, ToolOptions } from './options';
 import { ResultPanel, type Result } from './result';
+import { CertificatePanel, ProtectPanel, type Certificate } from './security';
 import { openPreview } from './thumbs';
 import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, splitRanges, type Options } from './tools';
 import { Dialog, PrivacyNote, Stitch, Wordmark } from './ui';
@@ -28,6 +29,11 @@ export function App() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [options, setOptions] = useState<Options>(() => defaultOptions(s));
   const [signature, setSignature] = useState<Uint8Array | null>(null);
+  // Secrets live only in memory, on this page and in the worker, and are cleared when leaving the tool.
+  const [cert, setCert] = useState<Certificate | null>(null);
+  const certPassword = useRef('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPassword2, setNewPassword2] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +73,7 @@ export function App() {
     setResult(null);
     setError(null);
     setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
+    clearSecrets();
     setDocs((current) => {
       const keep = current.filter((d) => d.status !== 'ready' || (d.kind && accepts(tool, d.kind)));
       const final = tool.single ? keep.slice(0, 1) : keep;
@@ -74,6 +81,31 @@ export function App() {
       return final;
     });
   }, [toolId]);
+
+  function clearSecrets() {
+    engine.remove('certificate');
+    certPassword.current = '';
+    setCert(null);
+    setNewPassword('');
+    setNewPassword2('');
+  }
+
+  async function chooseCertificate(file: File) {
+    certPassword.current = '';
+    setCert({ name: file.name, status: 'chosen' });
+    await engine.add('certificate', file.name, new Uint8Array(await file.arrayBuffer()), lang);
+  }
+
+  async function openCertificate(password: string) {
+    setCert((c) => c && { ...c, status: 'opening', error: undefined });
+    try {
+      const info = await engine.certificate('certificate', password, lang);
+      certPassword.current = password;
+      setCert((c) => c && { ...c, status: 'ready', info });
+    } catch (err) {
+      setCert((c) => c && { ...c, status: 'error', error: (err as Error).message });
+    }
+  }
 
   function drop(d: Doc) {
     engine.remove(d.id);
@@ -135,6 +167,9 @@ export function App() {
   else if (tool.id === 'merge' && usable.length < 2) blocker = s.needTwo;
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
   else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
+  else if (tool.id === 'certify' && cert?.status !== 'ready') blocker = s.certify.missing;
+  else if (tool.id === 'protect' && newPassword && newPassword !== newPassword2) blocker = s.protect.mismatch;
+  else if (tool.id === 'protect' && !newPassword && options.allowPrint && options.allowCopy && options.allowModify) blocker = s.protect.nothing;
   const nothingToDo = tool.id === 'pages' && !options.pagesOrder;
   const canRun = !blocker && !reading && !busy && !nothingToDo;
 
@@ -161,17 +196,19 @@ export function App() {
         };
       } else {
         const inputs = tool.single ? [first!] : usable;
-        const files = inputs.map((d) => ({ id: d.id, name: d.name }));
+        const files: { id: string; name: string; password?: string }[] = inputs.map((d) => ({ id: d.id, name: d.name }));
         const sigName = '__firma.png';
         if (tool.id === 'sign') {
           await engine.add('signature', sigName, signature!.slice(), lang);
           files.push({ id: 'signature', name: sigName });
         }
-        const recipe = buildRecipe(tool.id, options, inputs.map((d) => d.name), lang, sigName);
+        if (tool.id === 'certify') files.push({ id: 'certificate', name: cert!.name, password: certPassword.current });
+        const recipe = buildRecipe(tool.id, options, inputs.map((d) => d.name), lang, { signature: sigName, certificate: cert?.name, password: newPassword || undefined });
         const r = await engine.run(recipe, files, lang);
         res = {
           ...r,
-          recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : recipe,
+          // The recipe shown can be copied and shared: no secrets, and the usual signature name.
+          recipe: tool.id === 'sign' ? buildRecipe('sign', options, [], lang) : redactRecipe(recipe),
           ...(tool.id === 'split' ? { zipName: `${first!.name.replace(/\.[^.]+$/, '')}-${lang === 'es' ? 'partes' : 'parts'}.zip` } : {}),
         };
       }
@@ -258,6 +295,7 @@ export function App() {
                 return list.filter((x) => x.id !== id);
               })}
               onUnlock={unlockFile}
+              keepsSignatures={tool.id === 'certify'}
               onMove={(id, by) => setDocs((list) => {
                 const i = list.findIndex((d) => d.id === id);
                 const j = i + by;
@@ -271,6 +309,10 @@ export function App() {
             {gridMode && first?.preview && <PageGrid key={first.id} s={s} preview={first.preview} mode={gridMode} o={options} set={setOption} />}
 
             {tool.id === 'sign' && first && <SignaturePad s={s} onChange={setSignature} />}
+
+            {tool.id === 'certify' && first && <CertificatePanel s={s} lang={lang} cert={cert} o={options} set={setOption} onChoose={chooseCertificate} onOpen={openCertificate} />}
+
+            {tool.id === 'protect' && first && <ProtectPanel s={s} password={newPassword} confirm={newPassword2} onPassword={setNewPassword} onConfirm={setNewPassword2} o={options} set={setOption} />}
 
             {usable.length > 0 && tool.id === 'metadata' && first?.info && (
               <div class="meta-list">
@@ -305,6 +347,7 @@ export function App() {
               setResult(null);
               setDocs((list) => { list.forEach(drop); return []; });
               setSignature(null);
+              clearSecrets();
               setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
             }} />}
           </div>

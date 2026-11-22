@@ -29,6 +29,8 @@ Uso:
   hilvana strip <archivo.pdf> -o <salida.pdf>
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
+  hilvana protect <archivo.pdf> [--restrict print,copy,modify] -o <salida.pdf>
+  hilvana certify <archivo.pdf> --cert <certificado.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <salida.pdf>
   hilvana run <receta.json> <archivos...> [-o <salida.pdf | carpeta si la receta termina en split>] [--dry-run] [--yes]
   hilvana schema
 
@@ -36,6 +38,9 @@ Rangos: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Opciones: --lang es|en, --force (reemplaza la salida; nunca una entrada).
 PDF protegidos: los que solo tienen restricciones se abren solos. Para los que piden contraseña,
   usa --password <contraseña> o la variable HILVANA_PDF_PASSWORD (no queda en el historial).
+Proteger: la contraseña nueva se pide al ejecutar (o HILVANA_NEW_PASSWORD); --restrict solo quita permisos.
+Firma digital: certificado .p12/.pfx; su contraseña se pide al ejecutar (o HILVANA_CERT_PASSWORD).
+  La clave privada no sale de tu equipo. En "run", los .p12/.pfx usan esa contraseña.
 Word: --engine native usa el motor integrado; libreoffice usa LibreOffice si está instalado;
       auto (por defecto) usa el integrado y recurre a LibreOffice si tuvo que omitir contenido.
 Todo se procesa en tu equipo. Ningún archivo sale de él.
@@ -55,6 +60,8 @@ Usage:
   hilvana strip <file.pdf> -o <out.pdf>
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
+  hilvana protect <file.pdf> [--restrict print,copy,modify] -o <out.pdf>
+  hilvana certify <file.pdf> --cert <certificate.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <out.pdf>
   hilvana run <recipe.json> <files...> [-o <out.pdf | folder when the recipe ends with split>] [--dry-run] [--yes]
   hilvana schema
 
@@ -62,6 +69,9 @@ Ranges: "1-3,5", "last", "last-1", "4-last", "odd", "even", "all".
 Options: --lang es|en, --force (replace the output; never an input).
 Protected PDFs: files with only usage restrictions open on their own. For files that need a password,
   use --password <password> or the HILVANA_PDF_PASSWORD variable (kept out of your shell history).
+Protect: the new password is asked for when it runs (or HILVANA_NEW_PASSWORD); --restrict only removes permissions.
+Digital signature: a .p12/.pfx certificate; its password is asked for when it runs (or HILVANA_CERT_PASSWORD).
+  The private key never leaves your machine. In "run", .p12/.pfx inputs use that password.
 Word: --engine native uses the built-in engine; libreoffice uses a local LibreOffice install;
       auto (default) uses the built-in one and falls back to LibreOffice if it had to drop content.
 Everything runs on your machine. No file leaves it.
@@ -89,6 +99,11 @@ const options = {
   yes: { type: 'boolean', short: 'y' },
   'dry-run': { type: 'boolean' },
   password: { type: 'string' },
+  restrict: { type: 'string' },
+  cert: { type: 'string' },
+  reason: { type: 'string' },
+  location: { type: 'string' },
+  invisible: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -106,7 +121,7 @@ class UsageError extends Error {}
 const read = async (p: string) => new Uint8Array(await fs.readFile(p));
 
 /** Writes a new file. Never overwrites an input (even through links); replaces other files only with --force. */
-async function write(out: string, bytes: Uint8Array, inputs: string[], force: boolean | undefined, lang: Lang) {
+async function write(out: string, bytes: Uint8Array, inputs: string[], force: boolean | undefined, lang: Lang, openPassword?: string) {
   const target = path.resolve(out);
   try {
     await safeWrite(target, bytes, { inputs: inputs.map((i) => path.resolve(i)), overwrite: force });
@@ -118,7 +133,7 @@ async function write(out: string, bytes: Uint8Array, inputs: string[], force: bo
     }
     throw err;
   }
-  const info = await core.inspect(bytes);
+  const info = await core.inspect(openPassword ? (await core.unlock(bytes, openPassword)).bytes : bytes);
   const unit = lang === 'es' ? (info.pageCount === 1 ? 'página' : 'páginas') : info.pageCount === 1 ? 'page' : 'pages';
   process.stdout.write(`✓ ${out} · ${info.pageCount} ${unit} · ${(bytes.byteLength / 1024).toFixed(1)} KB\n`);
 }
@@ -168,6 +183,57 @@ function parseSize(v: string, lang: Lang): number {
 }
 
 const passwordOf = (v: Values) => v.password ?? process.env.HILVANA_PDF_PASSWORD ?? '';
+
+/** Asks for a secret on the terminal without showing it. Returns undefined when there is no terminal. */
+async function askSecret(question: string): Promise<string | undefined> {
+  const stdin = process.stdin;
+  if (!stdin.isTTY || !process.stderr.isTTY) return undefined;
+  process.stderr.write(question);
+  stdin.setRawMode(true);
+  stdin.resume();
+  stdin.setEncoding('utf8');
+  return new Promise((resolve) => {
+    let value = '';
+    const done = (result: string | undefined) => {
+      stdin.off('data', onData);
+      stdin.setRawMode(false);
+      stdin.pause();
+      process.stderr.write('\n');
+      resolve(result);
+    };
+    const onData = (chunk: string) => {
+      for (const ch of chunk) {
+        if (ch === '\r' || ch === '\n' || ch === '\u0004') return done(value);
+        if (ch === '\u0003') { done(undefined); process.exit(130); }
+        if (ch === '\u007f' || ch === '\b') value = value.slice(0, -1);
+        else value += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
+
+/** Secrets come from the environment or a hidden prompt, never from a flag that stays in the shell history. */
+async function secret(envName: string, question: string, lang: Lang, missing: string): Promise<string> {
+  const fromEnv = process.env[envName];
+  if (fromEnv) return fromEnv;
+  const typed = await askSecret(question);
+  if (!typed) throw new UsageError(`✗ ${missing} ${lang === 'es' ? `Escríbela cuando se pida, o usa la variable ${envName}.` : `Type it when asked, or use the ${envName} variable.`}`);
+  return typed;
+}
+
+const certPassword = (file: string, lang: Lang) =>
+  secret('HILVANA_CERT_PASSWORD', lang === 'es' ? `Contraseña del certificado ${path.basename(file)}: ` : `Password for the certificate ${path.basename(file)}: `, lang,
+    lang === 'es' ? 'Falta la contraseña del certificado.' : 'The certificate password is missing.');
+
+const RESTRICTIONS = ['print', 'copy', 'modify'] as const;
+
+function restrictionsOf(v: Values, lang: Lang): Set<string> {
+  const list = (v.restrict ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const bad = list.filter((x) => !(RESTRICTIONS as readonly string[]).includes(x));
+  if (bad.length) throw new UsageError(lang === 'es' ? `--restrict acepta print, copy y modify (no "${bad.join(', ')}").` : `--restrict takes print, copy and modify (not "${bad.join(', ')}").`);
+  return new Set(list);
+}
 
 /** Opens a protected PDF here (restrictions on their own, a password when given) and says what was removed. */
 async function openPdf(file: string, bytes: Uint8Array, v: Values, lang: Lang): Promise<Uint8Array> {
@@ -301,6 +367,56 @@ async function main(argv: string[]) {
       const out = await core.imagesToPdf(await Promise.all(rest.map(read)), { pageSize: v['page-size'] as 'a4' | undefined });
       return write(v.output ?? defaultOutput(rest[0]!, 'images'), out, rest, v.force, lang);
     }
+    case 'protect': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      const restricted = restrictionsOf(v, lang);
+      let password = process.env.HILVANA_NEW_PASSWORD;
+      if (!password && restricted.size === 0) {
+        const first = await askSecret(lang === 'es' ? 'Contraseña nueva: ' : 'New password: ');
+        if (first) {
+          const again = await askSecret(lang === 'es' ? 'Repítela: ' : 'Repeat it: ');
+          if (again !== first) throw new UsageError(lang === 'es' ? '✗ Las contraseñas no coinciden.' : '✗ The passwords do not match.');
+          password = first;
+        }
+      }
+      if (!password && restricted.size === 0) {
+        throw new UsageError(lang === 'es'
+          ? '✗ Nada que proteger: escribe una contraseña cuando se pida (o usa HILVANA_NEW_PASSWORD), o usa --restrict.'
+          : '✗ Nothing to protect: type a password when asked (or use HILVANA_NEW_PASSWORD), or use --restrict.');
+      }
+      const src = await openPdf(input, await read(input), v, lang);
+      await warnIfSigned(input, src, lang);
+      const out = await core.protect(src, { password, allowPrint: !restricted.has('print'), allowCopy: !restricted.has('copy'), allowModify: !restricted.has('modify') });
+      await write(v.output ?? defaultOutput(input, 'protected'), out, [input], v.force, lang, password);
+      if (password) process.stdout.write(`  ${t(lang, 'note.protected')}\n`);
+      return;
+    }
+    case 'certify': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      if (!v.cert) throw new UsageError(lang === 'es' ? 'Falta --cert <certificado.p12>.' : 'Missing --cert <certificate.p12>.');
+      const certificate = await read(v.cert);
+      const password = await certPassword(v.cert, lang);
+      const raw = await read(input);
+      // Signed files are signed as they are, so their signatures stay valid; protected ones are opened first.
+      const opened = await core.unlock(raw, passwordOf(v));
+      const src = opened.protection === 'none' ? raw : await openPdf(input, raw, v, lang);
+      const who = await core.readCertificate(certificate, password);
+      const res = await core.signWithCertificate(src, {
+        certificate,
+        password,
+        reason: v.reason,
+        location: v.location,
+        visible: v.invisible ? false : { text: t(lang, 'visible.signed', { name: who.name, date: localDate() }), pages: v.pages, anchor: v.anchor as core.Anchor | undefined, fonts: () => fallbackTextFonts() },
+      });
+      await write(v.output ?? defaultOutput(input, 'signed'), res.bytes, [input, v.cert], v.force, lang);
+      process.stdout.write(`  ${t(lang, 'note.signed', { name: res.signer.name, issuer: res.signer.issuer, to: localDate(res.signer.validTo) })}\n`);
+      if (res.previousSignatures > 0) process.stdout.write(`  ${t(lang, 'SIGNATURES_KEPT', { name: path.basename(input) })}\n`);
+      else if (!res.visible) process.stdout.write(`  ${t(lang, 'note.signedInvisible')}\n`);
+      if (res.signer.selfSigned) process.stdout.write(`  ⚠ ${t(lang, 'SELF_SIGNED_CERTIFICATE', { name: path.basename(v.cert) })}\n`);
+      return;
+    }
     case 'schema':
       return void process.stdout.write(JSON.stringify(recipeJsonSchema(), null, 2) + '\n');
     case 'run': {
@@ -314,7 +430,9 @@ async function main(argv: string[]) {
         throw err;
       }
       const password = passwordOf(v) || undefined;
-      const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p), password })));
+      const isCert = (p: string) => /\.(p12|pfx)$/i.test(p);
+      const certPw = inputs.some(isCert) ? await certPassword(inputs.find(isCert)!, lang) : undefined;
+      const files = await Promise.all(inputs.map(async (p) => ({ name: path.basename(p), bytes: await read(p), password: isCert(p) ? certPw : password })));
       const word = wordConverter(v, lang);
       const p = await plan(recipe, files, { lang, word });
       process.stdout.write(p.steps.join('\n') + '\n');
@@ -335,7 +453,8 @@ async function main(argv: string[]) {
         for (const o of res.outputs) await write(path.join(dir, o.filename), o.bytes, inputs, v.force, lang);
       } else {
         const outPath = v.output ?? path.join(path.dirname(inputs[0]!), res.filename);
-        await write(outPath, res.bytes, inputs, v.force, lang);
+        const last = p.recipe!.steps.at(-1)!;
+        await write(outPath, res.bytes, inputs, v.force, lang, last.op === 'protect' ? last.password : undefined);
       }
       for (const n of res.notes) process.stdout.write(`  ${n}\n`);
       for (const g of res.goals) process.stdout.write(`  ${g.message}\n`);

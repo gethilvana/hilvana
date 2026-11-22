@@ -1,10 +1,12 @@
 import * as core from '@hilvana/core';
 import { HilvanaError, parsePageRange } from '@hilvana/core';
 import { DocxError, fallbackTextFonts, isDocx, wordToPdf } from '@hilvana/office';
-import { DESTRUCTIVE_OPS, Recipe, type Goals, type Step } from './schema.js';
+import { DESTRUCTIVE_OPS, FINAL_OPS, Recipe, type Goals, type Step } from './schema.js';
 import { describeStep, formatBytes, localDate, t, type Lang } from './i18n.js';
 
-export type FileKind = 'pdf' | 'word' | 'image' | 'other';
+export type FileKind = 'pdf' | 'word' | 'image' | 'certificate' | 'other';
+
+const CERTIFICATE_NAME = /\.(p12|pfx)$/i;
 
 /** Turns a .docx into PDF bytes. Surfaces choose the engine; the default is the built-in one. */
 export type WordConverter = (docx: Uint8Array) => Promise<{ pdf: Uint8Array; pageCount: number; warnings: string[]; engine?: string }>;
@@ -93,6 +95,8 @@ export interface Plan {
   outputCount?: number;
   /** Simplifications made while converting Word files, in plain language. */
   warnings: string[];
+  /** Who will sign, when the recipe ends with `signDigital` and the certificate opened. */
+  signer?: core.CertificateInfo;
 }
 
 export interface GoalResult {
@@ -124,6 +128,33 @@ export interface RunResult {
   warnings: string[];
   /** What some steps did, in plain language (e.g. compression results). */
   notes: string[];
+}
+
+/** What kind of file an input is. Certificates have no magic number, so they are told by their name. */
+export function kindOfFile(f: { name: string; bytes: Uint8Array }): FileKind {
+  const kind = kindOf(f.bytes);
+  return kind === 'other' && CERTIFICATE_NAME.test(f.name) ? 'certificate' : kind;
+}
+
+/**
+ * A recipe made only of `signDigital` on one PDF signs that file as it is, so the signatures it
+ * already has stay valid. Any other recipe builds a new file first.
+ */
+function signsInPlace(recipe: Recipe, docNames: string[], kinds: Map<string, FileKind>): boolean {
+  return recipe.steps.length === 1 && recipe.steps[0]!.op === 'signDigital' && docNames.length === 1 && kinds.get(docNames[0]!) === 'pdf';
+}
+
+// Each certificate is opened once per password, even though plan() and run() both need it.
+const certificates = new WeakMap<Uint8Array, Map<string, Promise<core.CertificateInfo>>>();
+function readCertificateOnce(bytes: Uint8Array, password: string): Promise<core.CertificateInfo> {
+  let byPassword = certificates.get(bytes);
+  if (!byPassword) certificates.set(bytes, (byPassword = new Map()));
+  let p = byPassword.get(password);
+  if (!p) {
+    byPassword.set(password, (p = core.readCertificate(bytes, password)));
+    p.catch(() => byPassword!.delete(password));
+  }
+  return p;
 }
 
 export function kindOf(bytes: Uint8Array): FileKind {
@@ -165,10 +196,11 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
   files = prepared.files;
   const issues: Issue[] = [...prepared.issues];
   const byName = new Map(files.map((f) => [f.name, f]));
-  const kinds = new Map(files.map((f) => [f.name, kindOf(f.bytes)]));
+  const kinds = new Map(files.map((f) => [f.name, kindOfFile(f)]));
   const docNames = files.filter((f) => ['pdf', 'word'].includes(kinds.get(f.name)!)).map((f) => f.name);
   const imageNames = files.filter((f) => kinds.get(f.name) === 'image').map((f) => f.name);
   const hasWord = docNames.some((n) => kinds.get(n) === 'word');
+  const inPlace = signsInPlace(recipe, docNames, kinds);
 
   const pageCounts = new Map<string, number>();
   const warnings: string[] = [...prepared.warnings];
@@ -182,7 +214,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
       } else {
         const info = await core.inspect(byName.get(name)!.bytes);
         pageCounts.set(name, info.pageCount);
-        if (info.signatures > 0) warnings.push(t(lang, 'SIGNED_INPUT', { name }));
+        if (info.signatures > 0) warnings.push(t(lang, inPlace ? 'SIGNATURES_KEPT' : 'SIGNED_INPUT', { name }));
       }
     } catch (err) {
       if (err instanceof DocxError) issues.push({ code: err.code, message: t(lang, err.code, { name }) });
@@ -195,6 +227,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
   let pages: number | undefined;
   let outputCount: number | undefined = 1;
   const predicted: number[] = [];
+  let certificateCheck: { name: string; step: number } | undefined;
 
   steps.forEach((step, i) => {
     const n = i + 1 - offset; // step number as the user wrote it (0 = implicit merge)
@@ -243,6 +276,23 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
         checkRange(step.pages ?? 'last');
         break;
       }
+      case 'protect': {
+        if (i !== steps.length - 1) issues.push({ code: 'FINAL_NOT_LAST', message: t(lang, 'FINAL_NOT_LAST', { index: n }), step: n });
+        if (!step.password && step.allowPrint !== false && step.allowCopy !== false && step.allowModify !== false) {
+          issues.push({ code: 'NOTHING_TO_PROTECT', message: t(lang, 'NOTHING_TO_PROTECT', { index: n }), step: n });
+        }
+        break;
+      }
+      case 'signDigital': {
+        if (i !== steps.length - 1) issues.push({ code: 'FINAL_NOT_LAST', message: t(lang, 'FINAL_NOT_LAST', { index: n }), step: n });
+        const cert = byName.get(step.certificate);
+        if (!cert) issues.push({ code: 'UNKNOWN_INPUT', message: t(lang, 'UNKNOWN_INPUT', { name: step.certificate }), step: n });
+        else if (kinds.get(step.certificate) !== 'certificate') issues.push({ code: 'NOT_A_CERTIFICATE', message: t(lang, 'NOT_A_CERTIFICATE', { name: step.certificate }), step: n });
+        else if (!cert.password) issues.push({ code: 'CERTIFICATE_PASSWORD_REQUIRED', message: t(lang, 'CERTIFICATE_PASSWORD_REQUIRED', { name: step.certificate }), step: n });
+        else certificateCheck = { name: step.certificate, step: n };
+        if (step.visible !== false) checkRange(step.pages ?? 'last');
+        break;
+      }
       case 'split': {
         if (i !== steps.length - 1) issues.push({ code: 'SPLIT_NOT_LAST', message: t(lang, 'SPLIT_NOT_LAST', { index: n }), step: n });
         for (const r of step.ranges ?? []) {
@@ -263,6 +313,28 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
     }
     if (pages !== undefined) predicted.push(pages);
   });
+
+  // Only one step can produce the final file(s).
+  const finals = recipe.steps.filter((s) => FINAL_OPS.has(s.op));
+  if (finals.length > 1 && !issues.some((x) => x.code === 'FINAL_NOT_LAST' || x.code === 'SPLIT_NOT_LAST')) {
+    const n = recipe.steps.findIndex((s) => FINAL_OPS.has(s.op)) + 1;
+    issues.push({ code: 'FINAL_NOT_LAST', message: t(lang, 'FINAL_NOT_LAST', { index: n }), step: n });
+  }
+
+  // Open the certificate now, so a wrong password or an expired certificate shows before running.
+  let signer: core.CertificateInfo | undefined;
+  if (certificateCheck) {
+    const { name, step: n } = certificateCheck;
+    try {
+      signer = await readCertificateOnce(byName.get(name)!.bytes, byName.get(name)!.password!);
+      const now = new Date();
+      if (now < signer.validFrom) issues.push({ code: 'CERTIFICATE_NOT_YET_VALID', message: t(lang, 'CERTIFICATE_NOT_YET_VALID', { from: localDate(signer.validFrom) }), step: n });
+      else if (now > signer.validTo) issues.push({ code: 'CERTIFICATE_EXPIRED', message: t(lang, 'CERTIFICATE_EXPIRED', { to: localDate(signer.validTo) }), step: n });
+      if (signer.selfSigned) warnings.push(t(lang, 'SELF_SIGNED_CERTIFICATE', { name }));
+    } catch (err) {
+      issues.push(issueFromError(err, lang, n));
+    }
+  }
 
   const destructiveSteps = recipe.steps
     .map((s, i) => (DESTRUCTIVE_OPS.has(s.op) ? i + 1 : 0))
@@ -289,6 +361,7 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
     destructiveSteps,
     predictedPages: predicted,
     outputCount,
+    signer,
   };
 }
 
@@ -342,25 +415,30 @@ export async function run(
     throw new RecipeError([{ code: 'CONFIRMATION_REQUIRED', message: t(lang, 'CONFIRMATION_REQUIRED', { steps: p.destructiveSteps.join(', ') }) }]);
   }
   const recipe = p.recipe;
+  const originals = files;
   files = (await unlockInputs(files, lang)).files; // cached: already unlocked during plan()
   // Word inputs become their converted PDF; everything downstream only sees PDFs.
   const byName = new Map<string, Uint8Array>();
   const docs: InputFile[] = [];
+  const passwords = new Map(files.map((f) => [f.name, f.password]));
   for (const f of files) {
-    const kind = kindOf(f.bytes);
+    const kind = kindOfFile(f);
     const bytes = kind === 'word' ? (await convertOnce(convert, f.bytes)).pdf : f.bytes;
     byName.set(f.name, bytes);
     if (kind === 'pdf' || kind === 'word') docs.push({ name: f.name, bytes });
   }
   const pdfs = docs;
-  const images = files.filter((f) => kindOf(f.bytes) === 'image');
+  const images = files.filter((f) => kindOfFile(f) === 'image');
+  const kinds = new Map(files.map((f) => [f.name, kindOfFile(f)]));
+  const inPlace = signsInPlace(recipe, docs.map((d) => d.name), kinds);
 
   let doc: Uint8Array | undefined;
   const notes: string[] = [];
   const steps = withSource(recipe.steps);
   for (const [i, step] of steps.entries()) {
+    if (inPlace && step.op === 'merge') { doc = originals.find((f) => f.name === docs[0]!.name)!.bytes; continue; }
     try {
-      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals, fonts: opts.textFonts ?? (() => fallbackTextFonts()) });
+      doc = await apply(step, doc, { byName, pdfs, images, notes, lang, goals: recipe.goals, fonts: opts.textFonts ?? (() => fallbackTextFonts()), passwords });
     } catch (err) {
       throw new RecipeError([issueFromError(err, lang, i + 1)]);
     }
@@ -385,8 +463,10 @@ export async function run(
 
   const outputs: RunOutput[] = [];
   const goals: GoalResult[] = [];
+  // A result protected with a password is opened with it, only to check it here.
+  const openWith = last.op === 'protect' ? last.password : undefined;
   for (const part of parts) {
-    const info = await core.inspect(part.bytes);
+    const info = await core.inspect(openWith ? (await core.unlock(part.bytes, openWith)).bytes : part.bytes);
     const filename = safeFilename(part.label ? `${base}-${part.label.replace(/[^\w-]+/g, '_')}` : base) + '.pdf';
     outputs.push({ bytes: part.bytes, filename, pageCount: info.pageCount, byteLength: part.bytes.byteLength });
     for (const g of verify(recipe.goals, part.bytes, info, lang)) goals.push(parts.length > 1 ? { ...g, message: `${filename}: ${g.message}` } : g);
@@ -409,7 +489,7 @@ export async function run(
 async function apply(
   step: Step,
   doc: Uint8Array | undefined,
-  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals; fonts: core.FontSource },
+  ctx: { byName: Map<string, Uint8Array>; pdfs: InputFile[]; images: InputFile[]; notes: string[]; lang: Lang; goals?: Goals; fonts: core.FontSource; passwords: Map<string, string | undefined> },
 ): Promise<Uint8Array> {
   const need = () => doc as Uint8Array;
   switch (step.op) {
@@ -426,6 +506,31 @@ async function apply(
     case 'setMetadata': return core.setMetadata(need(), step);
     case 'optimize': return core.optimize(need());
     case 'split': return need(); // applied after every other step, see run()
+    case 'protect': {
+      const out = await core.protect(need(), step);
+      if (step.password) ctx.notes.push(t(ctx.lang, 'note.protected'));
+      return out;
+    }
+    case 'signDigital': {
+      const certificate = ctx.byName.get(step.certificate)!;
+      const password = ctx.passwords.get(step.certificate) ?? '';
+      const who = await readCertificateOnce(certificate, password);
+      const res = await core.signWithCertificate(need(), {
+        certificate,
+        password,
+        reason: step.reason,
+        location: step.location,
+        visible: step.visible === false ? false : {
+          text: t(ctx.lang, 'visible.signed', { name: who.name, date: today() }),
+          pages: step.pages,
+          anchor: step.anchor,
+          fonts: ctx.fonts,
+        },
+      });
+      ctx.notes.push(t(ctx.lang, 'note.signed', { name: res.signer.name, issuer: res.signer.issuer, to: localDate(res.signer.validTo) }));
+      if (!res.visible) ctx.notes.push(t(ctx.lang, 'note.signedInvisible'));
+      return res.bytes;
+    }
     case 'compress': {
       // With no explicit level, aim for the recipe's size goal if there is one.
       const target = step.targetBytes ?? (step.level ? undefined : ctx.goals?.maxBytes);

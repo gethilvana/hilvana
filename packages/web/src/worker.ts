@@ -78,7 +78,7 @@ async function handle(msg: ToWorker): Promise<void> {
       return;
     case 'run': {
       try {
-        const inputs: InputFile[] = msg.files.map((f) => ({ name: f.name, bytes: files.get(f.id)!.bytes }));
+        const inputs: InputFile[] = msg.files.map((f) => ({ name: f.name, bytes: files.get(f.id)!.bytes, password: f.password }));
         const res = await run(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
         // Inputs were unlocked when added, so the engine no longer sees their protection: say it here.
         const unlockedNotes = msg.files.flatMap((f) => {
@@ -90,6 +90,15 @@ async function handle(msg: ToWorker): Promise<void> {
         return post({ type: 'done', job: msg.job, outputs, notes: [...res.notes, ...res.goals.filter((g) => !g.met).map((g) => g.message)], warnings: res.warnings }, outputs.map((o) => o.bytes.buffer));
       } catch (err) {
         return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
+      }
+    }
+    case 'certificate': {
+      // The certificate and its password stay in this worker; only who signs goes back to the page.
+      try {
+        const info = await core.readCertificate(files.get(msg.id)!.bytes, msg.password);
+        return post({ type: 'certificate', job: msg.job, info });
+      } catch (err) {
+        return post({ type: 'failed', job: msg.job, error: message(err, msg.lang), code: err instanceof HilvanaError ? err.code : undefined });
       }
     }
   }

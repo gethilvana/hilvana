@@ -91,7 +91,7 @@ function PasswordForm({ s, doc, onUnlock }: { s: Strings; doc: Doc; onUnlock: (i
   );
 }
 
-export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlock }: {
+export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlock, keepsSignatures }: {
   s: Strings;
   docs: Doc[];
   ordered: boolean;
@@ -99,6 +99,8 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlo
   onRemove: (id: string) => void;
   onMove: (id: string, by: -1 | 1) => void;
   onUnlock: (id: string, password: string) => void;
+  /** The tool adds a signature without rewriting the file, so existing ones stay valid. */
+  keepsSignatures?: boolean;
 }) {
   if (!docs.length) return null;
   return (
@@ -122,7 +124,7 @@ export function FileList({ s, docs, ordered, wrongKind, onRemove, onMove, onUnlo
               {(d.status === 'error' || d.status === 'locked') && <span class="file-error" role="alert">{d.error}</span>}
               {d.status === 'locked' && <PasswordForm s={s} doc={d} onUnlock={onUnlock} />}
               {bad && <span class="file-error">{s.file.wrongKind}</span>}
-              {!bad && d.info && d.info.signatures > 0 && <span class="file-note">{s.file.signed}</span>}
+              {!bad && d.info && d.info.signatures > 0 && <span class="file-note">{keepsSignatures ? s.file.signedKept : s.file.signed}</span>}
               {!bad && d.info?.protection === 'permissions' && <span class="file-note">{s.file.restricted}</span>}
               {!bad && d.info?.protection === 'password' && <span class="file-note">{s.file.unlocked}</span>}
               {d.warnings && d.warnings.length > 0 && (

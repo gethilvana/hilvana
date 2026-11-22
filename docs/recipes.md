@@ -39,11 +39,23 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `optimize` | — (sin pérdida) | |
 | `compress` | `level?: "lossless" \| "balanced" \| "strong" \| "max"`, `targetBytes?` (por defecto, `goals.maxBytes`) | |
 | `split` | `ranges?: string[]` (sin rangos: un archivo por página). **Solo como último paso** · Last step only | |
+| `protect` | `password?`, `allowPrint?`, `allowCopy?`, `allowModify?` (por defecto `true`). **Solo como último paso** · Last step only | |
+| `signDigital` | `certificate` (nombre de la entrada `.p12`/`.pfx`), `reason?`, `location?`, `visible?` (por defecto `true`), `pages?` (`last`), `anchor?` (`bottom-right`). **Solo como último paso** · Last step only | |
 
 **Dividir · Split:** una receta que termina en `split` produce varios archivos: `{nombre}-{rango}.pdf` (o `{nombre}-{página}.pdf`). Los objetivos se comprueban en cada parte. En la CLI, `-o` es la carpeta de las partes y se crea si no existe. En el MCP, `output` es una carpeta existente dentro de las autorizadas; se comprueban todos los destinos antes de escribir. · A recipe ending with `split` produces several files, and goals are checked on each part. CLI: `-o` is the folder (created if needed). MCP: `output` is an existing allowed folder; every destination is checked before anything is written.
 
 ```json
 { "version": 1, "steps": [{ "op": "merge" }, { "op": "numberPages" }, { "op": "split", "ranges": ["1-3", "4-last"] }], "output": { "filename": "lote" } }
+```
+
+**Proteger · Protect:** cifra el resultado con AES-256. Con `password`, solo se abre con ella; sin ella, solo restringe el uso (imprimir, copiar, modificar), algo que los lectores respetan pero no garantiza privacidad. Necesita una contraseña o al menos una restricción (`NOTHING_TO_PROTECT`). La receta que se muestra o comparte debe pasar por `redactRecipe()`, que reemplaza la contraseña. · Encrypts the result with AES-256: `password` is needed to open it; without one, only usage restrictions apply. Use `redactRecipe()` before showing or sharing a recipe.
+
+**Firma digital · signDigital:** firma con un certificado `.p12`/`.pfx` que se da como entrada; su contraseña va en `InputFile.password` de esa entrada, nunca en la receta (en la CLI, `HILVANA_CERT_PASSWORD` o se pide al ejecutar). `plan` abre el certificado y devuelve `signer` (nombre, emisor, vigencia), y avisa si es autofirmado o está vencido. Firma PAdES B-B (ETSI.CAdES.detached) con la hora del equipo, sin servidor de sellado de tiempo. Una receta que solo tiene `signDigital` sobre un único PDF firma ese archivo tal cual: las firmas que ya tenía siguen válidas, y entonces no se escribe la línea visible. Cualquier otra receta firma el documento nuevo. · Signs with a `.p12`/`.pfx` input whose password travels in that input, never in the recipe. A recipe with only `signDigital` on one PDF signs it as is, so existing signatures stay valid.
+
+**Secretos y agentes · Secrets and agents:** el servidor MCP rechaza `signDigital` y `protect` con `password` (código `SECRET_NOT_ALLOWED`), porque el secreto pasaría por el modelo de IA. `protect` solo con restricciones sí se permite. · The MCP server refuses `signDigital` and `protect` with a `password`.
+
+```json
+{ "version": 1, "steps": [{ "op": "merge" }, { "op": "signDigital", "certificate": "mi-certificado.p12", "reason": "Apruebo" }] }
 ```
 
 **Rangos de páginas · Page ranges** (1-based): `"1-3,5"`, `"last"`, `"last-1"`, `"4-last"`, `"odd"`, `"even"`, `"all"`.

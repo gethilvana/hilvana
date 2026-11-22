@@ -1,3 +1,4 @@
+import type { CertificateInfo } from '@hilvana/core';
 import type { Lang } from '@hilvana/recipes';
 import type { FromWorker, Output, ToWorker } from './protocol';
 
@@ -8,7 +9,8 @@ export interface JobResult { outputs: Output[]; notes: string[]; warnings: strin
 export class Engine {
   private _worker?: Worker;
   private added = new Map<string, (m: Added) => void>();
-  private jobs = new Map<number, { resolve: (r: JobResult) => void; reject: (e: Error) => void }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private jobs = new Map<number, { resolve: (r: any) => void; reject: (e: Error) => void }>();
   private nextJob = 1;
 
   /** The engine (~1.4 MB) only loads when the first file is added. */
@@ -29,7 +31,8 @@ export class Engine {
     this.jobs.delete(m.job);
     if (!job) return;
     if (m.type === 'done') job.resolve({ outputs: m.outputs, notes: m.notes, warnings: m.warnings });
-    else job.reject(new Error(m.error));
+    else if (m.type === 'certificate') job.resolve(m.info);
+    else job.reject(Object.assign(new Error(m.error), { code: m.code }));
   }
 
   private send(msg: ToWorker, transfer: Transferable[] = []) {
@@ -55,7 +58,7 @@ export class Engine {
     if (this._worker) this.send({ type: 'remove', id });
   }
 
-  private job(build: (job: number) => ToWorker): Promise<JobResult> {
+  private job<T = JobResult>(build: (job: number) => ToWorker): Promise<T> {
     const job = this.nextJob++;
     return new Promise((resolve, reject) => {
       this.jobs.set(job, { resolve, reject });
@@ -63,7 +66,13 @@ export class Engine {
     });
   }
 
-  run(recipe: unknown, files: { id: string; name: string }[], lang: Lang) {
+  /** Passwords in `files` (certificates) are used inside the worker only, never stored. */
+  run(recipe: unknown, files: { id: string; name: string; password?: string }[], lang: Lang) {
     return this.job((job) => ({ type: 'run', job, recipe, files, lang }));
+  }
+
+  /** Opens a certificate already added under `id`, to show who will sign. */
+  certificate(id: string, password: string, lang: Lang) {
+    return this.job<CertificateInfo>((job) => ({ type: 'certificate', job, id, password, lang }));
   }
 }

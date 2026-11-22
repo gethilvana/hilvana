@@ -15,8 +15,11 @@ const BIN = fileURLToPath(new URL('../dist/main.js', import.meta.url));
 let dir: string;
 
 function hilvana(...args: string[]): Promise<{ code: number; out: string; err: string }> {
+  return hilvanaWith({}, ...args);
+}
+function hilvanaWith(env: Record<string, string>, ...args: string[]): Promise<{ code: number; out: string; err: string }> {
   return new Promise((resolve) => {
-    execFile(process.execPath, [BIN, ...args], { cwd: dir, env: { ...process.env, LANG: 'es_CO.UTF-8', HILVANA_LANG: '' } }, (error, stdout, stderr) => {
+    execFile(process.execPath, [BIN, ...args], { cwd: dir, env: { ...process.env, LANG: 'es_CO.UTF-8', HILVANA_LANG: '', ...env } }, (error, stdout, stderr) => {
       resolve({ code: error ? (error as { code?: number }).code ?? 1 : 0, out: stdout, err: stderr });
     });
   });
@@ -29,6 +32,7 @@ beforeAll(async () => {
   await fs.writeFile(path.join(dir, 'b con espacio.pdf'), await makePdf(2));
   await fs.writeFile(path.join(dir, 'firma.png'), TINY_PNG);
   await fs.writeFile(path.join(dir, 'contrato.docx'), await sampleContract());
+  await fs.copyFile(fileURLToPath(new URL('../../core/test/fixtures/certificates/ana.p12', import.meta.url)), path.join(dir, 'ana.p12'));
 });
 afterAll(async () => { await fs.rm(dir, { recursive: true, force: true }); });
 
@@ -148,6 +152,65 @@ describe('recipes that split', () => {
     expect((await fs.readdir(path.join(dir, 'partes'))).sort()).toEqual(['a-hilvana-1.pdf', 'a-hilvana-2-last.pdf']);
     // Running again refuses to replace the parts unless --force.
     expect((await hilvana('run', 'dividir.json', 'a.pdf', '-o', 'partes')).err).toMatch(/ya existe/);
+  });
+});
+
+describe('protect and certify', { timeout: 60_000 }, () => {
+  it('protects with a password from the environment, never from a flag', async () => {
+    const r = await hilvanaWith({ HILVANA_NEW_PASSWORD: 'secreto' }, 'protect', 'a.pdf', '-o', 'protegido.pdf');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/protegido\.pdf · 3 páginas/);
+    expect(r.out).toContain('no hay forma de recuperarla');
+    expect((await hilvana('inspect', 'protegido.pdf')).err).toMatch(/necesita una contraseña/);
+    expect((await hilvanaWith({ HILVANA_PDF_PASSWORD: 'secreto' }, 'inspect', 'protegido.pdf')).out).toMatch(/Protegido: sí, con contraseña/);
+  });
+
+  it('restricts use without a password, and refuses when there is nothing to protect', async () => {
+    const r = await hilvana('protect', 'a.pdf', '--restrict', 'copy,modify', '-o', 'restringido.pdf');
+    expect(r.code).toBe(0);
+    expect((await hilvana('inspect', 'restringido.pdf')).out).toMatch(/solo restricciones de uso/);
+    const none = await hilvana('protect', 'a.pdf', '-o', 'nada.pdf');
+    expect(none.code).toBe(2);
+    expect(none.err).toMatch(/Nada que proteger/);
+    expect((await hilvana('protect', 'a.pdf', '--restrict', 'imprimir')).err).toMatch(/--restrict acepta/);
+  });
+
+  it('signs with a certificate whose password comes from the environment', async () => {
+    const r = await hilvanaWith({ HILVANA_CERT_PASSWORD: 'clave-ana' }, 'certify', 'a.pdf', '--cert', 'ana.p12', '--reason', 'Aprobado', '-o', 'con-certificado.pdf');
+    expect(r.err).toBe('');
+    expect(r.code).toBe(0);
+    expect(r.err).toBe('');
+    expect(r.out).toMatch(/Firmado por Ana Prueba/);
+    expect(r.out).toMatch(/autofirmado/);
+    expect((await hilvana('inspect', 'con-certificado.pdf')).out).toMatch(/Firmas digitales: 1/);
+    // A second signature keeps the first one.
+    const again = await hilvanaWith({ HILVANA_CERT_PASSWORD: 'clave-ana' }, 'certify', 'con-certificado.pdf', '--cert', 'ana.p12', '-o', 'con-certificado-2.pdf');
+    expect(again.out).toMatch(/ya tiene firmas/);
+    expect((await hilvana('inspect', 'con-certificado-2.pdf')).out).toMatch(/Firmas digitales: 2/);
+  });
+
+  it('explains a missing or wrong certificate password', async () => {
+    const missing = await hilvana('certify', 'a.pdf', '--cert', 'ana.p12', '-o', 'x.pdf');
+    expect(missing.code).toBe(2);
+    expect(missing.err).toMatch(/HILVANA_CERT_PASSWORD/);
+    const wrong = await hilvanaWith({ HILVANA_CERT_PASSWORD: 'mala' }, 'certify', 'a.pdf', '--cert', 'ana.p12', '-o', 'x.pdf');
+    expect(wrong.code).toBe(1);
+    expect(wrong.err).toMatch(/La contraseña no abre el certificado/);
+  });
+
+  it('runs a recipe that signs, giving the certificate as an input', async () => {
+    await fs.writeFile(path.join(dir, 'firmar.json'), JSON.stringify({ version: 1, steps: [{ op: 'numberPages' }, { op: 'signDigital', certificate: 'ana.p12' }] }));
+    const r = await hilvanaWith({ HILVANA_CERT_PASSWORD: 'clave-ana' }, 'run', 'firmar.json', 'a.pdf', 'ana.p12', '-o', 'receta-firmada.pdf');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/Firmar digitalmente con el certificado "ana\.p12"/);
+    expect((await hilvana('inspect', 'receta-firmada.pdf')).out).toMatch(/Páginas: 3\nTamaño: .*\n.*\n.*\nFirmas digitales: 1/);
+  });
+
+  it('runs a recipe that protects, checking the result with its password', async () => {
+    await fs.writeFile(path.join(dir, 'proteger.json'), JSON.stringify({ version: 1, steps: [{ op: 'protect', password: 'abc' }], goals: { pageCount: 3 } }));
+    const r = await hilvana('run', 'proteger.json', 'a.pdf', '-o', 'receta-protegida.pdf');
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/✓ Tiene exactamente 3 páginas/);
   });
 });
 

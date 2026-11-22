@@ -47,6 +47,27 @@ const messages: Record<Lang, Dict> = {
     SIGNED_INPUT: '"{name}" está firmado digitalmente. El resultado es un archivo nuevo y no conserva esa firma: guarda también el original firmado.',
     SPLIT_NOT_LAST: 'El paso {index} divide el documento en varios archivos; solo puede ir de último.',
     CONFIRMATION_REQUIRED: 'La receta tiene pasos que eliminan contenido o información ({steps}). Confírmala para ejecutarla.',
+    INVALID_CERTIFICATE: 'El certificado no se puede leer. Debe ser un archivo .p12 o .pfx con la clave privada.',
+    WRONG_CERTIFICATE_PASSWORD: 'La contraseña no abre el certificado.',
+    CERTIFICATE_EXPIRED: 'El certificado venció el {to}. Firma con un certificado vigente.',
+    CERTIFICATE_NOT_YET_VALID: 'El certificado solo es válido desde el {from}.',
+    NOT_A_CERTIFICATE: '"{name}" debe ser un certificado .p12 o .pfx.',
+    CERTIFICATE_PASSWORD_REQUIRED: 'Escribe la contraseña del certificado "{name}".',
+    NOTHING_TO_PROTECT: 'El paso {index} no protege nada: pon una contraseña o quita algún permiso.',
+    FINAL_NOT_LAST: 'El paso {index} produce el archivo final; solo puede ir de último.',
+    SELF_SIGNED_CERTIFICATE: 'El certificado de "{name}" es autofirmado: la firma es íntegra, pero los lectores de PDF no la reconocerán como de una entidad de confianza.',
+    SIGNATURES_KEPT: '"{name}" ya tiene firmas; se agrega una nueva sin modificar el documento, así las anteriores siguen válidas y no se escribe la línea visible.',
+    'step.protectPassword': 'Proteger con contraseña (AES-256)',
+    'step.protectRestrict': 'Restringir el uso: {list}',
+    'step.protectBoth': 'Proteger con contraseña (AES-256) y restringir el uso: {list}',
+    'step.signDigital': 'Firmar digitalmente con el certificado "{certificate}"',
+    'restrict.print': 'sin imprimir',
+    'restrict.copy': 'sin copiar',
+    'restrict.modify': 'sin modificar',
+    'visible.signed': 'Firmado digitalmente por {name} · {date}',
+    'note.signed': 'Firmado por {name} (emitido por {issuer}; válido hasta {to}).',
+    'note.signedInvisible': 'La firma no tiene marca visible: se ve en el panel de firmas del lector de PDF.',
+    'note.protected': 'Para abrir el resultado se necesita la contraseña. Si la olvidas, no hay forma de recuperarla.',
     // describe
     'step.merge': 'Unir {files}',
     'step.mergeAll': 'Unir todos los PDF en el orden recibido',
@@ -124,6 +145,27 @@ const messages: Record<Lang, Dict> = {
     SIGNED_INPUT: '"{name}" is digitally signed. The result is a new file and does not keep that signature: keep the signed original too.',
     SPLIT_NOT_LAST: 'Step {index} splits the document into several files; it can only come last.',
     CONFIRMATION_REQUIRED: 'The recipe has steps that remove content or information ({steps}). Confirm it to run it.',
+    INVALID_CERTIFICATE: 'The certificate cannot be read. It must be a .p12 or .pfx file with the private key.',
+    WRONG_CERTIFICATE_PASSWORD: 'The password does not open the certificate.',
+    CERTIFICATE_EXPIRED: 'The certificate expired on {to}. Sign with a valid certificate.',
+    CERTIFICATE_NOT_YET_VALID: 'The certificate is only valid from {from}.',
+    NOT_A_CERTIFICATE: '"{name}" must be a .p12 or .pfx certificate.',
+    CERTIFICATE_PASSWORD_REQUIRED: 'Type the password for the certificate "{name}".',
+    NOTHING_TO_PROTECT: 'Step {index} protects nothing: set a password or remove a permission.',
+    FINAL_NOT_LAST: 'Step {index} produces the final file; it can only come last.',
+    SELF_SIGNED_CERTIFICATE: 'The certificate in "{name}" is self-signed: the signature is intact, but PDF readers will not recognize it as from a trusted authority.',
+    SIGNATURES_KEPT: '"{name}" already has signatures; a new one is added without changing the document, so the earlier ones stay valid and no visible line is written.',
+    'step.protectPassword': 'Protect with a password (AES-256)',
+    'step.protectRestrict': 'Restrict use: {list}',
+    'step.protectBoth': 'Protect with a password (AES-256) and restrict use: {list}',
+    'step.signDigital': 'Sign digitally with the certificate "{certificate}"',
+    'restrict.print': 'no printing',
+    'restrict.copy': 'no copying',
+    'restrict.modify': 'no changes',
+    'visible.signed': 'Digitally signed by {name} · {date}',
+    'note.signed': 'Signed by {name} (issued by {issuer}; valid until {to}).',
+    'note.signedInvisible': 'The signature has no visible mark: it shows in the PDF reader\'s signature panel.',
+    'note.protected': 'Opening the result needs the password. If you forget it, there is no way to recover it.',
     'step.merge': 'Merge {files}',
     'step.mergeAll': 'Merge every PDF in the order received',
     'step.fromImages': 'Build a PDF from the images {files}',
@@ -199,6 +241,14 @@ export function describeStep(step: Step, lang: Lang): string {
         : t(lang, 'step.compress', { level: t(lang, `level.${step.level ?? 'balanced'}`) });
     case 'split':
       return step.ranges ? t(lang, 'step.splitRanges', { count: step.ranges.length, ranges: step.ranges.join('; ') }) : t(lang, 'step.splitEach');
+    case 'protect': {
+      const list = (['print', 'copy', 'modify'] as const)
+        .filter((k) => step[`allow${k[0]!.toUpperCase()}${k.slice(1)}` as 'allowPrint' | 'allowCopy' | 'allowModify'] === false)
+        .map((k) => t(lang, `restrict.${k}`)).join(', ');
+      if (step.password && list) return t(lang, 'step.protectBoth', { list });
+      return step.password ? t(lang, 'step.protectPassword') : t(lang, 'step.protectRestrict', { list });
+    }
+    case 'signDigital': return t(lang, 'step.signDigital', { certificate: step.certificate });
   }
 }
 
