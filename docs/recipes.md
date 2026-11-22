@@ -58,6 +58,10 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 { "version": 1, "steps": [{ "op": "merge" }, { "op": "signDigital", "certificate": "mi-certificado.p12", "reason": "Apruebo" }] }
 ```
 
+**Por lote · Batches:** la misma receta a cada documento por separado ("numera y sella cada factura"). Los documentos son las entradas PDF y Word; las demás (la imagen de una firma) se comparten. La receta no puede nombrar documentos (`BATCH_NAMED_FILES`) ni crear un PDF desde imágenes (`BATCH_FROM_IMAGES`). Si un documento falla, los demás siguen y se informa cuál. En la CLI: `hilvana run receta.json *.pdf --each -o carpeta`. En el MCP: `each: true` en `recipe_plan` y `recipe_run`, con `output` como carpeta. En código: `planBatch()` y `runBatch()`. · The same recipe on each document separately; other inputs are shared; a failing document does not stop the others.
+
+**Recetas guardadas · Saved recipes:** en la web, cualquier resultado ofrece **Guardar receta**; *Mis recetas* las aplica a otros archivos, uno por uno o todos juntos, y las importa y exporta como `.json`. Se guardan solo en ese navegador, sin los nombres de los archivos con que se hicieron. Las que necesitan un certificado o una contraseña nunca se guardan. · In the web app, any result can be saved as a recipe (only in that browser, never with secrets) and reused from *My recipes*.
+
 **Rangos de páginas · Page ranges** (1-based): `"1-3,5"`, `"last"`, `"last-1"`, `"4-last"`, `"odd"`, `"even"`, `"all"`.
 
 **Anclas · Anchors:** `top-left`, `top-center`, `top-right`, `center`, `bottom-left`, `bottom-center`, `bottom-right`.

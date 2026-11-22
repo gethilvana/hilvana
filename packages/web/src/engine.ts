@@ -32,6 +32,7 @@ export class Engine {
     if (!job) return;
     if (m.type === 'done') job.resolve({ outputs: m.outputs, notes: m.notes, warnings: m.warnings });
     else if (m.type === 'certificate') job.resolve(m.info);
+    else if (m.type === 'described') job.resolve(m.steps);
     else job.reject(Object.assign(new Error(m.error), { code: m.code }));
   }
 
@@ -69,6 +70,16 @@ export class Engine {
   /** Passwords in `files` (certificates) are used inside the worker only, never stored. */
   run(recipe: unknown, files: { id: string; name: string; password?: string }[], lang: Lang) {
     return this.job((job) => ({ type: 'run', job, recipe, files, lang }));
+  }
+
+  /** Runs the recipe on each document separately; documents that fail are reported in `warnings`. */
+  batch(recipe: unknown, files: { id: string; name: string }[], lang: Lang) {
+    return this.job((job) => ({ type: 'batch', job, recipe, files, lang }));
+  }
+
+  /** Validates a recipe and describes its steps, without any file. */
+  describe(recipe: unknown, lang: Lang) {
+    return this.job<string[]>((job) => ({ type: 'describe', job, recipe, lang }));
   }
 
   /** Opens a certificate already added under `id`, to show who will sign. */

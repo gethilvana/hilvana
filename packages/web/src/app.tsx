@@ -6,6 +6,8 @@ import { initialLang, saveLang, strings, type ToolId } from './i18n';
 import { PageGrid, SignaturePad, ToolOptions } from './options';
 import { ResultPanel, type Result } from './result';
 import { CertificatePanel, ProtectPanel, type Certificate } from './security';
+import { RecipesPanel, type ApplyMode } from './recipes';
+import { imagesIn, loadRecipes, saveRecipe, secretIn, type SavedRecipe } from './saved';
 import { openPreview } from './thumbs';
 import { GROUPS, TOOLS, accepts, buildRecipe, defaultOptions, splitRanges, type Options } from './tools';
 import { Dialog, PrivacyNote, Stitch, Wordmark } from './ui';
@@ -34,6 +36,11 @@ export function App() {
   const certPassword = useRef('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
+  const [recipes, setRecipes] = useState<SavedRecipe[]>(loadRecipes);
+  const [recipeId, setRecipeId] = useState<string | null>(() => loadRecipes()[0]?.id ?? null);
+  const [applyMode, setApplyMode] = useState<ApplyMode>('each');
+  // Images a saved recipe refers to by name (its signature), chosen for this run: name → file name.
+  const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +81,7 @@ export function App() {
     setError(null);
     setOptions((o) => ({ ...o, pagesOrder: null, rotatePages: [] }));
     clearSecrets();
+    setRecipes(loadRecipes()); // another tab may have saved some
     setDocs((current) => {
       const keep = current.filter((d) => d.status !== 'ready' || (d.kind && accepts(tool, d.kind)));
       const final = tool.single ? keep.slice(0, 1) : keep;
@@ -157,6 +165,12 @@ export function App() {
     await applyAdded(id, await engine.unlock(id, password, lang));
   }
 
+  async function chooseRecipeImage(name: string, file: File) {
+    await engine.add(`img:${name}`, name, new Uint8Array(await file.arrayBuffer()), lang);
+    setRecipeImages((m) => ({ ...m, [name]: file.name }));
+  }
+
+  const savedRecipe = recipes.find((r) => r.id === recipeId);
   const usable = docs.filter((d) => d.status === 'ready' && d.kind && accepts(tool, d.kind));
   const reading = docs.some((d) => d.status === 'reading');
   const first = usable[0];
@@ -168,6 +182,8 @@ export function App() {
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
   else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
   else if (tool.id === 'certify' && cert?.status !== 'ready') blocker = s.certify.missing;
+  else if (tool.id === 'recipes' && !savedRecipe) blocker = s.saved.pick;
+  else if (tool.id === 'recipes' && imagesIn(savedRecipe!.recipe).some((n) => !recipeImages[n])) blocker = s.saved.imageMissing(imagesIn(savedRecipe!.recipe).find((n) => !recipeImages[n])!);
   else if (tool.id === 'protect' && newPassword && newPassword !== newPassword2) blocker = s.protect.mismatch;
   else if (tool.id === 'protect' && !newPassword && options.allowPrint && options.allowCopy && options.allowModify) blocker = s.protect.nothing;
   const nothingToDo = tool.id === 'pages' && !options.pagesOrder;
@@ -181,7 +197,13 @@ export function App() {
     setResult(null);
     try {
       let res: Result;
-      if (tool.id === 'word') {
+      if (tool.id === 'recipes') {
+        const recipe = savedRecipe!.recipe;
+        const files = [...usable.map((d) => ({ id: d.id, name: d.name })), ...imagesIn(recipe).map((n) => ({ id: `img:${n}`, name: n }))];
+        const each = applyMode === 'each' && usable.length > 1;
+        const r = await (each ? engine.batch(recipe, files, lang) : engine.run(recipe, files, lang));
+        res = { ...r, recipe, recipeEach: each, zipName: `${savedRecipe!.name.replace(/[^\p{L}\p{N}]+/gu, '-')}.zip` };
+      } else if (tool.id === 'word') {
         const all = await Promise.all(usable.map((d) => {
           const recipe = buildRecipe('word', options, [d.name], lang);
           return engine.run(recipe, [{ id: d.id, name: d.name }], lang).then((r) => ({ ...r, recipe }));
@@ -312,6 +334,14 @@ export function App() {
 
             {tool.id === 'certify' && first && <CertificatePanel s={s} lang={lang} cert={cert} o={options} set={setOption} onChoose={chooseCertificate} onOpen={openCertificate} />}
 
+            {tool.id === 'recipes' && (
+              <RecipesPanel s={s} lang={lang} engine={engine} recipes={recipes} setRecipes={(list) => {
+                setRecipes(list);
+                if (!list.some((r) => r.id === recipeId)) setRecipeId(list[0]?.id ?? null);
+              }} selected={recipeId} onSelect={setRecipeId} mode={applyMode} onMode={setApplyMode}
+              manyFiles={usable.length > 1} images={recipeImages} onImage={chooseRecipeImage} />
+            )}
+
             {tool.id === 'protect' && first && <ProtectPanel s={s} password={newPassword} confirm={newPassword2} onPassword={setNewPassword} onConfirm={setNewPassword2} o={options} set={setOption} />}
 
             {usable.length > 0 && tool.id === 'metadata' && first?.info && (
@@ -342,7 +372,14 @@ export function App() {
           </div>
 
           <div ref={resultRef} aria-live="polite">
-            {result && <ResultPanel s={s} result={result} onReset={() => {
+            {result && <ResultPanel s={s} result={result} save={tool.id === 'recipes' || !result.recipe ? undefined
+              : secretIn(result.recipe as SavedRecipe['recipe']) ? { blocked: true }
+              : { defaultName: s.saved.defaultName(text.name), onSave: (name) => {
+                const item = saveRecipe(name, result.recipe as SavedRecipe['recipe']);
+                if (item) setRecipes(loadRecipes());
+                if (item) setRecipeId(item.id);
+                return !!item;
+              } }} onReset={() => {
               runId.current++;
               setResult(null);
               setDocs((list) => { list.forEach(drop); return []; });

@@ -2,7 +2,7 @@ import type { Lang, Recipe } from '@hilvana/recipes';
 import type { ToolId } from './i18n';
 import type { Kind } from './protocol';
 
-export type Group = 'arrange' | 'convert' | 'mark' | 'reduce';
+export type Group = 'arrange' | 'convert' | 'mark' | 'reduce' | 'automate';
 export type Accept = 'docs' | 'word' | 'images';
 export type Anchor = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'center';
 export type PagesChoice = { mode: 'all' | 'first' | 'last' | 'custom'; custom: string };
@@ -30,9 +30,10 @@ export const TOOLS: Tool[] = [
   { id: 'compress', group: 'reduce', accept: 'docs', single: true },
   { id: 'metadata', group: 'reduce', accept: 'docs', single: true },
   { id: 'protect', group: 'reduce', accept: 'docs', single: true },
+  { id: 'recipes', group: 'automate', accept: 'docs', single: false },
 ];
 
-export const GROUPS: Group[] = ['arrange', 'convert', 'mark', 'reduce'];
+export const GROUPS: Group[] = ['arrange', 'convert', 'mark', 'reduce', 'automate'];
 
 export function accepts(tool: Tool, kind: Kind): boolean {
   if (tool.accept === 'docs') return kind === 'pdf' || kind === 'word';
@@ -177,6 +178,7 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
       ...(o.allowCopy ? {} : { allowCopy: false }),
       ...(o.allowModify ? {} : { allowModify: false }),
     }]);
+    case 'recipes': throw new Error('Saved recipes are run as saved, not built from options.');
     case 'split': {
       const ranges = splitRanges(o);
       return { version: 1, steps: [{ op: 'split', ...(ranges ? { ranges } : {}) }], output: out() };

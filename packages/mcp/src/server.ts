@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { HilvanaError, inspect } from '@hilvana/core';
 import { convertWord, type WordEngine } from '@hilvana/office';
-import { RecipeError, kindOf, plan, recipeJsonSchema, run, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
+import { RecipeError, kindOf, plan, planBatch, recipeJsonSchema, run, runBatch, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
 import { safeWrite } from './safewrite.js';
 
@@ -148,20 +148,25 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
 
   const recipeInput = z.record(z.string(), z.unknown()).describe('A Hilvana recipe object (see resource hilvana://recipe-schema). Example: {"version":1,"steps":[{"op":"merge"},{"op":"sign","image":"firma.png"}],"goals":{"maxBytes":2000000}}');
   const langInput = z.enum(['es', 'en']).optional().describe('Language for the step descriptions and messages.');
+  const eachInput = z.boolean().optional().describe('Apply the recipe to each PDF/Word input separately (a batch). Other inputs, like a signature image, are shared. The recipe must not name documents. Results go to the output folder.');
 
   server.registerTool(
     'recipe_plan',
     {
       title: 'Validate and explain a recipe',
       description: 'Checks a recipe against the actual files without changing anything: schema, file names, page ranges after each step, and which steps are destructive. Returns the steps in plain language to show the user before running.',
-      inputSchema: { recipe: recipeInput, files: z.array(fileRef).min(1), lang: langInput, engine: engineInput },
+      inputSchema: { recipe: recipeInput, files: z.array(fileRef).min(1), lang: langInput, engine: engineInput, each: eachInput },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, lang, engine }) => {
+    async ({ recipe, files: refs, lang, engine, each }) => {
       try {
         const l = lang ?? defaults.lang ?? 'es';
         if (needsSecret(recipe)) return refuseSecret(l);
         const { files } = await loadFiles(guard, refs);
+        if (each) {
+          const b = await planBatch(recipe, files, { lang: l, word: converter(engine ?? defaults.engine) });
+          return text({ ok: b.ok, issues: b.issues, documents: b.items.map((i) => i.input), steps: b.steps, goals: b.goals, destructiveSteps: b.destructiveSteps, outputCount: b.outputCount, warnings: b.warnings });
+        }
         const p = await plan(recipe, files, { lang: l, word: converter(engine ?? defaults.engine) });
         const { recipe: _ignored, ...rest } = p;
         return text(p.issues.some((i) => i.code === 'PASSWORD_REQUIRED') ? { ...rest, hint: PASSWORD_HINT[l] } : rest);
@@ -180,20 +185,43 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       inputSchema: {
         recipe: recipeInput,
         files: z.array(fileRef).min(1),
-        output: z.string().describe('Path of the new PDF, inside an allowed folder. Must not be an input. When the recipe ends with a split step, an existing folder for the parts instead.'),
+        output: z.string().describe('Path of the new PDF, inside an allowed folder. Must not be an input. When the recipe ends with a split step, or with each=true, an existing folder for the results instead.'),
         confirm: z.boolean().optional().describe('Required when the recipe has destructive steps, after the user agreed.'),
+        each: eachInput,
         overwrite: z.boolean().optional().describe('Replace the output if it already exists (never an input).'),
         lang: langInput,
         engine: engineInput,
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, output, confirm, overwrite, lang, engine }) => {
+    async ({ recipe, files: refs, output, confirm, overwrite, lang, engine, each }) => {
       const l = lang ?? defaults.lang ?? 'es';
       const word = converter(engine ?? defaults.engine);
       try {
         if (needsSecret(recipe)) return refuseSecret(l);
         const { files, realPaths } = await loadFiles(guard, refs);
+        if (each) {
+          const b = await planBatch(recipe, files, { lang: l, word });
+          if (!b.items.length || b.issues.some((i) => i.code === 'SCHEMA')) return fail(JSON.stringify({ ok: false, issues: b.issues }, null, 2));
+          const folder = await guard.folder(output);
+          if (b.destructiveSteps.length > 0 && !confirm) {
+            return text({ ran: false, needsConfirmation: true, message: l === 'es'
+              ? 'La receta elimina contenido o información. Muéstrale estos pasos al usuario y vuelve a llamar con confirm=true si está de acuerdo.'
+              : 'This recipe removes content or information. Show these steps to the user and call again with confirm=true if they agree.', steps: b.steps, destructiveSteps: b.destructiveSteps });
+          }
+          const res = await runBatch(recipe, files, { lang: l, confirmed: true, word });
+          const targets = await Promise.all(res.outputs.map((o) => guard.writable(path.join(folder, o.filename), { inputs: realPaths, overwrite })));
+          for (const [i, t] of targets.entries()) await safeWrite(t, res.outputs[i]!.bytes, { inputs: realPaths, overwrite });
+          return text({
+            ran: true,
+            output: folder,
+            succeeded: res.succeeded,
+            failed: res.failed,
+            documents: res.items.map((it) => ({ input: it.input, ok: it.ok, outputs: it.result?.outputs.map((o) => o.filename), issues: it.issues?.map((x) => x.message), goalsMet: it.result?.allGoalsMet })),
+            outputs: res.outputs.map((o, i) => ({ path: targets[i], pageCount: o.pageCount, bytes: o.byteLength })),
+            steps: b.steps,
+          });
+        }
         const p = await plan(recipe, files, { lang: l, word });
         if (!p.ok) return fail(JSON.stringify(withPasswordHint(p.issues, l), null, 2));
         const splits = p.recipe?.steps.at(-1)?.op === 'split';

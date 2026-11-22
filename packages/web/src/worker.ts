@@ -5,7 +5,7 @@
 import * as core from '@hilvana/core';
 import { HilvanaError } from '@hilvana/core';
 import { DocxError, fallbackTextFonts, wordToPdf, type FontLoader } from '@hilvana/office';
-import { kindOf, run, RecipeError, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
+import { Recipe, describeStep, kindOf, run, runBatch, RecipeError, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import type { FromWorker, ToWorker, Output } from './protocol';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -93,6 +93,31 @@ async function handle(msg: ToWorker): Promise<void> {
       } catch (err) {
         return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
       }
+    }
+    case 'batch': {
+      try {
+        const inputs: InputFile[] = msg.files.map((f) => {
+          const file = files.get(f.id)!;
+          return { name: f.name, bytes: file.original, password: file.password };
+        });
+        const res = await runBatch(msg.recipe, inputs, { lang: msg.lang, word: convertOnce, textFonts: loadTextFonts, confirmed: true });
+        const outputs: Output[] = res.outputs.map((o) => ({ name: o.filename, bytes: o.bytes, pageCount: o.pageCount }));
+        const done = res.items.filter((i) => i.result);
+        const notes = [t(msg.lang, 'batch.done', { ok: res.succeeded, total: res.items.length }), ...done.flatMap((i) => i.result!.goals.filter((g) => !g.met).map((g) => `${i.input}: ${g.message}`))];
+        const warnings = [...res.items.flatMap((i) => (i.issues ?? []).map((x) => x.message)), ...new Set(done.flatMap((i) => i.result!.warnings))];
+        if (!outputs.length) return post({ type: 'failed', job: msg.job, error: warnings.join(' ') });
+        return post({ type: 'done', job: msg.job, outputs, notes, warnings }, outputs.map((o) => o.bytes.buffer));
+      } catch (err) {
+        return post({ type: 'failed', job: msg.job, error: message(err, msg.lang) });
+      }
+    }
+    case 'describe': {
+      const parsed = Recipe.safeParse(msg.recipe);
+      if (!parsed.success) {
+        const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+        return post({ type: 'failed', job: msg.job, error: t(msg.lang, 'SCHEMA', { issues }) });
+      }
+      return post({ type: 'described', job: msg.job, steps: parsed.data.steps.map((st) => describeStep(st, msg.lang)) });
     }
     case 'certificate': {
       // The certificate and its password stay in this worker; only who signs goes back to the page.

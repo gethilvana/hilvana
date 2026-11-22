@@ -31,8 +31,9 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 
 ## Fase 2 · Recetas (semanas 11–14)
 
-- [ ] Recetas guardadas y por lote
-- [ ] OCR (español e inglés), tachado real, protección con contraseña
+- [x] Recetas guardadas y por lote
+- [x] Protección con contraseña y firma con certificado digital
+- [ ] OCR (español e inglés), tachado real
 - [ ] Benchmark público v1
 
 ## Fase 3 · Uso pagado (semanas 15–18)
