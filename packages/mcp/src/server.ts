@@ -31,6 +31,22 @@ const PASSWORD_HINT = {
   es: 'El archivo necesita contraseña. No la pidas por el chat: la persona puede abrirlo en https://pdf.jorgegrajales.dev o con `npx hilvana ... --password`, guardar una copia sin protección en la carpeta autorizada y volver a intentarlo.',
   en: 'The file needs a password. Do not ask for it in the chat: the person can open it at https://pdf.jorgegrajales.dev or with `npx hilvana ... --password`, save an unprotected copy in the allowed folder, and try again.',
 };
+/**
+ * Signing with a certificate and protecting with a password need a secret, which would pass through
+ * the AI model here. Those recipes are refused with a pointer to where the person can do it.
+ * Restriction-only protection carries no secret and is allowed.
+ */
+const SECRET_REFUSAL = {
+  es: 'Esta receta necesita un secreto (la contraseña de un certificado o una contraseña nueva para el PDF), y aquí pasaría por el modelo de IA. No la pidas por el chat: la persona puede hacer ese paso en https://pdf.jorgegrajales.dev o con `npx hilvana certify` / `npx hilvana protect`, que la piden en su equipo. Puedes preparar el resto de la receta sin ese paso.',
+  en: 'This recipe needs a secret (a certificate password, or a new password for the PDF), and here it would pass through the AI model. Do not ask for it in the chat: the person can do that step at https://pdf.jorgegrajales.dev or with `npx hilvana certify` / `npx hilvana protect`, which ask for it on their own machine. You can prepare the rest of the recipe without that step.',
+};
+function needsSecret(recipe: unknown): boolean {
+  const steps = (recipe as { steps?: unknown })?.steps;
+  if (!Array.isArray(steps)) return false;
+  return steps.some((s: { op?: unknown; password?: unknown }) => s?.op === 'signDigital' || (s?.op === 'protect' && s.password !== undefined));
+}
+const refuseSecret = (l: Lang) => fail(JSON.stringify({ ok: false, issues: [{ code: 'SECRET_NOT_ALLOWED', message: SECRET_REFUSAL[l] }] }, null, 2));
+
 const withPasswordHint = (issues: { code: string }[], l: Lang) =>
   issues.some((i) => i.code === 'PASSWORD_REQUIRED') ? { ok: false, issues, hint: PASSWORD_HINT[l] } : { ok: false, issues };
 
@@ -63,6 +79,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
         'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
         'To make files smaller use the compress step: {"op":"compress"} with goals.maxBytes aims for that size automatically; levels are lossless, balanced (150 dpi images, default), strong (110 dpi) and max (72 dpi). Text is never rasterized.',
         'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
+        'Recipes can end with protect (allowPrint/allowCopy/allowModify false restricts use). Password protection and signDigital (certificate signatures) need a secret and are refused here: never ask for passwords in the chat; point the person to https://pdf.jorgegrajales.dev or `npx hilvana protect` / `npx hilvana certify`.',
         'Workflow: 1) pdf_list or pdf_inspect to learn page counts; 2) recipe_plan to validate and show the user the steps; 3) recipe_run. Steps marked destructive (select, remove, stripMetadata, setMetadata) need confirm=true, and you should only set it after the user agrees.',
         'Inputs are never modified; results are written to a new file. ' + PRIVACY_NOTE,
         `Allowed folders: ${guard.roots.join(', ')}`,
@@ -142,8 +159,9 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     },
     async ({ recipe, files: refs, lang, engine }) => {
       try {
-        const { files } = await loadFiles(guard, refs);
         const l = lang ?? defaults.lang ?? 'es';
+        if (needsSecret(recipe)) return refuseSecret(l);
+        const { files } = await loadFiles(guard, refs);
         const p = await plan(recipe, files, { lang: l, word: converter(engine ?? defaults.engine) });
         const { recipe: _ignored, ...rest } = p;
         return text(p.issues.some((i) => i.code === 'PASSWORD_REQUIRED') ? { ...rest, hint: PASSWORD_HINT[l] } : rest);
@@ -174,6 +192,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       const l = lang ?? defaults.lang ?? 'es';
       const word = converter(engine ?? defaults.engine);
       try {
+        if (needsSecret(recipe)) return refuseSecret(l);
         const { files, realPaths } = await loadFiles(guard, refs);
         const p = await plan(recipe, files, { lang: l, word });
         if (!p.ok) return fail(JSON.stringify(withPasswordHint(p.issues, l), null, 2));

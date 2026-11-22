@@ -29,6 +29,8 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Borrar metadatos (autor, herramientas) | `hilvana strip` | `stripMetadata` |
 | Comprimir (o llegar a un peso objetivo) sin rasterizar el texto | `hilvana compress` | `compress` |
 | Imágenes a PDF | `hilvana images` | `fromImages` |
+| Firma digital con certificado (.p12/.pfx, PAdES) | `hilvana certify` | `signDigital` |
+| Proteger con contraseña (AES-256) o restringir el uso | `hilvana protect` | `protect` |
 | Ejecutar una receta completa | `hilvana run` | — |
 
 ### Una receta
@@ -71,7 +73,9 @@ Más en [docs/recipes.md](docs/recipes.md), [docs/word.md](docs/word.md) (Word �
 - **Las recetas se validan antes de ejecutarse**: nombres de archivo, tipos y rangos de páginas después de cada paso.
 - **El servidor MCP solo accede a las carpetas que autorizas**, y no sigue enlaces simbólicos hacia afuera.
 - **PDF protegidos:** los que solo tienen restricciones de uso (como muchos extractos bancarios) se abren solos, y el resultado se guarda sin ellas. Los que piden contraseña se abren con ella en tu equipo (`--password` en la CLI, un campo en la web). El servidor MCP nunca recibe contraseñas, porque pasarían por el modelo de IA.
-- **Los PDF firmados digitalmente se señalan antes de procesarlos.** Cualquier cambio crea un archivo nuevo que ya no puede llevar esa firma, así que el resultado no conserva firmas rotas (la imagen visible de la firma sí se mantiene). Guarda siempre el original firmado.
+- **Los PDF firmados digitalmente se señalan antes de procesarlos.** Cualquier cambio crea un archivo nuevo que ya no puede llevar esa firma, así que el resultado no conserva firmas rotas (la imagen visible de la firma sí se mantiene). Guarda siempre el original firmado. La excepción es firmar de nuevo con certificado: la firma se agrega sin modificar el documento y las anteriores siguen válidas.
+- **Firma con certificado sin que la clave salga de tu equipo.** El certificado y su contraseña se usan solo en tu equipo (en la CLI, la contraseña se pide al ejecutar o viene de `HILVANA_CERT_PASSWORD`; nunca de un argumento que quede en el historial). La firma es PAdES B-B con la hora de tu equipo, sin servidor de sellado de tiempo.
+- **Secretos fuera del modelo de IA.** El servidor MCP rechaza las recetas que firman con certificado o ponen contraseña (sí permite restringir el uso), y la receta que muestra la web nunca incluye contraseñas.
 
 Detalles en [PRIVACY.md](PRIVACY.md).
 
@@ -126,6 +130,8 @@ npx hilvana sign contract.pdf --image signature.png -o contract-signed.pdf
 npx hilvana word proposal.docx            # Word → PDF with selectable text (docs/word.md)
 npx hilvana compress scan.pdf --target 2MB  # gentlest setting that fits (docs/compression.md)
 npx hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
+npx hilvana certify contract.pdf --cert my-certificate.p12 -o contract-signed.pdf   # asks for the certificate password
+npx hilvana protect statement.pdf -o statement-locked.pdf                       # asks for the new password
 ```
 
 ### With Claude (MCP)
@@ -152,7 +158,9 @@ Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, pl
 - Recipes are validated against your actual files before running.
 - The MCP server can only reach the folders you authorize, and does not follow symlinks out of them.
 - Protected PDFs: files with only usage restrictions (like many bank statements) open on their own, and the result is saved without them. Files that need a password open with it on your machine (`--password` in the CLI, a field on the web). The MCP server never takes passwords, since they would pass through the AI model.
-- Digitally signed PDFs are flagged before processing. Any change makes a new file that cannot keep the signature, so results carry no broken signatures (the visible signature image stays). Keep the signed original.
+- Digitally signed PDFs are flagged before processing. Any change makes a new file that cannot keep the signature, so results carry no broken signatures (the visible signature image stays). Keep the signed original. The exception is signing again with a certificate: the new signature is appended without changing the document, so earlier ones stay valid.
+- Certificate signatures never move your key: the certificate and its password are used only on your machine (the CLI asks for the password, or reads `HILVANA_CERT_PASSWORD`; never a flag that stays in shell history). Signatures are PAdES B-B with your device's clock, with no time-stamping server.
+- Secrets stay away from AI models: the MCP server refuses recipes that sign with a certificate or set a password (restricting use is allowed), and the recipe shown on the web never includes passwords.
 
 ---
 

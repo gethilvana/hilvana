@@ -1,6 +1,6 @@
 {
   "name": "@hilvana/recipes",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Hilvana recipes: a versioned JSON format for chained PDF and Word operations, with validation, execution and goal verification.",
   "keywords": [
     "pdf",
@@ -43,8 +43,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@hilvana/core": "0.4.0",
+    "@hilvana/core": "0.5.0",
     "zod": "^4.1.0",
-    "@hilvana/office": "0.4.0"
+    "@hilvana/office": "0.5.0"
   }
 }

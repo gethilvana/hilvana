@@ -115,6 +115,24 @@ describe('hilvana-mcp', () => {
     expect(await fs.readdir(path.join(dir, 'partes2'))).toEqual(['a-hilvana-2.pdf']);
   });
 
+  it('refuses recipes that need a secret, but allows restricting use', async () => {
+    const sign = { version: 1, steps: [{ op: 'signDigital', certificate: 'ana.p12' }] };
+    const pw = { version: 1, steps: [{ op: 'protect', password: 'x' }] };
+    for (const recipe of [sign, pw]) {
+      for (const tool of ['recipe_plan', 'recipe_run']) {
+        const res = await call(tool, { recipe, files: [{ path: 'a.pdf' }], output: 'secreto.pdf' });
+        expect(res.isError).toBe(true);
+        expect(json(res).issues[0].code).toBe('SECRET_NOT_ALLOWED');
+        expect(res.content[0]!.text).toMatch(/Do not ask for it in the chat/);
+      }
+    }
+    await expect(fs.stat(path.join(dir, 'secreto.pdf'))).rejects.toThrow();
+    const res = json(await call('recipe_run', { recipe: { version: 1, steps: [{ op: 'protect', allowModify: false }] }, files: [{ path: 'a.pdf' }], output: 'restringido.pdf' }));
+    expect(res.ran).toBe(true);
+    expect(res.steps.at(-1)).toBe('2. Restrict use: no changes');
+    expect(json(await call('pdf_inspect', { path: 'restringido.pdf' })).protection).toBe('permissions');
+  });
+
   it('reports signatures in pdf_inspect and warns before changing a signed PDF', async () => {
     const { makeSignedPdf } = await import('../../core/test/helpers.js');
     await fs.writeFile(path.join(dir, 'firmado.pdf'), await makeSignedPdf(1));

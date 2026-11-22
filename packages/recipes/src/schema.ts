@@ -76,6 +76,25 @@ export const SplitStep = z.object({
     .describe('One output file per range, in order (e.g. ["1-3", "4-last"]). Omit for one file per page.'),
 }).strict().describe('Last step only: splits the document into several output files.');
 
+export const ProtectStep = z.object({
+  op: z.literal('protect'),
+  password: z.string().min(1).max(128).optional()
+    .describe('Password needed to open the result. Secret: never send it through an AI model; people type it on their own device.'),
+  allowPrint: z.boolean().optional().describe('Defaults to true.'),
+  allowCopy: z.boolean().optional().describe('Allow copying text and images. Defaults to true.'),
+  allowModify: z.boolean().optional().describe('Allow changes, annotations, form filling and page assembly. Defaults to true.'),
+}).strict().describe('Last step only: encrypts the result (AES-256) with a password and/or usage restrictions.');
+
+export const SignDigitalStep = z.object({
+  op: z.literal('signDigital'),
+  certificate: z.string().describe('Name of the .p12/.pfx input with the certificate. Its password is given with that input, never in the recipe.'),
+  reason: z.string().max(200).optional(),
+  location: z.string().max(200).optional(),
+  visible: z.boolean().optional().describe('Write a line "Digitally signed by …" on the page. Defaults to true; skipped when the document already has signatures, so they stay valid.'),
+  pages: pages.optional().describe('Where the visible line goes. Defaults to "last".'),
+  anchor: anchor.optional().describe('Defaults to "bottom-right".'),
+}).strict().describe('Last step only: signs the result with a digital certificate (PAdES B-B). The private key never leaves the device.');
+
 export const Step = z.discriminatedUnion('op', [
   MergeStep,
   FromImagesStep,
@@ -91,6 +110,8 @@ export const Step = z.discriminatedUnion('op', [
   OptimizeStep,
   CompressStep,
   SplitStep,
+  ProtectStep,
+  SignDigitalStep,
 ]);
 export type Step = z.infer<typeof Step>;
 
@@ -119,3 +140,17 @@ export const recipeJsonSchema = () => z.toJSONSchema(Recipe);
 
 /** Steps that drop content or overwrite information; running them requires explicit confirmation. */
 export const DESTRUCTIVE_OPS = new Set<Step['op']>(['select', 'remove', 'stripMetadata', 'setMetadata']);
+
+/** Steps that produce the final file(s); a recipe can end with at most one of them. */
+export const FINAL_OPS = new Set<Step['op']>(['split', 'protect', 'signDigital']);
+
+/** Steps that carry or use a secret: surfaces that route through an AI model must not run them. */
+export const SECRET_OPS = new Set<Step['op']>(['signDigital']);
+
+/** A copy of the recipe that is safe to show or share: passwords are replaced. */
+export function redactRecipe<T extends { steps: { op: string }[] }>(recipe: T): T {
+  return {
+    ...recipe,
+    steps: recipe.steps.map((s) => (s.op === 'protect' && 'password' in s && s.password ? { ...s, password: '••••••' } : s)),
+  };
+}

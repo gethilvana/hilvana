@@ -30,6 +30,12 @@ const options: fc.Arbitrary<Options> = fc.record({
   watermarkOpacity: fc.double({ min: 0.05, max: 0.6, noNaN: true }),
   level: fc.constantFrom('balanced', 'strong', 'max', 'lossless', 'target' as const),
   targetMB: fc.double({ min: 0.5, max: 20, noNaN: true }),
+  certVisible: fc.boolean(),
+  certReason: fc.string({ maxLength: 200 }),
+  certLocation: fc.string({ maxLength: 200 }),
+  allowPrint: fc.boolean(),
+  allowCopy: fc.boolean(),
+  allowModify: fc.boolean(),
 }) as fc.Arbitrary<Options>;
 
 describe('recipes built by the web tools', () => {
@@ -139,5 +145,22 @@ describe('interface texts', () => {
 
   it('keep each button label consistent with its progress label', () => {
     for (const lang of ['es', 'en'] as const) for (const t of TOOLS) expect(strings[lang].tools_[t.id].busy).toMatch(/…$/);
+  });
+});
+
+describe('security tools', () => {
+  const o = defaultOptions(strings.es);
+  it('build a signDigital recipe that names the certificate input and carries no password', () => {
+    expect(buildRecipe('certify', o, ['a.pdf'], 'es', { certificate: 'mi firma.p12' }).steps).toEqual([{ op: 'signDigital', certificate: 'mi firma.p12' }]);
+    const r = buildRecipe('certify', { ...o, certVisible: false, certReason: ' Aprobado ', certLocation: '' }, ['a.pdf'], 'en', { certificate: 'c.pfx' });
+    expect(r.steps).toEqual([{ op: 'signDigital', certificate: 'c.pfx', visible: false, reason: 'Aprobado' }]);
+  });
+
+  it('build a protect recipe with only what changes, and redact its password for display', async () => {
+    const { redactRecipe } = await import('@hilvana/recipes');
+    const r = buildRecipe('protect', { ...o, allowCopy: false }, ['a.pdf'], 'es', { password: 'secreto' });
+    expect(r.steps).toEqual([{ op: 'protect', password: 'secreto', allowCopy: false }]);
+    expect(JSON.stringify(redactRecipe(r))).not.toContain('secreto');
+    expect(buildRecipe('protect', { ...o, allowPrint: false }, ['a.pdf'], 'es').steps).toEqual([{ op: 'protect', allowPrint: false }]);
   });
 });

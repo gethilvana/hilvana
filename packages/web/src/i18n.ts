@@ -3,8 +3,8 @@ import type { Lang } from '@hilvana/recipes';
 export type ToolId =
   | 'merge' | 'pages' | 'split' | 'rotate'
   | 'word' | 'images'
-  | 'sign' | 'stamp' | 'number' | 'watermark'
-  | 'compress' | 'metadata';
+  | 'sign' | 'certify' | 'stamp' | 'number' | 'watermark'
+  | 'compress' | 'metadata' | 'protect';
 
 interface ToolText {
   name: string;
@@ -29,7 +29,7 @@ const es = {
   close: 'Cerrar',
   language: 'Idioma',
   tools: 'Herramientas',
-  groups: { arrange: 'Unir y ordenar', convert: 'Convertir', mark: 'Firmar y marcar', reduce: 'Reducir y limpiar' },
+  groups: { arrange: 'Unir y ordenar', convert: 'Convertir', mark: 'Firmar y marcar', reduce: 'Reducir y proteger' },
   drop: { title: 'Suelta tus archivos aquí', or: 'o', choose: 'elige archivos', again: 'Agregar más archivos' },
   accepts: { pdf: 'PDF', pdfWord: 'PDF o Word (.docx)', word: 'Word (.docx)', images: 'Imágenes PNG o JPG', one: 'Un PDF o Word' },
   file: {
@@ -42,6 +42,7 @@ const es = {
     wrongKind: 'Esta herramienta no usa este tipo de archivo.',
     metadata: 'Tiene metadatos',
     signed: 'Firmado digitalmente: el resultado será un archivo nuevo sin esa firma. Guarda también el original.',
+    signedKept: 'Ya tiene firmas digitales: la nueva se agrega sin modificar el documento, así las anteriores siguen válidas.',
     restricted: 'Tenía restricciones de uso: el resultado se guardará sin ellas. Hazlo solo con documentos que tengas derecho a modificar.',
     unlocked: 'Abierto con su contraseña: el resultado se guardará sin contraseña.',
     passwordLabel: 'Contraseña de este PDF',
@@ -101,6 +102,39 @@ const es = {
     draw: 'Dibujar', upload: 'Subir imagen', clear: 'Borrar', hint: 'Firma con el mouse, el dedo o un lápiz.',
     chosen: 'Imagen de la firma', missing: 'Dibuja o sube una firma.', canvas: 'Área para dibujar la firma',
   },
+  certify: {
+    file: 'Certificado digital',
+    choose: 'Elegir certificado (.p12 o .pfx)',
+    change: 'Cambiar certificado',
+    password: 'Contraseña del certificado',
+    open: 'Abrir certificado',
+    opening: 'Abriendo…',
+    hint: 'El certificado, su clave privada y la contraseña se usan solo en este navegador. No se guardan ni se envían.',
+    signer: 'Firmará',
+    issuer: 'Emitido por',
+    validTo: 'Válido hasta',
+    selfSigned: 'Es un certificado autofirmado: la firma es íntegra, pero los lectores de PDF no lo reconocerán como de una entidad de confianza.',
+    visible: 'Escribir en la última página "Firmado digitalmente por…" con la fecha',
+    visibleHint: 'Sin esta línea, la firma se ve en el panel de firmas del lector de PDF.',
+    reason: 'Motivo (opcional)',
+    reasonPlaceholder: 'Apruebo este documento',
+    location: 'Lugar (opcional)',
+    locationPlaceholder: 'Bogotá, Colombia',
+    noTimestamp: 'La hora de la firma es la de este equipo; no se consulta un servidor de sellado de tiempo.',
+    missing: 'Elige tu certificado y ábrelo con su contraseña.',
+  },
+  protect: {
+    password: 'Contraseña nueva',
+    confirm: 'Repite la contraseña',
+    hint: 'Si la olvidas, no hay forma de abrir el archivo. Se usa solo en este navegador.',
+    mismatch: 'Las contraseñas no coinciden.',
+    permissions: 'Qué se permite al abrirlo',
+    allowPrint: 'Imprimir',
+    allowCopy: 'Copiar texto e imágenes',
+    allowModify: 'Modificar, anotar y llenar formularios',
+    permissionsHint: 'Las restricciones las respetan los lectores de PDF, pero no impiden todo: para mantener el contenido privado, usa una contraseña.',
+    nothing: 'Escribe una contraseña o quita algún permiso.',
+  },
   stampDefault: 'Recibido {date}',
   watermarkDefault: 'CONFIDENCIAL',
   numberDefault: 'Página {n} de {total}',
@@ -142,6 +176,8 @@ const es = {
     watermark: { name: 'Marca de agua', purpose: 'Escribe un texto en diagonal sobre las páginas.', action: 'Agregar marca de agua', busy: 'Marcando…' },
     compress: { name: 'Comprimir', purpose: 'Reduce el peso del PDF sin convertir el texto en imagen.', action: 'Comprimir PDF', busy: 'Comprimiendo…' },
     metadata: { name: 'Quitar metadatos', purpose: 'Borra el autor, el título y otros datos que el archivo guarda de ti.', action: 'Quitar metadatos', busy: 'Limpiando…' },
+    certify: { name: 'Firma digital', purpose: 'Firma con tu certificado digital (.p12 o .pfx) sin que salga de tu equipo.', action: 'Firmar con certificado', busy: 'Firmando…' },
+    protect: { name: 'Proteger con contraseña', purpose: 'Cifra el PDF para que solo se abra con una contraseña, o limita lo que se puede hacer con él.', action: 'Proteger PDF', busy: 'Protegiendo…' },
   } satisfies Record<ToolId, ToolText>,
 };
 
@@ -163,7 +199,7 @@ const en: Strings = {
   close: 'Close',
   language: 'Language',
   tools: 'Tools',
-  groups: { arrange: 'Combine and arrange', convert: 'Convert', mark: 'Sign and mark', reduce: 'Reduce and clean' },
+  groups: { arrange: 'Combine and arrange', convert: 'Convert', mark: 'Sign and mark', reduce: 'Reduce and protect' },
   drop: { title: 'Drop your files here', or: 'or', choose: 'choose files', again: 'Add more files' },
   accepts: { pdf: 'PDF', pdfWord: 'PDF or Word (.docx)', word: 'Word (.docx)', images: 'PNG or JPG images', one: 'One PDF or Word file' },
   file: {
@@ -176,6 +212,7 @@ const en: Strings = {
     wrongKind: 'This tool does not use this kind of file.',
     metadata: 'Has metadata',
     signed: 'Digitally signed: the result will be a new file without that signature. Keep the original too.',
+    signedKept: 'Already digitally signed: the new signature is added without changing the document, so the earlier ones stay valid.',
     restricted: 'Had usage restrictions: the result will be saved without them. Only do this with documents you have the right to modify.',
     unlocked: 'Opened with its password: the result will be saved without a password.',
     passwordLabel: 'Password for this PDF',
@@ -235,6 +272,39 @@ const en: Strings = {
     draw: 'Draw', upload: 'Upload image', clear: 'Clear', hint: 'Sign with a mouse, a finger or a pen.',
     chosen: 'Signature image', missing: 'Draw or upload a signature.', canvas: 'Signature drawing area',
   },
+  certify: {
+    file: 'Digital certificate',
+    choose: 'Choose certificate (.p12 or .pfx)',
+    change: 'Change certificate',
+    password: 'Certificate password',
+    open: 'Open certificate',
+    opening: 'Opening…',
+    hint: 'The certificate, its private key and the password are used only in this browser. They are not stored or sent.',
+    signer: 'Signs as',
+    issuer: 'Issued by',
+    validTo: 'Valid until',
+    selfSigned: 'This is a self-signed certificate: the signature is intact, but PDF readers will not recognize it as from a trusted authority.',
+    visible: 'Write "Digitally signed by…" with the date on the last page',
+    visibleHint: 'Without this line, the signature shows in the PDF reader\'s signature panel.',
+    reason: 'Reason (optional)',
+    reasonPlaceholder: 'I approve this document',
+    location: 'Location (optional)',
+    locationPlaceholder: 'Bogotá, Colombia',
+    noTimestamp: 'The signing time is this device\'s clock; no time-stamping server is contacted.',
+    missing: 'Choose your certificate and open it with its password.',
+  },
+  protect: {
+    password: 'New password',
+    confirm: 'Repeat the password',
+    hint: 'If you forget it, there is no way to open the file. It is used only in this browser.',
+    mismatch: 'The passwords do not match.',
+    permissions: 'What is allowed once open',
+    allowPrint: 'Printing',
+    allowCopy: 'Copying text and images',
+    allowModify: 'Changes, annotations and form filling',
+    permissionsHint: 'PDF readers honor restrictions, but they do not stop everything: to keep the content private, use a password.',
+    nothing: 'Type a password or remove a permission.',
+  },
   stampDefault: 'Received {date}',
   watermarkDefault: 'CONFIDENTIAL',
   numberDefault: 'Page {n} of {total}',
@@ -276,6 +346,8 @@ const en: Strings = {
     watermark: { name: 'Watermark', purpose: 'Write a diagonal text across the pages.', action: 'Add watermark', busy: 'Marking…' },
     compress: { name: 'Compress', purpose: 'Make the PDF smaller without turning text into images.', action: 'Compress PDF', busy: 'Compressing…' },
     metadata: { name: 'Remove metadata', purpose: 'Erase the author, title and other details the file keeps about you.', action: 'Remove metadata', busy: 'Cleaning…' },
+    certify: { name: 'Digital signature', purpose: 'Sign with your digital certificate (.p12 or .pfx) without it leaving your device.', action: 'Sign with certificate', busy: 'Signing…' },
+    protect: { name: 'Password protect', purpose: 'Encrypt the PDF so it only opens with a password, or limit what can be done with it.', action: 'Protect PDF', busy: 'Protecting…' },
   },
 };
 

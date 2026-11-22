@@ -193,6 +193,24 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-si
 .field input[type='text']:focus, .field select:focus { border-color: var(--thread); }
 .field input[type='range'] { accent-color: var(--thread); width: 100%; min-height: 32px; }
 .hint { color: var(--ink-2); font-size: var(--t-s); line-height: 1.45; }
+.field input[type='password'] {
+  width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); min-height: 44px;
+}
+.field input[type='password']:focus { border-color: var(--thread); }
+.field-label { font-weight: 700; font-size: var(--t-s); }
+
+/* ---------- Certificates and passwords ---------- */
+
+.security { display: grid; gap: 1rem; }
+.cert-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.cert-name { font-weight: 700; overflow-wrap: anywhere; }
+.cert-card { display: grid; gap: 0.6rem; }
+.checks { border: 0; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.checks legend { font-weight: 700; font-size: var(--t-s); margin-bottom: 0.35rem; padding: 0; }
+.check { display: flex; align-items: flex-start; gap: 0.55rem; cursor: pointer; min-height: 32px; }
+.check input { accent-color: var(--thread); width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; flex: none; }
+.check-hint { display: block; font-weight: 400; }
+.field .check { font-weight: 400; }
 
 /* ---------- Page grid ---------- */
 

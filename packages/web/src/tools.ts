@@ -23,11 +23,13 @@ export const TOOLS: Tool[] = [
   { id: 'word', group: 'convert', accept: 'word', single: false },
   { id: 'images', group: 'convert', accept: 'images', single: false },
   { id: 'sign', group: 'mark', accept: 'docs', single: true },
+  { id: 'certify', group: 'mark', accept: 'docs', single: true },
   { id: 'stamp', group: 'mark', accept: 'docs', single: true },
   { id: 'number', group: 'mark', accept: 'docs', single: true },
   { id: 'watermark', group: 'mark', accept: 'docs', single: true },
   { id: 'compress', group: 'reduce', accept: 'docs', single: true },
   { id: 'metadata', group: 'reduce', accept: 'docs', single: true },
+  { id: 'protect', group: 'reduce', accept: 'docs', single: true },
 ];
 
 export const GROUPS: Group[] = ['arrange', 'convert', 'mark', 'reduce'];
@@ -64,6 +66,12 @@ export interface Options {
   watermarkOpacity: number;
   level: 'balanced' | 'strong' | 'max' | 'lossless' | 'target';
   targetMB: number;
+  certVisible: boolean;
+  certReason: string;
+  certLocation: string;
+  allowPrint: boolean;
+  allowCopy: boolean;
+  allowModify: boolean;
 }
 
 export function defaultOptions(s: { stampDefault: string; numberDefault: string; watermarkDefault: string }): Options {
@@ -87,6 +95,12 @@ export function defaultOptions(s: { stampDefault: string; numberDefault: string;
     watermarkOpacity: 0.15,
     level: 'balanced',
     targetMB: 2,
+    certVisible: true,
+    certReason: '',
+    certLocation: '',
+    allowPrint: true,
+    allowCopy: true,
+    allowModify: true,
   };
 }
 
@@ -117,12 +131,20 @@ export function compactRange(pages: number[]): string {
 }
 
 const SUFFIX: Record<Lang, Partial<Record<ToolId, string>>> = {
-  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio' },
-  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean' },
+  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido' },
+  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected' },
 };
 
+/** Names of the extra inputs some tools use, and the new password for "protect" (never kept in Options). */
+export interface Refs {
+  signature?: string;
+  certificate?: string;
+  password?: string;
+}
+
 /** The recipe a tool runs: the same JSON the CLI, the MCP server and agents use. */
-export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lang, signatureName = 'firma.png'): Recipe {
+export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lang, refs: Refs = {}): Recipe {
+  const signatureName = refs.signature ?? 'firma.png';
   const out = (suffix?: string) => ({ filename: suffix ? `{name}-${suffix}` : '{name}' });
   const suffix = SUFFIX[lang][tool];
   const base = (steps: Recipe['steps']): Recipe => ({ version: 1, steps, output: out(suffix) });
@@ -141,6 +163,20 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
       ? { op: 'compress', targetBytes: Math.round(o.targetMB * 1024 * 1024) }
       : { op: 'compress', level: o.level }]);
     case 'metadata': return base([{ op: 'stripMetadata' }]);
+    case 'certify': return base([{
+      op: 'signDigital',
+      certificate: refs.certificate ?? 'certificado.p12',
+      ...(o.certVisible ? {} : { visible: false }),
+      ...(o.certReason.trim() ? { reason: o.certReason.trim() } : {}),
+      ...(o.certLocation.trim() ? { location: o.certLocation.trim() } : {}),
+    }]);
+    case 'protect': return base([{
+      op: 'protect',
+      ...(refs.password ? { password: refs.password } : {}),
+      ...(o.allowPrint ? {} : { allowPrint: false }),
+      ...(o.allowCopy ? {} : { allowCopy: false }),
+      ...(o.allowModify ? {} : { allowModify: false }),
+    }]);
     case 'split': {
       const ranges = splitRanges(o);
       return { version: 1, steps: [{ op: 'split', ...(ranges ? { ranges } : {}) }], output: out() };

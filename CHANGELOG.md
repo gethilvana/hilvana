@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 · 2026-11-21
+
+- **@hilvana/core**: `protect(bytes, opts)` encrypts with AES-256, with a password to open and/or usage restrictions (print, copy, modify). `signWithCertificate(bytes, opts)` signs with a `.p12`/`.pfx` certificate (RSA or elliptic curve, legacy `.pfx` included), PAdES B-B, entirely on the device: no time-stamping server. It appends the signature without rewriting the file, so earlier signatures stay valid, and draws an optional visible line only on documents with no signatures yet. `readCertificate()` describes who signs, the issuer and the validity. New error codes `INVALID_CERTIFICATE`, `WRONG_CERTIFICATE_PASSWORD`, `CERTIFICATE_EXPIRED`, `CERTIFICATE_NOT_YET_VALID`. Signatures are checked in tests with Poppler's `pdfsig`, an independent validator.
+- **@hilvana/recipes**: new last-only steps `protect` and `signDigital`; a recipe can end with at most one of `split`, `protect` and `signDigital` (`FINAL_NOT_LAST`). Certificates are inputs named `.p12`/`.pfx`, with their password in `InputFile.password`. `plan()` opens the certificate and returns `signer`, warns about self-signed certificates and rejects expired ones. A recipe with only `signDigital` on one PDF signs it as is (`SIGNATURES_KEPT`). Results protected with a password are opened with it only to check the goals. New `redactRecipe()` and `SECRET_OPS`.
+- **hilvana**: `protect` (`--restrict print,copy,modify`; the new password is asked for, or read from `HILVANA_NEW_PASSWORD`) and `certify` (`--cert`, `--reason`, `--location`, `--invisible`, `--pages`, `--anchor`; the certificate password is asked for, or read from `HILVANA_CERT_PASSWORD`). In `run`, `.p12`/`.pfx` inputs use that password.
+- **hilvana-mcp**: refuses recipes that need a secret (`signDigital`, `protect` with a password) with `SECRET_NOT_ALLOWED` and a pointer to the web app and the CLI. Restriction-only `protect` is allowed.
+- **Web**: new tools *Firma digital* (choose a certificate, see who signs before signing) and *Proteger con contraseña* (password typed twice, permissions). The certificate, its key and passwords stay in the page's memory and are forgotten when leaving the tool; the recipe shown never contains a password. The group is now *Reducir y proteger*.
+- **CI**: installs Poppler so signature checks run (and are required) on Linux.
+
 ## 0.4.0 · 2026-11-21
 
 - **@hilvana/core**: new `unlock(bytes, password?)`. PDFs with only usage restrictions (no password to open, like many bank statements) are unlocked automatically by `load()` and `inspect()`; PDFs that need a password open with it. RC4 (40/128), AES-128 and AES-256 are supported, through `@libpdf/core` (MIT), loaded only when a file is encrypted. New error codes `PASSWORD_REQUIRED` and `WRONG_PASSWORD`; `ENCRYPTED` now means an unsupported scheme (for example certificate-based). `PdfInfo.protection` says how the file was protected.
