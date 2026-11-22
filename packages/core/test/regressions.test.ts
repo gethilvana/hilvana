@@ -196,3 +196,30 @@ describe('changed files never carry a broken signature', () => {
     expect(doc.catalog.has((await import('pdf-lib')).PDFName.of('Perms'))).toBe(false);
   });
 });
+
+// Found by the public benchmark (docs/benchmark.md) on pdf.js's test files.
+describe('damaged files from the public benchmark', () => {
+  it('repairs page resources stored as a stream instead of a dictionary', async () => {
+    const { PDFDocument, PDFName, StandardFonts } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const page = doc.addPage([300, 200]);
+    page.drawText('Hola', { x: 20, y: 100, size: 14, font });
+    const res = page.node.Resources()!;
+    const stream = doc.context.stream(new Uint8Array(), Object.fromEntries([...res.entries()].map(([k, v]) => [k.asString().slice(1), v])) as never);
+    page.node.set(PDFName.of('Resources'), doc.context.register(stream));
+    const bytes = await doc.save();
+    const { stampText, compress } = await import('@hilvana/core');
+    await expect(stampText(bytes, { text: 'Recibido', pages: 'all' })).resolves.toBeInstanceOf(Uint8Array);
+    await expect(compress(bytes)).resolves.toBeTruthy();
+  });
+
+  it('says when a file declares pages it cannot read', async () => {
+    const { PDFDocument, PDFName, PDFNumber } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    doc.addPage(); doc.addPage();
+    doc.catalog.lookup(PDFName.of('Pages'), (await import('pdf-lib')).PDFDict).set(PDFName.of('Count'), PDFNumber.of(3));
+    const { inspect } = await import('@hilvana/core');
+    expect((await inspect(await doc.save())).missingPages).toBe(1);
+  });
+});

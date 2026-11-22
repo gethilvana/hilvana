@@ -1,0 +1,2330 @@
+{
+  "sources": [
+    {
+      "id": "poi",
+      "repo": "https://github.com/apache/poi.git",
+      "commit": "c94ee8ad9096bdb8cf8e5e59d8d12432e950dbf3",
+      "dir": "test-data/document",
+      "license": "Apache-2.0 repository; documents keep their authors' rights"
+    },
+    {
+      "id": "pdfjs",
+      "repo": "https://github.com/mozilla/pdf.js.git",
+      "commit": "541d197e6b455341697496f24b1e00a88061f3eb",
+      "dir": "test/pdfs",
+      "license": "Apache-2.0 repository; documents keep their authors' rights"
+    }
+  ],
+  "files": [
+    {
+      "source": "poi",
+      "name": "51921-Word-Crash067.docx",
+      "path": ".cache/poi/test-data/document/51921-Word-Crash067.docx",
+      "bytes": 20006,
+      "sha256": "422e62dfe18243e8bfbb4504be91075cde9318c11d479b70132972aebbb3b107"
+    },
+    {
+      "source": "poi",
+      "name": "52288.docx",
+      "path": ".cache/poi/test-data/document/52288.docx",
+      "bytes": 12788,
+      "sha256": "8ab0f0afddd11ab43bd2dcfe4e5b51f8a4dfcc948fe3f327b338bcc2c3733bee"
+    },
+    {
+      "source": "poi",
+      "name": "52449.docx",
+      "path": ".cache/poi/test-data/document/52449.docx",
+      "bytes": 18854,
+      "sha256": "f48139d1b019b5e5e0d4396fb6b10ed21dd30116926646bbd5598d807580ae2b"
+    },
+    {
+      "source": "poi",
+      "name": "55733.docx",
+      "path": ".cache/poi/test-data/document/55733.docx",
+      "bytes": 3045,
+      "sha256": "b5c30080ffe667ef27414302ffd3ccd01ef1c85d4a5a459761b9c82c3421a4e0"
+    },
+    {
+      "source": "poi",
+      "name": "55966.docx",
+      "path": ".cache/poi/test-data/document/55966.docx",
+      "bytes": 20757,
+      "sha256": "4409a5e95d229c5ab94fb24aac1a53ee47d0d66c9e75b7f39d80f10c218abedb"
+    },
+    {
+      "source": "poi",
+      "name": "56392.docx",
+      "path": ".cache/poi/test-data/document/56392.docx",
+      "bytes": 11211,
+      "sha256": "bdff4457ccfbe7482f8230e2e1085e8becdda5bc869237923a4e70977d3b6678"
+    },
+    {
+      "source": "poi",
+      "name": "57312.docx",
+      "path": ".cache/poi/test-data/document/57312.docx",
+      "bytes": 21702,
+      "sha256": "f80b3c4f3885e0284d8017fec93818b4ec5366f9486ad97b8ddd47ab68a330c5"
+    },
+    {
+      "source": "poi",
+      "name": "58067.docx",
+      "path": ".cache/poi/test-data/document/58067.docx",
+      "bytes": 28709,
+      "sha256": "719b5076b736e6208be4b10fd268e9e3b7e0029c819d485d53ca14700fc98fc5"
+    },
+    {
+      "source": "poi",
+      "name": "58618.docx",
+      "path": ".cache/poi/test-data/document/58618.docx",
+      "bytes": 10045,
+      "sha256": "393ac2f66113a3a8a35e3cacf806cbcaf080dbdb62d1c8345183e6a338f35295"
+    },
+    {
+      "source": "poi",
+      "name": "59030.docx",
+      "path": ".cache/poi/test-data/document/59030.docx",
+      "bytes": 11712,
+      "sha256": "2968d4a5d5de21dce1cbeae3235e545cdf4bfd7ae508fe0eed3a9b032773ce17"
+    },
+    {
+      "source": "poi",
+      "name": "59378.docx",
+      "path": ".cache/poi/test-data/document/59378.docx",
+      "bytes": 26063,
+      "sha256": "9829d202db7fc9d86399552ea7e92fbb415444c9242303c8142026b73034776a"
+    },
+    {
+      "source": "poi",
+      "name": "60293.docx",
+      "path": ".cache/poi/test-data/document/60293.docx",
+      "bytes": 15634,
+      "sha256": "a534742296b8a3817f94ded5110ab79e3995bb53184c2741207fbc70e475e5f5"
+    },
+    {
+      "source": "poi",
+      "name": "60316.docx",
+      "path": ".cache/poi/test-data/document/60316.docx",
+      "bytes": 48142,
+      "sha256": "0bfd17f6ccbf1d410278fcd9141c6007b521ebb0cba53276eddb52bdd16c4769"
+    },
+    {
+      "source": "poi",
+      "name": "60329.docx",
+      "path": ".cache/poi/test-data/document/60329.docx",
+      "bytes": 31124,
+      "sha256": "e5b4e66038f92ef589e12ea870b24cc7a3e0005cd7a53817abff1307404f7aa3"
+    },
+    {
+      "source": "poi",
+      "name": "61470.docx",
+      "path": ".cache/poi/test-data/document/61470.docx",
+      "bytes": 12523,
+      "sha256": "abda850b3685027eef32a4c583b2b5f7f20f243026d8c453cdb3315348ed6ff0"
+    },
+    {
+      "source": "poi",
+      "name": "61745.docx",
+      "path": ".cache/poi/test-data/document/61745.docx",
+      "bytes": 37030,
+      "sha256": "ec54badce04b9fc3c4c327e31fbbd06c1bb556056df9cf04760db75c8913f8a2"
+    },
+    {
+      "source": "poi",
+      "name": "61787.docx",
+      "path": ".cache/poi/test-data/document/61787.docx",
+      "bytes": 7047,
+      "sha256": "eaea73fcee1225c17d55fdd363444ee34ce8a4eb2358b2ec2e5d835f24691227"
+    },
+    {
+      "source": "poi",
+      "name": "61991.docx",
+      "path": ".cache/poi/test-data/document/61991.docx",
+      "bytes": 17931,
+      "sha256": "e48f4d42f64b6b7bfc30827c37285fc6af692bdb9b73d9caca90343afeb6b140"
+    },
+    {
+      "source": "poi",
+      "name": "65099.docx",
+      "path": ".cache/poi/test-data/document/65099.docx",
+      "bytes": 17126,
+      "sha256": "135859d73ef88c3c721ee42ad5e49d325e5a1a7ee68e0a099eb667b49331cc62"
+    },
+    {
+      "source": "poi",
+      "name": "Bug51170.docx",
+      "path": ".cache/poi/test-data/document/Bug51170.docx",
+      "bytes": 239621,
+      "sha256": "3a5f19e5bfdc7f25ce16cb256bb8bab1a15e900a767b4a4c6b1ea3ee34faaa32"
+    },
+    {
+      "source": "poi",
+      "name": "Bug54771a.docx",
+      "path": ".cache/poi/test-data/document/Bug54771a.docx",
+      "bytes": 44431,
+      "sha256": "e9f466580cd26098320262def84db719802e6f7ef2302036ce0ec8a5a607188d"
+    },
+    {
+      "source": "poi",
+      "name": "Bug54771b.docx",
+      "path": ".cache/poi/test-data/document/Bug54771b.docx",
+      "bytes": 39666,
+      "sha256": "8721295e024cf07671ba7db0430db2a94f9a6f12dd3ba2aa36f3011d5885021b"
+    },
+    {
+      "source": "poi",
+      "name": "Bug54849.docx",
+      "path": ".cache/poi/test-data/document/Bug54849.docx",
+      "bytes": 27566,
+      "sha256": "f54182713ea5ce5d77b9593d3d9d24e645460043cec0b40ef59c932385f084d3"
+    },
+    {
+      "source": "poi",
+      "name": "Bug55142.docx",
+      "path": ".cache/poi/test-data/document/Bug55142.docx",
+      "bytes": 22586,
+      "sha256": "69828bfe8887125db7d7e5b29405111927807b849d262d42c351ccec3b3cdb83"
+    },
+    {
+      "source": "poi",
+      "name": "Bug60337.docx",
+      "path": ".cache/poi/test-data/document/Bug60337.docx",
+      "bytes": 13463,
+      "sha256": "87f983bdd93b3b5b8469104a5b09ccff41e0f5c144060e13fd4db07bfd2e39da"
+    },
+    {
+      "source": "poi",
+      "name": "Bug60341.docx",
+      "path": ".cache/poi/test-data/document/Bug60341.docx",
+      "bytes": 2297,
+      "sha256": "56147fba379742c9b73e98787ff171c7ed37b038e623ed26749dab6b90a009ab"
+    },
+    {
+      "source": "poi",
+      "name": "Bug62859.docx",
+      "path": ".cache/poi/test-data/document/Bug62859.docx",
+      "bytes": 17326,
+      "sha256": "9a2af7058bb7f2c77a6591ecffd72f8b45983659ea59b9b5d7acf92b1daea513"
+    },
+    {
+      "source": "poi",
+      "name": "Bug64561.docx",
+      "path": ".cache/poi/test-data/document/Bug64561.docx",
+      "bytes": 17630,
+      "sha256": "ae2ce22d39377301bf17145d6ce0812f6cf33ab9639edb7b06bc1f5254bd9824"
+    },
+    {
+      "source": "poi",
+      "name": "Bug66263-paragraph.docx",
+      "path": ".cache/poi/test-data/document/Bug66263-paragraph.docx",
+      "bytes": 2012,
+      "sha256": "41ccacadeda1ac97485b772404228b9a66c2339d46208271b932b7a4a6661998"
+    },
+    {
+      "source": "poi",
+      "name": "Bug66263-table.docx",
+      "path": ".cache/poi/test-data/document/Bug66263-table.docx",
+      "bytes": 1970,
+      "sha256": "2d3aedaf149375071e54c10a898c1900b343fb22a7b2db9261a32b1452ed7737"
+    },
+    {
+      "source": "poi",
+      "name": "Bug66988.docx",
+      "path": ".cache/poi/test-data/document/Bug66988.docx",
+      "bytes": 4875,
+      "sha256": "349b3576e2478801a80672e190d7406252d7adefb6d722bd6ae790817ea0bd2f"
+    },
+    {
+      "source": "poi",
+      "name": "ComplexNumberedLists.docx",
+      "path": ".cache/poi/test-data/document/ComplexNumberedLists.docx",
+      "bytes": 14458,
+      "sha256": "297a085a7d433af2eeee7661e8db21539452cb585096484774a1e9f5f258b0b6"
+    },
+    {
+      "source": "poi",
+      "name": "DiffFirstPageHeadFoot.docx",
+      "path": ".cache/poi/test-data/document/DiffFirstPageHeadFoot.docx",
+      "bytes": 14204,
+      "sha256": "e94332c7b86b1bbce960f93fec90078486ab8abc3913a024a24be391a0b42151"
+    },
+    {
+      "source": "poi",
+      "name": "EmbeddedDocument.docx",
+      "path": ".cache/poi/test-data/document/EmbeddedDocument.docx",
+      "bytes": 13268,
+      "sha256": "3cb521da0faab3b8a9e7c5d155961b4f5506fb2ceda8e69e0790d03ee01767f2"
+    },
+    {
+      "source": "poi",
+      "name": "EmptyDocumentWithHeaderFooter.docx",
+      "path": ".cache/poi/test-data/document/EmptyDocumentWithHeaderFooter.docx",
+      "bytes": 14549,
+      "sha256": "a6ac4223c9b7217426a54303ca52307f3c69cd8cd05b7e788e43fab449b7b45c"
+    },
+    {
+      "source": "poi",
+      "name": "EnforcedWith.docx",
+      "path": ".cache/poi/test-data/document/EnforcedWith.docx",
+      "bytes": 11321,
+      "sha256": "0727ecf6523dd8026c53129255b11dec8de4437060f2927643d99cd77e82a41b"
+    },
+    {
+      "source": "poi",
+      "name": "ExternalEntityInText.docx",
+      "path": ".cache/poi/test-data/document/ExternalEntityInText.docx",
+      "bytes": 12756,
+      "sha256": "5cf7340ffd6516c2fd168f445ff78cf64bd86409fe69db68997fc9f94820c223"
+    },
+    {
+      "source": "poi",
+      "name": "FancyFoot.docx",
+      "path": ".cache/poi/test-data/document/FancyFoot.docx",
+      "bytes": 12876,
+      "sha256": "1cfd2b4fb1f7233062671b0f58789e1b0b437fbf79deb7d62167cffb85191f7a"
+    },
+    {
+      "source": "poi",
+      "name": "FieldCodes.docx",
+      "path": ".cache/poi/test-data/document/FieldCodes.docx",
+      "bytes": 17034,
+      "sha256": "9247f85ab90b15f11d0cf14d0070fdcb5cdf47c65d6bc77cc32cb7ee682aad24"
+    },
+    {
+      "source": "poi",
+      "name": "FldSimple.docx",
+      "path": ".cache/poi/test-data/document/FldSimple.docx",
+      "bytes": 12837,
+      "sha256": "6cf7364676d465e702cbbac44ca92331c525476e36a29c26f780cb9d7643b631"
+    },
+    {
+      "source": "poi",
+      "name": "HeaderFooterUnicode.docx",
+      "path": ".cache/poi/test-data/document/HeaderFooterUnicode.docx",
+      "bytes": 15079,
+      "sha256": "ec439ac0643294e1e2961b381983304e044444f3a8f0dc465a98adf9ebee0e67"
+    },
+    {
+      "source": "poi",
+      "name": "Headers.docx",
+      "path": ".cache/poi/test-data/document/Headers.docx",
+      "bytes": 13076,
+      "sha256": "bdf91038f9a5454355e6393b7b74fd819a4adc480b4a7011a86e878403952b5b"
+    },
+    {
+      "source": "poi",
+      "name": "IllustrativeCases.docx",
+      "path": ".cache/poi/test-data/document/IllustrativeCases.docx",
+      "bytes": 22858,
+      "sha256": "4c2407d338f02a6ae107eac0b3e925ffb3d37921942ebe88db8660dea0891a00"
+    },
+    {
+      "source": "poi",
+      "name": "MultipleBodyBug.docx",
+      "path": ".cache/poi/test-data/document/MultipleBodyBug.docx",
+      "bytes": 102103,
+      "sha256": "7b34a3e9458daa3cb4a56c012e279dc8edab71300404b3d9da6f145cb743211d"
+    },
+    {
+      "source": "poi",
+      "name": "NoHeadFoot.docx",
+      "path": ".cache/poi/test-data/document/NoHeadFoot.docx",
+      "bytes": 10380,
+      "sha256": "dc6a67b1c118658acadc87ba41200f0b90ead05ada95e7ce6fa72a97700430c5"
+    },
+    {
+      "source": "poi",
+      "name": "Numbering.docx",
+      "path": ".cache/poi/test-data/document/Numbering.docx",
+      "bytes": 13808,
+      "sha256": "776a59dcf0e290f1988602e6305e2d9cb2e31f631dc4aa751593c23cddbaad4d"
+    },
+    {
+      "source": "poi",
+      "name": "NumberingWOverrides.docx",
+      "path": ".cache/poi/test-data/document/NumberingWOverrides.docx",
+      "bytes": 15190,
+      "sha256": "3754dee43880ce4c9e962eca41ac78c353999888282c9ada528efbb826e2bee6"
+    },
+    {
+      "source": "poi",
+      "name": "NumberingWithOutOfOrderId.docx",
+      "path": ".cache/poi/test-data/document/NumberingWithOutOfOrderId.docx",
+      "bytes": 12978,
+      "sha256": "fa2843a6297bb3e874f9c6dc8aac944704fba4d0d631b94627be7dbeaf12ed0f"
+    },
+    {
+      "source": "poi",
+      "name": "PageSpecificHeadFoot.docx",
+      "path": ".cache/poi/test-data/document/PageSpecificHeadFoot.docx",
+      "bytes": 22994,
+      "sha256": "90bb8251b18c9f94e0b8fb91192413922a09dbe418a4a210116221054378eaad"
+    },
+    {
+      "source": "poi",
+      "name": "SampleDoc.docx",
+      "path": ".cache/poi/test-data/document/SampleDoc.docx",
+      "bytes": 11611,
+      "sha256": "ea2c517bd7be4628887eb97f630334b93b894f4522d2c0adae263e602d76df92"
+    },
+    {
+      "source": "poi",
+      "name": "SimpleHeadThreeColFoot.docx",
+      "path": ".cache/poi/test-data/document/SimpleHeadThreeColFoot.docx",
+      "bytes": 13112,
+      "sha256": "c682ea30e50785784969ee00b4d6ed8da31e725a64e0251a4f21077f02f19d8e"
+    },
+    {
+      "source": "poi",
+      "name": "Styles.docx",
+      "path": ".cache/poi/test-data/document/Styles.docx",
+      "bytes": 10905,
+      "sha256": "63f3fe4c3b4fbdc211eca8fa7fd31a799ff4438afbf4ca6e771b3aef107c732e"
+    },
+    {
+      "source": "poi",
+      "name": "TestDocument.docx",
+      "path": ".cache/poi/test-data/document/TestDocument.docx",
+      "bytes": 10861,
+      "sha256": "527a906b3cc31d0a72a47290a6c8a53854a89a31178a60fa3cb314d70b57a413"
+    },
+    {
+      "source": "poi",
+      "name": "TestPoiXMLDocumentCorePropertiesGetKeywords.docx",
+      "path": ".cache/poi/test-data/document/TestPoiXMLDocumentCorePropertiesGetKeywords.docx",
+      "bytes": 13380,
+      "sha256": "722eb8f8d5cccdbb53af226ac270dc750b5e071ae7ca91c73151ed9fb771959a"
+    },
+    {
+      "source": "poi",
+      "name": "TestTableCellAlign.docx",
+      "path": ".cache/poi/test-data/document/TestTableCellAlign.docx",
+      "bytes": 11712,
+      "sha256": "2968d4a5d5de21dce1cbeae3235e545cdf4bfd7ae508fe0eed3a9b032773ce17"
+    },
+    {
+      "source": "poi",
+      "name": "TestTableColumns.docx",
+      "path": ".cache/poi/test-data/document/TestTableColumns.docx",
+      "bytes": 12672,
+      "sha256": "3b1965a295c4a5c24573a6d5f2ded93f7de3e7a46ffe26b881456f1c4ddd6335"
+    },
+    {
+      "source": "poi",
+      "name": "ThreeColFoot.docx",
+      "path": ".cache/poi/test-data/document/ThreeColFoot.docx",
+      "bytes": 13061,
+      "sha256": "584ef284e9b106fd7f1d283e918bdb6b579f5c73162d075acba921c10c63930b"
+    },
+    {
+      "source": "poi",
+      "name": "ThreeColHead.docx",
+      "path": ".cache/poi/test-data/document/ThreeColHead.docx",
+      "bytes": 12508,
+      "sha256": "304656fd791bd829f5cabebf8e7ec058260b669e9f572e500f69ff176387e090"
+    },
+    {
+      "source": "poi",
+      "name": "ThreeColHeadFoot.docx",
+      "path": ".cache/poi/test-data/document/ThreeColHeadFoot.docx",
+      "bytes": 13123,
+      "sha256": "c2d16e89c23a8c1f7366f3b65ab33c6e14fcf00f916dfecfd8af1a3e7797f73d"
+    },
+    {
+      "source": "poi",
+      "name": "Tika-792.docx",
+      "path": ".cache/poi/test-data/document/Tika-792.docx",
+      "bytes": 17913,
+      "sha256": "95de9f3b655bfec5b619ee31d1319e5a9a6ce4f253a9738898876640a2969665"
+    },
+    {
+      "source": "poi",
+      "name": "VariousPictures.docx",
+      "path": ".cache/poi/test-data/document/VariousPictures.docx",
+      "bytes": 103677,
+      "sha256": "c1eecbca7de9f99e21c677e1d5b045eaa1d5a442eff4c82f0cbe9af93726a070"
+    },
+    {
+      "source": "poi",
+      "name": "WithGIF.docx",
+      "path": ".cache/poi/test-data/document/WithGIF.docx",
+      "bytes": 20875,
+      "sha256": "fb9f0bfa791921c43fe113005d3bb7d639ab2946c082e7d24d31e0bf73003036"
+    },
+    {
+      "source": "poi",
+      "name": "WithTabs.docx",
+      "path": ".cache/poi/test-data/document/WithTabs.docx",
+      "bytes": 14190,
+      "sha256": "c6460c33b3343b0656189d5cba344fadafea821f8982ea01619c5324fa87a266"
+    },
+    {
+      "source": "poi",
+      "name": "WordWithAttachments.docx",
+      "path": ".cache/poi/test-data/document/WordWithAttachments.docx",
+      "bytes": 144959,
+      "sha256": "90352263823e6d3d39a4ec88212134b74bcb0f86b603bc3b51d712a3ec3df9f2"
+    },
+    {
+      "source": "poi",
+      "name": "bib-chernigovka.netdo.ru_download_docs_17459.docx",
+      "path": ".cache/poi/test-data/document/bib-chernigovka.netdo.ru_download_docs_17459.docx",
+      "bytes": 47023,
+      "sha256": "74575caabe35de9982ed11328ebe556844fcd3da2fed1e425255bfe81dee4c50"
+    },
+    {
+      "source": "poi",
+      "name": "bookmarks.docx",
+      "path": ".cache/poi/test-data/document/bookmarks.docx",
+      "bytes": 10405,
+      "sha256": "9b93eef9e2ce1ad0e28dc65beab73a896d5d1631a0b7fc73ec6ac279cf36b218"
+    },
+    {
+      "source": "poi",
+      "name": "bug-paragraph-alignment.docx",
+      "path": ".cache/poi/test-data/document/bug-paragraph-alignment.docx",
+      "bytes": 11916,
+      "sha256": "0a7a19175b8fb5fdce4755a51489a29109b358447dc99a2125642964be48e6ad"
+    },
+    {
+      "source": "poi",
+      "name": "bug53475-password-is-pass.docx",
+      "path": ".cache/poi/test-data/document/bug53475-password-is-pass.docx",
+      "bytes": 29696,
+      "sha256": "c182f7825ae588fe1c28497588d1bded635a5bef7eb7370fd1c589233a6471d5"
+    },
+    {
+      "source": "poi",
+      "name": "bug53475-password-is-solrcell.docx",
+      "path": ".cache/poi/test-data/document/bug53475-password-is-solrcell.docx",
+      "bytes": 33792,
+      "sha256": "cde5752f65238b42fefeaa28c0a10ef3b75bd6232cd6427b3920113c91c5909d"
+    },
+    {
+      "source": "poi",
+      "name": "bug56075-changeTracking_off.docx",
+      "path": ".cache/poi/test-data/document/bug56075-changeTracking_off.docx",
+      "bytes": 12617,
+      "sha256": "bfe651932119ad2472b943b726f8ea7559d8ff0fb9c100b63cc0c28f8227de78"
+    },
+    {
+      "source": "poi",
+      "name": "bug56075-changeTracking_on.docx",
+      "path": ".cache/poi/test-data/document/bug56075-changeTracking_on.docx",
+      "bytes": 12606,
+      "sha256": "9c837e12aaf3deac10ac20ac1bc08dc6bebdec14b553698063742b9bc12f8920"
+    },
+    {
+      "source": "poi",
+      "name": "bug56076.docx",
+      "path": ".cache/poi/test-data/document/bug56076.docx",
+      "bytes": 11033,
+      "sha256": "3abb05a4e76d5f92cf59eb818db7b03e8ff342d051f832a1bee196b1164b3b0d"
+    },
+    {
+      "source": "poi",
+      "name": "bug57031.docx",
+      "path": ".cache/poi/test-data/document/bug57031.docx",
+      "bytes": 55889,
+      "sha256": "bbd88b16a90c65b46e1a6922f7017e8d4cc0bc8f62ac28619c2d367d37d6754b"
+    },
+    {
+      "source": "poi",
+      "name": "bug59058.docx",
+      "path": ".cache/poi/test-data/document/bug59058.docx",
+      "bytes": 210256,
+      "sha256": "89d0abb8eed1a58f262c49c386f74d8a82798d6344bed690d66b389514f0751c"
+    },
+    {
+      "source": "poi",
+      "name": "bug65649.docx",
+      "path": ".cache/poi/test-data/document/bug65649.docx",
+      "bytes": 474844,
+      "sha256": "f98d2bfcca5d091cda26539b00318bb2b2b1e6d8aa644e370175e99ca9c1b4ad"
+    },
+    {
+      "source": "poi",
+      "name": "bug65738.docx",
+      "path": ".cache/poi/test-data/document/bug65738.docx",
+      "bytes": 13436,
+      "sha256": "67797f5691cb5346201f1c40000a959f9f08d05d0b4493b4291e8d5f16e81e65"
+    },
+    {
+      "source": "poi",
+      "name": "bug66312.docx",
+      "path": ".cache/poi/test-data/document/bug66312.docx",
+      "bytes": 4500,
+      "sha256": "de03dd0ac02c04e07790c400ee5cb36b580e38750d6c56c2b8528a53219cb46a"
+    },
+    {
+      "source": "poi",
+      "name": "bug69628.docx",
+      "path": ".cache/poi/test-data/document/bug69628.docx",
+      "bytes": 7510,
+      "sha256": "a6c0d65a75862446b3261e0eb8f2709c889c9308c60e73b9f8fd0e022d8ba74f"
+    },
+    {
+      "source": "poi",
+      "name": "capitalized.docx",
+      "path": ".cache/poi/test-data/document/capitalized.docx",
+      "bytes": 12104,
+      "sha256": "e96c6a0f4db42a658f56a2c96db0d6a7c899db1078d1fe3ea05033c1b7297dc3"
+    },
+    {
+      "source": "poi",
+      "name": "chartex.docx",
+      "path": ".cache/poi/test-data/document/chartex.docx",
+      "bytes": 133304,
+      "sha256": "5d7f0ca9aa26d0244eedbc8ff862f08910689ec3848a036c622b17d56a290b57"
+    },
+    {
+      "source": "poi",
+      "name": "checkboxes.docx",
+      "path": ".cache/poi/test-data/document/checkboxes.docx",
+      "bytes": 20800,
+      "sha256": "06f1dc1370c772a020c6d5183c8b7c4fe30ad7a9fff108cb2f027128ddf5e209"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIFuzzer-6709287337197568.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIFuzzer-6709287337197568.docx",
+      "bytes": 12632,
+      "sha256": "dda9dd500d6922d60205d5045adb7496bc3ff431a4dad702da1c26af030766fc"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-4791943399604224.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-4791943399604224.docx",
+      "bytes": 15932,
+      "sha256": "096a1119c0fd110d7fb7b93db16bd1a302513732d8dd0bd7641ecedafbe36f43"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-4959857092198400.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-4959857092198400.docx",
+      "bytes": 50918,
+      "sha256": "f45e20bb8d8c4ed61413c9874927a784307b75e22a6d7be775e6485dc60e1abb"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-4961551840247808.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-4961551840247808.docx",
+      "bytes": 35568,
+      "sha256": "04a57da257ee6af6d33ba88999e2c12a54d266c1d1ffb56eefc1cd04bd1c9be6"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-5166796835258368.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-5166796835258368.docx",
+      "bytes": 12890,
+      "sha256": "9a78086d1bfd6aab90fa1c1e12569c166267a1d7e1e6c5d36e4bfb64c5ee10b9"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-5313273089884160.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-5313273089884160.docx",
+      "bytes": 4764,
+      "sha256": "b418f2b0e307e6f526f85ef90979fe582d5c2644a4597a882597ccd18300d838"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-5564805011079168.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-5564805011079168.docx",
+      "bytes": 34995,
+      "sha256": "d9eb560e2285db6cf38c5b2ed0edd7a44b1b4de45343085c9232b82426c51632"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-5569740188549120.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-5569740188549120.docx",
+      "bytes": 6043,
+      "sha256": "9c9d14a0ed831cc9adca4ca212a86ec19df760f54ce0c495996808fd9c015af7"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-6061520554164224.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-6061520554164224.docx",
+      "bytes": 7789,
+      "sha256": "af0490674ff7c414b1d34ae6bae2140e9e2a3166e5b7ef524201ffb576c74d57"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-6120975439364096.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-6120975439364096.docx",
+      "bytes": 43758,
+      "sha256": "7d34e905b8df2a09b9b671e1e1243c7898da94cf935797b98fc4131faeb55f25"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-6442791109263360.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-6442791109263360.docx",
+      "bytes": 4941,
+      "sha256": "dbb8b118a4bc0a3d75a65722805f4ab039d3067626c98b209dde41a2f0af86f8"
+    },
+    {
+      "source": "poi",
+      "name": "clusterfuzz-testcase-minimized-POIXWPFFuzzer-6733884933668864.docx",
+      "path": ".cache/poi/test-data/document/clusterfuzz-testcase-minimized-POIXWPFFuzzer-6733884933668864.docx",
+      "bytes": 20757,
+      "sha256": "a1f9d9fd811700ea52b571c72aaaceea012d53f83ef2e6baace0238168c4b206"
+    },
+    {
+      "source": "poi",
+      "name": "comment.docx",
+      "path": ".cache/poi/test-data/document/comment.docx",
+      "bytes": 4926,
+      "sha256": "23bbfe33e1acf7073253bd87552cbee5be0a07cbd08a479a4bf139f09b1dd6dc"
+    },
+    {
+      "source": "poi",
+      "name": "crash-517626e815e0afa9decd0ebb6d1dee63fb9907dd.docx",
+      "path": ".cache/poi/test-data/document/crash-517626e815e0afa9decd0ebb6d1dee63fb9907dd.docx",
+      "bytes": 7789,
+      "sha256": "4fa1dc1cd5bddeaa5a14169d9a4f5abdc687d732c3beb06901cf9a701533d466"
+    },
+    {
+      "source": "poi",
+      "name": "deep-table-cell.docx",
+      "path": ".cache/poi/test-data/document/deep-table-cell.docx",
+      "bytes": 17198,
+      "sha256": "31c5bfe1f68c98699cb356891de2e02fe223f633706d666c430ca79fd2cdf6bb"
+    },
+    {
+      "source": "poi",
+      "name": "delins.docx",
+      "path": ".cache/poi/test-data/document/delins.docx",
+      "bytes": 17720,
+      "sha256": "7ecad102602586be7f1371f117fc567ea47f3ed0ca703b353e003002f1ff8d3f"
+    },
+    {
+      "source": "poi",
+      "name": "documentProperties.docx",
+      "path": ".cache/poi/test-data/document/documentProperties.docx",
+      "bytes": 23503,
+      "sha256": "1cff7a0a94dfce307a70032d21070d26ae34b9fdf742cf70fa66d4a2078ec9d5"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_comments_no_password.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_comments_no_password.docx",
+      "bytes": 9868,
+      "sha256": "d15cd04edecf3489c2028864e70736494a1c5259b6e92097e50457efd934d78c"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_forms_no_password.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_forms_no_password.docx",
+      "bytes": 9924,
+      "sha256": "5c299d134577cb3a752548e6891701d2b3447570bd2bb0b38bf16efc026ee0a2"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_no_protection.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_no_protection.docx",
+      "bytes": 9884,
+      "sha256": "5d1cce05b576fc527981c56dd9844df3b6669967bcd9b981adfc043bd516f62c"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_no_protection_tag_existing.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_no_protection_tag_existing.docx",
+      "bytes": 9923,
+      "sha256": "1fb9592a737a350cad1a2a7d9136c7fa6106c5c18c88980251ee9273ddd4ec32"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_readonly_no_password.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_readonly_no_password.docx",
+      "bytes": 9856,
+      "sha256": "5d4c919f2e06b84fbe35cfaaa4012e8f469b811e1f643deb3e660b798bfe4544"
+    },
+    {
+      "source": "poi",
+      "name": "documentProtection_trackedChanges_no_password.docx",
+      "path": ".cache/poi/test-data/document/documentProtection_trackedChanges_no_password.docx",
+      "bytes": 9940,
+      "sha256": "f57113d70213bf8d2fb739fc980662a84e3530f3d1b128ab92d00ab587cd3eb4"
+    },
+    {
+      "source": "poi",
+      "name": "drawing.docx",
+      "path": ".cache/poi/test-data/document/drawing.docx",
+      "bytes": 95247,
+      "sha256": "5e83462dd7ac3cf0a333fe09cf0837602dbd41775cdcec813a6e288b5d55dff8"
+    },
+    {
+      "source": "poi",
+      "name": "emptyPPr.docx",
+      "path": ".cache/poi/test-data/document/emptyPPr.docx",
+      "bytes": 13349,
+      "sha256": "0db26e190d0d4888d3d11fa831cb4815fdf821b448ae2b2c5503bac697e6a530"
+    },
+    {
+      "source": "poi",
+      "name": "endnotes.docx",
+      "path": ".cache/poi/test-data/document/endnotes.docx",
+      "bytes": 13553,
+      "sha256": "6e2e1b2dabb0ae6b9b26ddd613dca446ba0710ecc8b4008722abc4ed592934e3"
+    },
+    {
+      "source": "poi",
+      "name": "footnotes.docx",
+      "path": ".cache/poi/test-data/document/footnotes.docx",
+      "bytes": 12823,
+      "sha256": "9070094b27ff5201477f4de4b2c027730c66cb889106a1609c5adeed207a59c1"
+    },
+    {
+      "source": "poi",
+      "name": "form_footnotes.docx",
+      "path": ".cache/poi/test-data/document/form_footnotes.docx",
+      "bytes": 27824,
+      "sha256": "a890294bfbdc63f6d03eab61efc1e98cb51d59f0920541150dd7082f9bdf31f1"
+    },
+    {
+      "source": "poi",
+      "name": "headerFooter.docx",
+      "path": ".cache/poi/test-data/document/headerFooter.docx",
+      "bytes": 28423,
+      "sha256": "0ad90c6ee8ec8b9fab1ae8219387eca8d934b739580918d76a1b6c911bc41913"
+    },
+    {
+      "source": "poi",
+      "name": "headerPic.docx",
+      "path": ".cache/poi/test-data/document/headerPic.docx",
+      "bytes": 16206,
+      "sha256": "50d9b17f7575c8a91129fd8a3e6a70feec886480ab9f089e29a7f8ac7e5ed51a"
+    },
+    {
+      "source": "poi",
+      "name": "heading123.docx",
+      "path": ".cache/poi/test-data/document/heading123.docx",
+      "bytes": 74810,
+      "sha256": "dac67500b907811030ab2bdd5b1c65cda97a15651d6ec0d33592ef70d34a5550"
+    },
+    {
+      "source": "poi",
+      "name": "issue_51265_1.docx",
+      "path": ".cache/poi/test-data/document/issue_51265_1.docx",
+      "bytes": 423363,
+      "sha256": "711adad4316f4a1937b08f4647e679aac00a42dc134d205e81759777a0cda8a7"
+    },
+    {
+      "source": "poi",
+      "name": "issue_51265_2.docx",
+      "path": ".cache/poi/test-data/document/issue_51265_2.docx",
+      "bytes": 421828,
+      "sha256": "f06f14a64bd7bb58cc93a832059f722c7af0c7854e0f3bebe5945e7d23e149ae"
+    },
+    {
+      "source": "poi",
+      "name": "issue_51265_3.docx",
+      "path": ".cache/poi/test-data/document/issue_51265_3.docx",
+      "bytes": 529742,
+      "sha256": "219c78b7bb2750d85dfb32cc13f38162a7b1ed5cfe610fa1dacd8364f578479b"
+    },
+    {
+      "source": "poi",
+      "name": "protected_sample.docx",
+      "path": ".cache/poi/test-data/document/protected_sample.docx",
+      "bytes": 10082,
+      "sha256": "688b994faa8c909d7d3fc3f48fdccce538426affb1cf562d107a2847ec561beb"
+    },
+    {
+      "source": "poi",
+      "name": "rtl.docx",
+      "path": ".cache/poi/test-data/document/rtl.docx",
+      "bytes": 6838,
+      "sha256": "d159b6ac6734f14a9ecf8e97ca5029bdcddbfae2d33ba0128aa774924e0b190d"
+    },
+    {
+      "source": "poi",
+      "name": "sample.docx",
+      "path": ".cache/poi/test-data/document/sample.docx",
+      "bytes": 14860,
+      "sha256": "be4fc1bf778ad8183f714e09b9df40669de34e9ecbc3adecfc8953f00749036f"
+    },
+    {
+      "source": "poi",
+      "name": "saut_page.docx",
+      "path": ".cache/poi/test-data/document/saut_page.docx",
+      "bytes": 2959626,
+      "sha256": "748f34f3dc285f4d48474930758b2c37382d17965545a1729cb7400cada793da"
+    },
+    {
+      "source": "poi",
+      "name": "shapes-with-text.docx",
+      "path": ".cache/poi/test-data/document/shapes-with-text.docx",
+      "bytes": 27520,
+      "sha256": "1ef4d8cbfd5e2333897ab3193b58ce445cee7e45476d39e5626a4c7097f72d95"
+    },
+    {
+      "source": "poi",
+      "name": "smarttag-snippet.docx",
+      "path": ".cache/poi/test-data/document/smarttag-snippet.docx",
+      "bytes": 11862,
+      "sha256": "693ad667f07b6ca90c4375e024a122adb970e9f5cc7e29a1cd53e0a9cbfb6de9"
+    },
+    {
+      "source": "poi",
+      "name": "table-alignment.docx",
+      "path": ".cache/poi/test-data/document/table-alignment.docx",
+      "bytes": 15519,
+      "sha256": "ee36729e0d050e529fea0b444006a194bea72b35cf8958ae58c6624c26156b41"
+    },
+    {
+      "source": "poi",
+      "name": "table-indent.docx",
+      "path": ".cache/poi/test-data/document/table-indent.docx",
+      "bytes": 7639,
+      "sha256": "aaa3fd6a1c0d6ac222ccacad213257b9061be7d706396a36b3ffedacb3a56c9b"
+    },
+    {
+      "source": "poi",
+      "name": "table_footnotes.docx",
+      "path": ".cache/poi/test-data/document/table_footnotes.docx",
+      "bytes": 13177,
+      "sha256": "69666500a7dd00600da64cc7676f8939c84df8804967ec2fc75567fad41f21a9"
+    },
+    {
+      "source": "poi",
+      "name": "testComment.docx",
+      "path": ".cache/poi/test-data/document/testComment.docx",
+      "bytes": 65298,
+      "sha256": "06b63b13f0b78a7179151af52c2282557c1ed204899feee9fcef4ca575344f97"
+    },
+    {
+      "source": "poi",
+      "name": "tika-3388.docx",
+      "path": ".cache/poi/test-data/document/tika-3388.docx",
+      "bytes": 16665,
+      "sha256": "3a1b5f73e61be4071c5bef5be3e52d344142f45c78681a673b14bc38bc07f717"
+    },
+    {
+      "source": "poi",
+      "name": "tika-3816.docx",
+      "path": ".cache/poi/test-data/document/tika-3816.docx",
+      "bytes": 22374,
+      "sha256": "ab5b32d15d2fd14c633452cc5a8b1cd27cd65038cd208a11ede29d6f8fe24259"
+    },
+    {
+      "source": "poi",
+      "name": "truncated62886.docx",
+      "path": ".cache/poi/test-data/document/truncated62886.docx",
+      "bytes": 19785,
+      "sha256": "39619851dab09369e91f926a94499caba0749ca2fa57d30b2fc2bc4a937292d0"
+    },
+    {
+      "source": "poi",
+      "name": "unicode-path.docx",
+      "path": ".cache/poi/test-data/document/unicode-path.docx",
+      "bytes": 5720,
+      "sha256": "4d8b0b3dd8ada4eb6bf141e88f8dffc07f993545d9fdd25f505d8ac839918946"
+    },
+    {
+      "source": "poi",
+      "name": "zero-length.docx",
+      "path": ".cache/poi/test-data/document/zero-length.docx",
+      "bytes": 10469,
+      "sha256": "8e39d68e61deed4d3afcbfc3bcea9b1c3d5a1e50ee0e0af3e15a705c8d186bbe"
+    },
+    {
+      "source": "pdfjs",
+      "name": "ArabicCIDTrueType.pdf",
+      "path": ".cache/pdfjs/test/pdfs/ArabicCIDTrueType.pdf",
+      "bytes": 39370,
+      "sha256": "1cad1de912ba29f89a6d8b08bc5b0f84382874ffedab2c8f9e05ef608c265bb1"
+    },
+    {
+      "source": "pdfjs",
+      "name": "ContentStreamCycleType3insideType3.pdf",
+      "path": ".cache/pdfjs/test/pdfs/ContentStreamCycleType3insideType3.pdf",
+      "bytes": 2440,
+      "sha256": "131aec277c444c985d502e5f589f37735d275a8ea247c1beedba0781fbe99d40"
+    },
+    {
+      "source": "pdfjs",
+      "name": "PDFBOX-3148-2-fuzzed.pdf",
+      "path": ".cache/pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf",
+      "bytes": 244351,
+      "sha256": "1c780335b494ac52eae9fa4d05f1bba88c18ca6b24e6e302b9f271de05e256aa"
+    },
+    {
+      "source": "pdfjs",
+      "name": "ShowText-ShadingPattern.pdf",
+      "path": ".cache/pdfjs/test/pdfs/ShowText-ShadingPattern.pdf",
+      "bytes": 4671,
+      "sha256": "13ac785e8445fbf01d5a8200e0e899daa204cdbe723b02f38f8af61ac48707bb"
+    },
+    {
+      "source": "pdfjs",
+      "name": "Test-plusminus.pdf",
+      "path": ".cache/pdfjs/test/pdfs/Test-plusminus.pdf",
+      "bytes": 28401,
+      "sha256": "2d572b042e50128127cc1c5a056da3f94b77854b6cca89ff074e1269b9172a45"
+    },
+    {
+      "source": "pdfjs",
+      "name": "XiaoBiaoSong.pdf",
+      "path": ".cache/pdfjs/test/pdfs/XiaoBiaoSong.pdf",
+      "bytes": 5652,
+      "sha256": "1ea20b84d94b90fa1ccb08bdd2e79e710071e0593fde6d547ab1cd4a3ebc0f88"
+    },
+    {
+      "source": "pdfjs",
+      "name": "alphatrans.pdf",
+      "path": ".cache/pdfjs/test/pdfs/alphatrans.pdf",
+      "bytes": 16910,
+      "sha256": "234c0ab8e9458f4d17133b08d2b66170eeb92be2a80e1508aa5117a2bf568f63"
+    },
+    {
+      "source": "pdfjs",
+      "name": "annotation-choice-widget.pdf",
+      "path": ".cache/pdfjs/test/pdfs/annotation-choice-widget.pdf",
+      "bytes": 91556,
+      "sha256": "2fcab2aed82afe9775359c1d166fb7aae77e99d25fe03be177e233d02d572538"
+    },
+    {
+      "source": "pdfjs",
+      "name": "annotation-link-text-popup.pdf",
+      "path": ".cache/pdfjs/test/pdfs/annotation-link-text-popup.pdf",
+      "bytes": 98997,
+      "sha256": "06917202feda6b6bb8b57b048655f946f749bdff5a8bfcb35eb0116f38910312"
+    },
+    {
+      "source": "pdfjs",
+      "name": "annotation-text-without-popup.pdf",
+      "path": ".cache/pdfjs/test/pdfs/annotation-text-without-popup.pdf",
+      "bytes": 24281,
+      "sha256": "2e0c788c795ab08178c12d26f73bebb6e18455a885568005770e8b6b947c4ceb"
+    },
+    {
+      "source": "pdfjs",
+      "name": "annotation-tx3.pdf",
+      "path": ".cache/pdfjs/test/pdfs/annotation-tx3.pdf",
+      "bytes": 31642,
+      "sha256": "15e3ac008cc848e593474aa312a9ef1fbecad1f69b4580361ffd2d334575bb91"
+    },
+    {
+      "source": "pdfjs",
+      "name": "arial_unicode_ab_cidfont.pdf",
+      "path": ".cache/pdfjs/test/pdfs/arial_unicode_ab_cidfont.pdf",
+      "bytes": 13110,
+      "sha256": "049a4330710d8470896061acf7ee486735e94cef2769f6cc13fec3cb13bb65aa"
+    },
+    {
+      "source": "pdfjs",
+      "name": "arial_unicode_en_cidfont.pdf",
+      "path": ".cache/pdfjs/test/pdfs/arial_unicode_en_cidfont.pdf",
+      "bytes": 15779,
+      "sha256": "1c4a08108d8074f543c04e9b2ea2b93a842e2b29eb05ee9d99766f430fd365ab"
+    },
+    {
+      "source": "pdfjs",
+      "name": "asciihexdecode.pdf",
+      "path": ".cache/pdfjs/test/pdfs/asciihexdecode.pdf",
+      "bytes": 743,
+      "sha256": "17cc92aa58ec48f75b01c6b6e7f8c8bade0a36f7295d0f833a16bafae854dc79"
+    },
+    {
+      "source": "pdfjs",
+      "name": "auth-event-ef-open.pdf",
+      "path": ".cache/pdfjs/test/pdfs/auth-event-ef-open.pdf",
+      "bytes": 2738,
+      "sha256": "144f617db7503a4d701d6383700add3254cb6a686741dd8f59b1284a82aca8ae"
+    },
+    {
+      "source": "pdfjs",
+      "name": "autoprint.pdf",
+      "path": ".cache/pdfjs/test/pdfs/autoprint.pdf",
+      "bytes": 9138,
+      "sha256": "1b6bee31ed8b88ec747c24308f9bd6b464043e6446c485a754507e7eeda92e90"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-refine-customat.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-refine-customat.pdf",
+      "bytes": 1146,
+      "sha256": "161d25d77c9bf788515dd0fc1aaaf6e35e1c23495acffe9cf99a98d567d1c5de"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-refine-refine.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-refine-refine.pdf",
+      "bytes": 1203,
+      "sha256": "2ebb942ac5be0e066ab4ce204384a39b61692ca75fab0a4df4f36dae925e1f4d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-refine-template1.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-refine-template1.pdf",
+      "bytes": 1116,
+      "sha256": "019b26e3de36cbdd829e2faef67866f4140abb17040cd0b626e5bceab272b68c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-big-segmentid.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-big-segmentid.pdf",
+      "bytes": 1176,
+      "sha256": "2fb59d0fbb8396bc812d5ed9af8bc6b2b8a69051519b8449b360cb304ea4e0b8"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-symbolrefine-textrefine.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-symbolrefine-textrefine.pdf",
+      "bytes": 1301,
+      "sha256": "2902534243c382770456f958fe7ba835f1916ea85f6219a3ba2b122f63db34c6"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-symhuff-texthuffB10B13.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-symhuff-texthuffB10B13.pdf",
+      "bytes": 1209,
+      "sha256": "1e0ad39f563c79b7e650347265dafebb1ccbfb20c9fbce62fc64575af9a13aa9"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-textbottomleft.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-textbottomleft.pdf",
+      "bytes": 1112,
+      "sha256": "0bc02085b750d0413fa3360825cc23b5e5a449b2e3f08fa084c3b00b64e03683"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-textbottomrighttranspose.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-textbottomrighttranspose.pdf",
+      "bytes": 1097,
+      "sha256": "27b036ccba3f9e068677ef8bf203cf66bc6fef1eb091188119a1b7f474344d26"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-texthuffrefineB15.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-texthuffrefineB15.pdf",
+      "bytes": 1270,
+      "sha256": "0668b10ff9061f028185a8b2c014184ceaa3c23cddaf058c91f2d068b2e20def"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-texthuffrefinecustompos.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-texthuffrefinecustompos.pdf",
+      "bytes": 1318,
+      "sha256": "03b17dfc51931f8f9f35a2fabfe98e36bb61fc7e604e455c6c6d6fca3d6e6603"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-texthuffrefinecustomsize.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-texthuffrefinecustomsize.pdf",
+      "bytes": 1295,
+      "sha256": "1a2a7861127869e6c779b65b898ec41e5045f1107242923aa8109c8c412cdec1"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-textrefine-customat.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-textrefine-customat.pdf",
+      "bytes": 1132,
+      "sha256": "2c86c9cde4e623f2ba3c94d6b9e067298b25adeebd96ab704cbe908c22de5c8b"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-symbol-texttoprighttranspose.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-symbol-texttoprighttranspose.pdf",
+      "bytes": 1097,
+      "sha256": "2e6522bf6fbbf01fbd8c05b00915b9f5c2783cbdf1815b53b027f49fb91cdad7"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-template1-customat-tpgdon.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-template1-customat-tpgdon.pdf",
+      "bytes": 1020,
+      "sha256": "071fd70fdad79ea30a2bfbaafcee63f7da0e2b723ffeef5949d583bae39ffd58"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-template1.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-template1.pdf",
+      "bytes": 1015,
+      "sha256": "25ab482ef6ba07335fd4927ac3ab22b231044345b48e024b5ed2399b048bc677"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-template3-tpgdon.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-template3-tpgdon.pdf",
+      "bytes": 1197,
+      "sha256": "1d8514a3c8664ac84b1434ccac539f30fec3a02dccbd1da612a7925394cb2a48"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-trailing-7fff-stripped-harder-refine.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-trailing-7fff-stripped-harder-refine.pdf",
+      "bytes": 1887,
+      "sha256": "17e08dc35c1fe2c6a9ce5db25ee53805248ccb9a8ae528a339d37d764f29dc9a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bitmap-trailing-7fff-stripped.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bitmap-trailing-7fff-stripped.pdf",
+      "bytes": 1049,
+      "sha256": "1fb303a7eaa11933f3f1e5c3b554375649ea4a5f1226efa97a7534cac768b8fb"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1019475_1.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1019475_1.pdf",
+      "bytes": 68512,
+      "sha256": "1fa292aea756ae921715c72e5962d3e2fde96de200b8aedfc3eb22a2fe72902c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1019475_2.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1019475_2.pdf",
+      "bytes": 27694,
+      "sha256": "232e7f5c654422d6bdc863a7d63c5ff401e5128e818c4770d3b0f8293b4bf307"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1065245.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1065245.pdf",
+      "bytes": 2188,
+      "sha256": "00beff9834bc18913a93f0c7bc0572187845c665e29a1ff3aa0bc3b8121feee5"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1392647.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1392647.pdf",
+      "bytes": 13139,
+      "sha256": "2ef23082afd417c317a38ef7e1b76fb3dc1f1030f09d4033ee87cd200fb09f84"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1539074.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1539074.pdf",
+      "bytes": 6015,
+      "sha256": "1daa1ed8e6d2611c41e4072daf226be9bad3d261b7a36783a4cc560790be5adf"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1650302_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1650302_reduced.pdf",
+      "bytes": 38857,
+      "sha256": "126f650fc22544ecf451adc4a321072261ab7edeba3926aeab8dc92c441f06ee"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1671312_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1671312_reduced.pdf",
+      "bytes": 5748,
+      "sha256": "0cf0ec3e99d072e32d067caf90760aba891ca4226231977538bd33a1226a1436"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1675139.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1675139.pdf",
+      "bytes": 14835,
+      "sha256": "13208f75b47ec152acb103392f11e4fcc07ea1bc0489a28a0b9695c0987e1730"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1703683_page2_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1703683_page2_reduced.pdf",
+      "bytes": 330131,
+      "sha256": "2466bf4bbeb96cc70847f7888661f3279a8e90363e70afd9ca033834f65a94db"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1708041.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1708041.pdf",
+      "bytes": 38158,
+      "sha256": "2d22d016317756b4357e815633672229f8a09071b832fdc54dd0abcf1e399430"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1755507.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1755507.pdf",
+      "bytes": 498287,
+      "sha256": "27dbaa9de89b5fd7c948639152b38f4ef1baeb574d48a294c5afc92835b94f8c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1782564.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1782564.pdf",
+      "bytes": 7743,
+      "sha256": "16ae40dc86690006ad264e8118e1af76614633d2de736a1bbee137de6c7c8ad2"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1795263.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1795263.pdf",
+      "bytes": 355886,
+      "sha256": "25ea0eaae9460dbc984c78cafb94e59ef0117d5d29ae96d251aab6079986da9c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1815476.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1815476.pdf",
+      "bytes": 134495,
+      "sha256": "0082e99f4205d82837c9fa1a5cd582184f9d147577dfd1ee02c970119ffe2efd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1888084.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1888084.pdf",
+      "bytes": 111656,
+      "sha256": "2f16381fb3550406fe8cc6875ed0de53726db1c644e7254218855480164ea5cd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1934157.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1934157.pdf",
+      "bytes": 7065,
+      "sha256": "13a5548c69a71fb076bbfd2b5a5bda5d0cd436451f0ae2fae880b21094f7cb47"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1947248_text.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1947248_text.pdf",
+      "bytes": 14504,
+      "sha256": "249c09e9e76ab30f11aa0ca9d06bfc3fef40499810d6790134a43ee3bf838790"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1974436.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1974436.pdf",
+      "bytes": 49350,
+      "sha256": "2172c6a5788e3e876e01b7f241a3dfef32e5841b1ed84669e48e43a88237554d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug1978317.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug1978317.pdf",
+      "bytes": 1535205,
+      "sha256": "2da2307afefe14c163f0f57a794c5199e9302eec3fdc154896a05976e08c2727"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug2004951.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug2004951.pdf",
+      "bytes": 59721,
+      "sha256": "03996344ab293d7636929c39040e4450d395ec0c78e1d590ba7205d7c0580b06"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug2009627.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug2009627.pdf",
+      "bytes": 40781,
+      "sha256": "1febf685fda55a8f3fadd5ff912c682f5560cf2db00b91c6e76ba830da114f31"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug2065923.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug2065923.pdf",
+      "bytes": 1514,
+      "sha256": "02341499222a50c0c2872b90a117add65051fc1cf997b6d509a15f7d905fe093"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug2086012.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug2086012.pdf",
+      "bytes": 733,
+      "sha256": "25ae84ae06f52743cff953be80151948e231431893f30693fdb83d9d7a86baf9"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug766086.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug766086.pdf",
+      "bytes": 860,
+      "sha256": "023b2ab617e79e41ff9f72c491e5962bcbef945767617e7cedbbc06983a17753"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug850854.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug850854.pdf",
+      "bytes": 667,
+      "sha256": "151f5a00f2d560425f88d4b4adab5d0cd1198f35276f5b44aaa45412a0a61022"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug854315.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug854315.pdf",
+      "bytes": 107532,
+      "sha256": "1c724b79f68beafd4470c58d106e6dfaad87e1a51c84623120f58e7e774850dd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug859204.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug859204.pdf",
+      "bytes": 42569,
+      "sha256": "2accf1f25f490466741c7fab3012fde4b0f3a059d6ec2495da6598739254f561"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug878026.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug878026.pdf",
+      "bytes": 676,
+      "sha256": "1a4fa12a5da26f53da5dede3f0fff19aaecea659f0db76f945d0b87f6d3df066"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug894572.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug894572.pdf",
+      "bytes": 41937,
+      "sha256": "074b76df956c16c21058f65eb35713206ec436531ba350fc01152a2d61893635"
+    },
+    {
+      "source": "pdfjs",
+      "name": "bug921409.pdf",
+      "path": ".cache/pdfjs/test/pdfs/bug921409.pdf",
+      "bytes": 44438,
+      "sha256": "16dc0443ef3dd55a5ae5b01a6cc7f177965db8fa54356c25f863ccda57314225"
+    },
+    {
+      "source": "pdfjs",
+      "name": "checkbox-bad-appearance.pdf",
+      "path": ".cache/pdfjs/test/pdfs/checkbox-bad-appearance.pdf",
+      "bytes": 19872,
+      "sha256": "0cd13bf7375a2b6b9b01bb694aefcfe9dac225105cb9ad7e03798783b3318ad9"
+    },
+    {
+      "source": "pdfjs",
+      "name": "chrome-text-selection-markedContent.pdf",
+      "path": ".cache/pdfjs/test/pdfs/chrome-text-selection-markedContent.pdf",
+      "bytes": 137291,
+      "sha256": "256551a6dabf4ae27b603a820bc58a15fa082919b023c7a181b491b92ef05b44"
+    },
+    {
+      "source": "pdfjs",
+      "name": "comments.pdf",
+      "path": ".cache/pdfjs/test/pdfs/comments.pdf",
+      "bytes": 1065760,
+      "sha256": "283b215db9937fcdf148b22e7310892d148e43047bccffa6bf56eb4156592e5d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "crypt_filters.pdf",
+      "path": ".cache/pdfjs/test/pdfs/crypt_filters.pdf",
+      "bytes": 4626,
+      "sha256": "19e6370432a3f4edb77900afb3e8d8d6a71344fe0912854781c391a506668d0a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "devicen.pdf",
+      "path": ".cache/pdfjs/test/pdfs/devicen.pdf",
+      "bytes": 15751,
+      "sha256": "1fbaf094e1c714513aea19258e74269b6b5365ea769e288a8e142773f6cf2b94"
+    },
+    {
+      "source": "pdfjs",
+      "name": "doc_2_3_pages.pdf",
+      "path": ".cache/pdfjs/test/pdfs/doc_2_3_pages.pdf",
+      "bytes": 39598,
+      "sha256": "2aa58f3c1fd4c204aa7136930fadd9733503c552e1004e63f39ac6afaf7a88bd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "encrypted-attachment.pdf",
+      "path": ".cache/pdfjs/test/pdfs/encrypted-attachment.pdf",
+      "bytes": 2719,
+      "sha256": "0f44da5152adf8cafcd7b0057d840310d78e17d033ee5414da0881b6dcd130ab"
+    },
+    {
+      "source": "pdfjs",
+      "name": "extract_link.pdf",
+      "path": ".cache/pdfjs/test/pdfs/extract_link.pdf",
+      "bytes": 10213,
+      "sha256": "222f26fe0a53587eba7c1dc6d99cdebc78f80c3316d5502b3e64134c20fc5741"
+    },
+    {
+      "source": "pdfjs",
+      "name": "fields_order.pdf",
+      "path": ".cache/pdfjs/test/pdfs/fields_order.pdf",
+      "bytes": 7661,
+      "sha256": "21194a83042bd17908980d7dae75cad6e21030f74be1821168d05e42d09475b4"
+    },
+    {
+      "source": "pdfjs",
+      "name": "file_url_link.pdf",
+      "path": ".cache/pdfjs/test/pdfs/file_url_link.pdf",
+      "bytes": 856,
+      "sha256": "008215b7ccd2caa787789140de7321e36225b6a545442212a6650803c1b820df"
+    },
+    {
+      "source": "pdfjs",
+      "name": "filled-background.pdf",
+      "path": ".cache/pdfjs/test/pdfs/filled-background.pdf",
+      "bytes": 401129,
+      "sha256": "26fd407cdfe12ec60bea574b04cb0202f065145bd53fbcdf5c0061bb7547843f"
+    },
+    {
+      "source": "pdfjs",
+      "name": "firefox_logo.pdf",
+      "path": ".cache/pdfjs/test/pdfs/firefox_logo.pdf",
+      "bytes": 234678,
+      "sha256": "1271675be69a80dac7d4b4a5bce63e5025d1763c810f1efe56ee96cad17f0a7f"
+    },
+    {
+      "source": "pdfjs",
+      "name": "form_unbalanced_restore.pdf",
+      "path": ".cache/pdfjs/test/pdfs/form_unbalanced_restore.pdf",
+      "bytes": 642,
+      "sha256": "1b4416cdc23ec05e67a4cd9677e33ce2c67a8de6be9e54e3a1668d3c84edf1f0"
+    },
+    {
+      "source": "pdfjs",
+      "name": "fraction-highlight.pdf",
+      "path": ".cache/pdfjs/test/pdfs/fraction-highlight.pdf",
+      "bytes": 34393,
+      "sha256": "132070eb4d5eba316a1f7811708dab7b7c28b3c81c853237f6cbba93b904a11c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "franz.pdf",
+      "path": ".cache/pdfjs/test/pdfs/franz.pdf",
+      "bytes": 2805,
+      "sha256": "050ae194d21d9b257db62b85cdb632178bbcf71fd7e26c13e75e473a3fa4e8ea"
+    },
+    {
+      "source": "pdfjs",
+      "name": "function_based_shading.pdf",
+      "path": ".cache/pdfjs/test/pdfs/function_based_shading.pdf",
+      "bytes": 3869,
+      "sha256": "21a0d4951f2d45f86d90dd9bac824805b54b2bd2fefe6efad763d227d484ed64"
+    },
+    {
+      "source": "pdfjs",
+      "name": "highlights.pdf",
+      "path": ".cache/pdfjs/test/pdfs/highlights.pdf",
+      "bytes": 969276,
+      "sha256": "025a8235824da8fdc2a73503d78ec0a658eb9f6620380108807e27013ae3a07d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue1045.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue1045.pdf",
+      "bytes": 22741,
+      "sha256": "12cc65e222f51d7885ef5c5901bf38bd331315c9f599611939620fcdb4a4bbc4"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue10529.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue10529.pdf",
+      "bytes": 120681,
+      "sha256": "01e1abc883c25e4b7d952d260717da5f533b23ccd8d5b10d95f4d8581b294f42"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue10640.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue10640.pdf",
+      "bytes": 50264,
+      "sha256": "2f07579b9f8044cb887e6da59a92df65047e0ed42d79b67085d0f89045b1d53b"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue11045.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue11045.pdf",
+      "bytes": 40875,
+      "sha256": "16e57e98a1a5560f2dcaa8315570da1193d5f52e20393ea8572ce37c54c7a755"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue11473.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue11473.pdf",
+      "bytes": 15028,
+      "sha256": "0a5b41aea451778065d1d4aff11bdc6537fb25ca956019f02b64c0f8ffcf1b34"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue11549_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue11549_reduced.pdf",
+      "bytes": 25629,
+      "sha256": "13ba78671c0ceaaffb10878e6c153c18924db5afcd54cc7f038eb85fb10e28b1"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue11768_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue11768_reduced.pdf",
+      "bytes": 81167,
+      "sha256": "1dc14fefd828c389c9d7bdf319a9ab75403e380bcca9bcd26821393df5b11cea"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue12010_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue12010_reduced.pdf",
+      "bytes": 795,
+      "sha256": "001ae6a22ae89927cbc6126daccb4723e0415bb11b1c9c68ea980fbc0d6af885"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue12120_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue12120_reduced.pdf",
+      "bytes": 21859,
+      "sha256": "138df0558cfb5ca190a789a98049003c594f7772e9011e40277b57a6e1c47c82"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue12337.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue12337.pdf",
+      "bytes": 1016953,
+      "sha256": "15ac6c9eb5c04719c49632bbc3138f9ef1c1a8b87f767ab5161302a114523cb3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue12399_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue12399_reduced.pdf",
+      "bytes": 7552,
+      "sha256": "179c6c01981136c5aafea2f3062dfc318bf04e1aa9a029083a0264230d3bd48a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue1249.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue1249.pdf",
+      "bytes": 68783,
+      "sha256": "20cd02a40fb5c869f0d4428c9e066c95dcbb7d8f2601da7c8cdf426f98b30af7"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue12706.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue12706.pdf",
+      "bytes": 47808,
+      "sha256": "2349411ebaaf6eb2e226448756988ca7e997e8216a2101040d68bcfbd5046ddf"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue13147.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue13147.pdf",
+      "bytes": 21487,
+      "sha256": "131a8573a96e8fcfa38b074c5bed0c7289bf0f8f9f58d79b8594629bcdd9d311"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue13211.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue13211.pdf",
+      "bytes": 107307,
+      "sha256": "01465d3183ca951834ebb546762323130cd3691d262352166eb446b47dfef144"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue13242.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue13242.pdf",
+      "bytes": 27635,
+      "sha256": "1c0f8198544f5485a5fe475de7eba66382ddeb017b53a5cdf47834a52e21b372"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue13372.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue13372.pdf",
+      "bytes": 85444,
+      "sha256": "2ed729efdc6a2f4454b9a468988798c556a88fa9b47507f6d3e357e4963df661"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue13520.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue13520.pdf",
+      "bytes": 754579,
+      "sha256": "2716c9b9e7f828b03f7bd79ad5d5b77b57e29869c16cf98813ee1397aacfe399"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue14130.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue14130.pdf",
+      "bytes": 79706,
+      "sha256": "0ca0a6e1cd50de1b930b764ca7b276fba87f78c06689b6d88cf8b8055392b782"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue14307.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue14307.pdf",
+      "bytes": 10827,
+      "sha256": "2e55a95fb802d5688af0ecea12a32cc03cbb3ebae54c486d6a1b67172804afd6"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue14755.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue14755.pdf",
+      "bytes": 751,
+      "sha256": "2d59b1c5956f4e2bec21fee4c2c8e3dacb696f3d81fe97f38cfc437e50856403"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15012.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15012.pdf",
+      "bytes": 108381,
+      "sha256": "1840707b9023db71cc9ae865f01733ea3c84eabd935a07dc8a6d63ae73e39ce8"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15150.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15150.pdf",
+      "bytes": 449,
+      "sha256": "122016379efad59780860b34a2d16511a1f426c2167d2fc80f4ce7febedff396"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15262.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15262.pdf",
+      "bytes": 14788,
+      "sha256": "16cdaec128ae8c8ea8387990bb97602f22298a8a1de73db37dbc1701da0de1af"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15594_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15594_reduced.pdf",
+      "bytes": 1045,
+      "sha256": "0b90e594b44f17ee5bc3a39c373b084f4400e49876a90054f06f0186cbcf9247"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15815.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15815.pdf",
+      "bytes": 7424,
+      "sha256": "07e14ce3b86bc5699cd2938afe2f374c7b0ab555aafefef734f68b7330427e6a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue15818.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue15818.pdf",
+      "bytes": 7331,
+      "sha256": "08355e696f274c08c0e285d6ff4921dd4cf52215d6ef1cdfdb3b41438e1b458a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16021.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16021.pdf",
+      "bytes": 5865,
+      "sha256": "0664e85bb2c46624e26b9afa6f133c4cdd232bb9006156677d4b009d24b45f22"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16176.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16176.pdf",
+      "bytes": 65589,
+      "sha256": "14f9955e5a0c8fa698664d89bf9a65485980249cea730c3df823173db2410690"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16221.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16221.pdf",
+      "bytes": 10087,
+      "sha256": "1842d40d8f79a2fbcc1c2f57fd118860c2d2ce2b69b6789dcf4f4dee29ea4b31"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16473.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16473.pdf",
+      "bytes": 6641,
+      "sha256": "1a8108eb4247342f0b1cbbce085ff30ba9c7e59a0e4c48c24f00a8c253b34b1d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16500.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16500.pdf",
+      "bytes": 22022,
+      "sha256": "213b277a367d792139910ed724831d3579e787192a2fa1db14d375af5cb3599b"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16538.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16538.pdf",
+      "bytes": 60516,
+      "sha256": "308a2cabdc09425e52c08582fe7ab8183f507d3748a6e393ea9ebe8b5f752c5d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue16633.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue16633.pdf",
+      "bytes": 35196,
+      "sha256": "2cbbb87edd9346efc2e5e9e865c2f9f056d8b8431135347287e45710bb2bdb0a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue17056.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue17056.pdf",
+      "bytes": 13124,
+      "sha256": "2b83abfed38422f2c48c814dff05a98eaf3e749560ed9f4ae6afd0f52894d6c0"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue17147.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue17147.pdf",
+      "bytes": 45182,
+      "sha256": "03dc20f6e920cb6c192175b52bf3ad1577838cbbc30dfd01e9edbfd43abe36b3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue17333.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue17333.pdf",
+      "bytes": 5249,
+      "sha256": "3144759cc34b7aad7ea6a11090e20a81d850921349eaf018d482f787cdc0f9ae"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue17554.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue17554.pdf",
+      "bytes": 651,
+      "sha256": "2dc1f90970388bba5a28beaeb21199839aa0d2c1058b60e49c9728acf462d10c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue17808.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue17808.pdf",
+      "bytes": 979045,
+      "sha256": "2b082b535fbabae9e066df04d2d68b984783e17559a1fe70258250078f3cf0fa"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue18030.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue18030.pdf",
+      "bytes": 12788,
+      "sha256": "2e5098d4f46773b0fa69810495e7385ea46040753d9037684580dbce02c77e23"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue18956.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue18956.pdf",
+      "bytes": 9204,
+      "sha256": "033e0a837d32d43a624f9820ceab80afdce51fe616cd24e95dabcad453bf4c0b"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19120.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19120.pdf",
+      "bytes": 26879,
+      "sha256": "30412934cc368fd2adfd13812cc71692fbc3d562b9414baf34fd139f3d7f269f"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19207.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19207.pdf",
+      "bytes": 5113,
+      "sha256": "0c73b780a16f6d65f22b86cd0458da50df81102da1044ed0907583ef41316133"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19484_1.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19484_1.pdf",
+      "bytes": 47688,
+      "sha256": "0f020604762fe289eaed602bfb5f4e3d921fb04ffc0fd61ec5423933a03f1948"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19484_2.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19484_2.pdf",
+      "bytes": 47196,
+      "sha256": "247215f0ca711ec552289c3076cc7ee38f117c3e0d9c83bfc136ff99f2627216"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19800.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19800.pdf",
+      "bytes": 1105,
+      "sha256": "0f1a00f85f3949dfbec0b43347594f21728ce5d918329e9dc9315e39220b5d15"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue1985.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue1985.pdf",
+      "bytes": 9884,
+      "sha256": "0f991f71856c5e88775f48cf194bf4cd3800c27875352473461e16e01750f3d6"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue19971.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue19971.pdf",
+      "bytes": 1729186,
+      "sha256": "178c6207203151cf4036cd377d233e92a3cfb07e7787dd68bc2b2203d5ef3ce1"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue2017r.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue2017r.pdf",
+      "bytes": 34802,
+      "sha256": "2e243840e40f788ba864c5b05970b9b7cb6d070e92b9432dbe283c2aa3a5166f"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue20324.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue20324.pdf",
+      "bytes": 11151,
+      "sha256": "033cbfb8667324b4d23be0e2debcd74747caf80ab22672a945b76124bad8b733"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue20453.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue20453.pdf",
+      "bytes": 22176,
+      "sha256": "2ba76790cd0789536fe4a457106bc90daf4a2b625b7376995dac814b2d4080e8"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue2099-1.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue2099-1.pdf",
+      "bytes": 2861,
+      "sha256": "007c39ebfe248ca435add765bddc9a983e075e4059efbf4ba013672c55937e5d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue22011.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue22011.pdf",
+      "bytes": 19594,
+      "sha256": "176ef523a383236aaa78882d367ee18e1e57cfcc71bb70a7d63695b91fbb7184"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue22124.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue22124.pdf",
+      "bytes": 810,
+      "sha256": "2934bff00aa666d84594a466d2fe283485a1c75419b8a7e9ef3bd8b8f2dfe011"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue3371.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue3371.pdf",
+      "bytes": 12323,
+      "sha256": "0c3fb45d9b61ea762b4b3298c8c47e5375e83d151d356d87d740bcb85d953473"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue3566.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue3566.pdf",
+      "bytes": 9805,
+      "sha256": "1202e4c94155a0021343825edd896524f3541fd3887cc456987f7279ff80aae3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue4402_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue4402_reduced.pdf",
+      "bytes": 22346,
+      "sha256": "0031ffe9ea3bf005ca059798d5a204bb3332aeccf733dcd3245c3aa725236313"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue4665.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue4665.pdf",
+      "bytes": 42242,
+      "sha256": "05f4ae66465c3b72b2d5a645d901924b8c37c0d09ce84f3392dec3e2f01fe612"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue4722.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue4722.pdf",
+      "bytes": 1405,
+      "sha256": "0a514189636e293a822b7bd6c3e6afa0b0b686cd87d3854a983fadef5e936b05"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue4881.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue4881.pdf",
+      "bytes": 49470,
+      "sha256": "05b708b0465d3e6489ceb0c4a3991d00f48839d427733171523ab8b8c5cccfd3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue4909.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue4909.pdf",
+      "bytes": 12688,
+      "sha256": "013645b5df7a0265be2de8a141b29f298fb80bc4e7eb3309fd3b6ca3d993bb82"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue5084.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue5084.pdf",
+      "bytes": 15526,
+      "sha256": "0b03cfc542438510e9601532d75038523f1c94f389c63016f0806e692329d550"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue5421.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue5421.pdf",
+      "bytes": 3209,
+      "sha256": "2a72ed6ea260507a66ecbce9c10516c0dec4c64a8f0d934447a63f4b6c7e0be6"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue5564_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue5564_reduced.pdf",
+      "bytes": 1859,
+      "sha256": "26ba0dcc4a2159d0769f795778a42e8955c14e2301fb553fa99c1d0982ac809c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue5874.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue5874.pdf",
+      "bytes": 214331,
+      "sha256": "12db245aae3febaf5dda2214c2e9f4a489674c92a89fbcd4d7d6a05b14faff3a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6106.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6106.pdf",
+      "bytes": 994,
+      "sha256": "1000cab6419d42a4cb1c749dbe9adae4a81fc9fb79f2751600e6d8f6e7ac2bc4"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6132.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6132.pdf",
+      "bytes": 119101,
+      "sha256": "255889d533fe7b7d8db56b2ae0137f0cb676d2bab9245b417175cfbe8f899185"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6179_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6179_reduced.pdf",
+      "bytes": 16136,
+      "sha256": "182dc1637a54238c600c1692329215dd3850c0fa5b99fd70ad09891c5ebcea95"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6298.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6298.pdf",
+      "bytes": 2979,
+      "sha256": "2b2322397063621047f7ba3bfb43fd00114453396616cd658a68fe5e242ea269"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6612.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6612.pdf",
+      "bytes": 7067,
+      "sha256": "2940293c5f32c23c1ccf5df34c44d226cff4e46c7ff633772b9f677d6c4e5738"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue6901.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue6901.pdf",
+      "bytes": 25100,
+      "sha256": "0dce224c830f563dca993ee5757d73f97cf880bd09bfbca9346162aa68885baa"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue7115.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue7115.pdf",
+      "bytes": 1014,
+      "sha256": "309de181de6cd58e47d2b401bd55282aadb43d1820396fe6f02f4df388202d2e"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue7403.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue7403.pdf",
+      "bytes": 51871,
+      "sha256": "28290702eb89ffbba7e0eb7feffbecc7c0be203ea7f5798cfc26a66c4759013d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue7696.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue7696.pdf",
+      "bytes": 3523,
+      "sha256": "2666c86e2c0fa1f3cc3eb7efab30eed8165edfea915989295ce232e56dbe14a7"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue7878.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue7878.pdf",
+      "bytes": 36048,
+      "sha256": "16376d8623328f67ce637b911b449c537dc7389fd1ec7f93bf6ce4fb206e464b"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue8092.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue8092.pdf",
+      "bytes": 3356,
+      "sha256": "02aed13156ad37f806ee1fd5dd6c05cfcdc598d99fd3b70f399a58bbd28c5cd9"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue8125.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue8125.pdf",
+      "bytes": 690,
+      "sha256": "22406734101fd97265b0ed18541215071a2c02cf09deba0c85d928641c77aa3e"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue8229.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue8229.pdf",
+      "bytes": 20854,
+      "sha256": "107a418dd4513f31001991603635e8da82b79c9cb1443b6a1114bf75c2df8504"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue8276_reduced.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue8276_reduced.pdf",
+      "bytes": 682,
+      "sha256": "0849bfe6f950d4ad44b5011a40ffbe96c80f52e44873b49cddf725d1632d5620"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue8823.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue8823.pdf",
+      "bytes": 1771,
+      "sha256": "1ec3b2238941900ee7b3e89d495d6e2180b437c5117ecf2f47f618a5cb2b8814"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue9252.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue9252.pdf",
+      "bytes": 1289,
+      "sha256": "05884918343345ae4f9d133ddd654b9afb7a434e83f3504c05557454106387ba"
+    },
+    {
+      "source": "pdfjs",
+      "name": "issue9949.pdf",
+      "path": ".cache/pdfjs/test/pdfs/issue9949.pdf",
+      "bytes": 844757,
+      "sha256": "0bed9dd73c79c4b5ff1f74725f7ebfaae85981bb8e0c3c971c721a5371740cec"
+    },
+    {
+      "source": "pdfjs",
+      "name": "jbig2_symbol_offset.pdf",
+      "path": ".cache/pdfjs/test/pdfs/jbig2_symbol_offset.pdf",
+      "bytes": 1157,
+      "sha256": "305b71c67829ef0bb8bddab9fa3ee763dcecd173f5fd996740d17212888fa97d"
+    },
+    {
+      "source": "pdfjs",
+      "name": "jpx_subsampling.pdf",
+      "path": ".cache/pdfjs/test/pdfs/jpx_subsampling.pdf",
+      "bytes": 5146,
+      "sha256": "01f92ae453f8f6d2e8c61574054c1ca3160e3481a3f9c8cc365aa1ff7cd3e1f3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "js-colors.pdf",
+      "path": ".cache/pdfjs/test/pdfs/js-colors.pdf",
+      "bytes": 10380,
+      "sha256": "26664cd35630438bf0f0313f4b78c656c3a1c4f05cb9b30475f27482c3fbc78f"
+    },
+    {
+      "source": "pdfjs",
+      "name": "many_inferred_links.pdf",
+      "path": ".cache/pdfjs/test/pdfs/many_inferred_links.pdf",
+      "bytes": 2108,
+      "sha256": "23bcf7dee9fddfe76a15ebf704a515a01fcd0454e90e4950a46df2f98bd7dbff"
+    },
+    {
+      "source": "pdfjs",
+      "name": "mixedfonts.pdf",
+      "path": ".cache/pdfjs/test/pdfs/mixedfonts.pdf",
+      "bytes": 405432,
+      "sha256": "04f17b84112d8130d75601f8f9c2027481a19df595aacb753ca3f9f3b08b2350"
+    },
+    {
+      "source": "pdfjs",
+      "name": "nested_outline.pdf",
+      "path": ".cache/pdfjs/test/pdfs/nested_outline.pdf",
+      "bytes": 5929,
+      "sha256": "1283aa2173bc57def82323ea2601a4e08ada5beb2466873aec8aa04ddd74c013"
+    },
+    {
+      "source": "pdfjs",
+      "name": "noembed-sjis.pdf",
+      "path": ".cache/pdfjs/test/pdfs/noembed-sjis.pdf",
+      "bytes": 1472,
+      "sha256": "13fd4811beaf0390d313847e23839db237d1fb65efc839f6d9f534ea52311c95"
+    },
+    {
+      "source": "pdfjs",
+      "name": "nonisolated_blend_group_alpha.pdf",
+      "path": ".cache/pdfjs/test/pdfs/nonisolated_blend_group_alpha.pdf",
+      "bytes": 914,
+      "sha256": "138954465907fc446fd3138b9e9d7ba0ba040ddb3430ce349ba2505ddfd291c3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "operator-in-TJ-array.pdf",
+      "path": ".cache/pdfjs/test/pdfs/operator-in-TJ-array.pdf",
+      "bytes": 1004,
+      "sha256": "30f2536f754c14121b4596a50d95fc38592b8a0d81640e92c1fbe6553f482479"
+    },
+    {
+      "source": "pdfjs",
+      "name": "outlines_for_editor.pdf",
+      "path": ".cache/pdfjs/test/pdfs/outlines_for_editor.pdf",
+      "bytes": 2982,
+      "sha256": "084e3b2eb28f5d512f12cd3871bb8b161226f5ee43c82f89c7c5ee0987f58d1e"
+    },
+    {
+      "source": "pdfjs",
+      "name": "outlines_se.pdf",
+      "path": ".cache/pdfjs/test/pdfs/outlines_se.pdf",
+      "bytes": 30444,
+      "sha256": "11d268780724faf63110612a4625923420d2f60075c07d5365d2c9197d1c04cd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "pattern_text_embedded_font.pdf",
+      "path": ".cache/pdfjs/test/pdfs/pattern_text_embedded_font.pdf",
+      "bytes": 2662,
+      "sha256": "0d87537cfba850b7501db8010801bebe62b9cc19776ae387f9dafc61e00b1699"
+    },
+    {
+      "source": "pdfjs",
+      "name": "pattern_text_non_embedded_font.pdf",
+      "path": ".cache/pdfjs/test/pdfs/pattern_text_non_embedded_font.pdf",
+      "bytes": 1702,
+      "sha256": "17e0e98998d931ccdce7f07e87439af6067f4a6bac0b75395b6681bd6f46890e"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_codecs_jpx.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_codecs_jpx.pdf",
+      "bytes": 524879,
+      "sha256": "0f8479d461d0d7e5fb3875f8336ecbbc995ec180bc60b07a7a8be757a9e22169"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_paths_map.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_paths_map.pdf",
+      "bytes": 400796,
+      "sha256": "1940d9c7aa586cf92e68b4b4f702615d5bfb8cb8d86296f65b2e1b3e86c1d213"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_paths_operators.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_paths_operators.pdf",
+      "bytes": 242949,
+      "sha256": "13e0dd366ca953b342405dd882f62e47288a840e56d6a92bd10f58c59a0523a4"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_paths_polygons.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_paths_polygons.pdf",
+      "bytes": 592761,
+      "sha256": "29fc8f0396d43a68243a1f80af9a623237288cd2b1eb9f12dadfc7bdd2475312"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_patterns_tiling_images.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_patterns_tiling_images.pdf",
+      "bytes": 25769,
+      "sha256": "0bd885aef9f8a2a7ebb9f8afdac1bb69a031790caf48f1ed7f34a4786c599fc6"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_structure_content_array.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_structure_content_array.pdf",
+      "bytes": 102843,
+      "sha256": "058a900a201051919d57b4d71fae881e1032b98c251a9d03daf80758b6073170"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_structure_transfer_functions.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_structure_transfer_functions.pdf",
+      "bytes": 612016,
+      "sha256": "313a127258d9a83c0da36467f039936cfee04cd260ebd445aeef97f2706006ab"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_text_cff_embedded_variants.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_text_cff_embedded_variants.pdf",
+      "bytes": 64048,
+      "sha256": "00ae75fae27cb643f70140ed7c8c2a7eb045c6527844f3adb539b07ea8d951f8"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_text_cmap_mixed.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_text_cmap_mixed.pdf",
+      "bytes": 189345,
+      "sha256": "1802c3dbd062817a17f57a2e2c192a083c01675c5b969f9529b46b4ff57697e3"
+    },
+    {
+      "source": "pdfjs",
+      "name": "perf_text_type3_vector.pdf",
+      "path": ".cache/pdfjs/test/pdfs/perf_text_type3_vector.pdf",
+      "bytes": 63511,
+      "sha256": "2ed808d7c9a39c51717be6734afb35f5ce20d7d23b9456ddd1a48ddcca7e739a"
+    },
+    {
+      "source": "pdfjs",
+      "name": "poppler-90-0-fuzzed.pdf",
+      "path": ".cache/pdfjs/test/pdfs/poppler-90-0-fuzzed.pdf",
+      "bytes": 611575,
+      "sha256": "233c39dc16ed862911668784739d07dc9a27ae844d63188de7019da4f012f942"
+    },
+    {
+      "source": "pdfjs",
+      "name": "poppler-91414-0-54.pdf",
+      "path": ".cache/pdfjs/test/pdfs/poppler-91414-0-54.pdf",
+      "bytes": 843,
+      "sha256": "1b2290fda39d79506e2cc104199bda3a5fb1a38bbf67e213778e0fc3b83fa2a4"
+    },
+    {
+      "source": "pdfjs",
+      "name": "postscript_type4_stack_depth.pdf",
+      "path": ".cache/pdfjs/test/pdfs/postscript_type4_stack_depth.pdf",
+      "bytes": 1472,
+      "sha256": "1cbf68ba04c71a6e7428575ec94cff4b1a9879bf852563c24810bf417c5ab1b0"
+    },
+    {
+      "source": "pdfjs",
+      "name": "pr7352.pdf",
+      "path": ".cache/pdfjs/test/pdfs/pr7352.pdf",
+      "bytes": 1648,
+      "sha256": "0db206fae31dba72521d689e21e6450fb9f2d992e8bb853291340c20c573da63"
+    },
+    {
+      "source": "pdfjs",
+      "name": "rotated.pdf",
+      "path": ".cache/pdfjs/test/pdfs/rotated.pdf",
+      "bytes": 12963,
+      "sha256": "08c31db1ebd2345d1dcdcd3ee2baffe47845db76e9911a823ad9ed8638b5a294"
+    },
+    {
+      "source": "pdfjs",
+      "name": "signed_verified.pdf",
+      "path": ".cache/pdfjs/test/pdfs/signed_verified.pdf",
+      "bytes": 10252,
+      "sha256": "1fe9051d9ac1f39828988040db471916251dc2953c1a32efd6596e4975da848c"
+    },
+    {
+      "source": "pdfjs",
+      "name": "tagged_stamp.pdf",
+      "path": ".cache/pdfjs/test/pdfs/tagged_stamp.pdf",
+      "bytes": 18885,
+      "sha256": "0ce2c20e36b70558eea45511a2c307ce7e22ad0d51be1216b27f7085c0311198"
+    },
+    {
+      "source": "pdfjs",
+      "name": "text_rise_eol_bug.pdf",
+      "path": ".cache/pdfjs/test/pdfs/text_rise_eol_bug.pdf",
+      "bytes": 670,
+      "sha256": "0d3cb608bbcdc3da823f2955fb026d9760a20be7802c7ca6e1a34632f87d0127"
+    },
+    {
+      "source": "pdfjs",
+      "name": "tiling-pattern-large-steps.pdf",
+      "path": ".cache/pdfjs/test/pdfs/tiling-pattern-large-steps.pdf",
+      "bytes": 983,
+      "sha256": "10df93162f8b7b9c8846f2e394fa45bcef2b752b4cbe96a1b065b728437dfe99"
+    },
+    {
+      "source": "pdfjs",
+      "name": "tiling_patterns_variations.pdf",
+      "path": ".cache/pdfjs/test/pdfs/tiling_patterns_variations.pdf",
+      "bytes": 2326,
+      "sha256": "2b7b9cccccef7407c18690cf4f007a04fc8a013b868738d025a71113a4700350"
+    },
+    {
+      "source": "pdfjs",
+      "name": "tracemonkey_with_editable_annotations.pdf",
+      "path": ".cache/pdfjs/test/pdfs/tracemonkey_with_editable_annotations.pdf",
+      "bytes": 1212647,
+      "sha256": "1c673d35678a8fde066ed70ada527a07f8674e4f6d8ef817ab97f742b1405d38"
+    },
+    {
+      "source": "pdfjs",
+      "name": "transparency_group.pdf",
+      "path": ".cache/pdfjs/test/pdfs/transparency_group.pdf",
+      "bytes": 347690,
+      "sha256": "029dd50635adee0711836095b76aab62226ca8731f6642a9454b25e2668226dd"
+    },
+    {
+      "source": "pdfjs",
+      "name": "type3_glyph_error.pdf",
+      "path": ".cache/pdfjs/test/pdfs/type3_glyph_error.pdf",
+      "bytes": 1053,
+      "sha256": "1c2f6d478ee4eb60f9756d84df12506fdeb404f390d7533385b840db455193a2"
+    },
+    {
+      "source": "pdfjs",
+      "name": "widget_hidden_print.pdf",
+      "path": ".cache/pdfjs/test/pdfs/widget_hidden_print.pdf",
+      "bytes": 6995,
+      "sha256": "025fddaaed7deb42b10dd7b09923d20b07f77c448eabfb8c7dbe7b28197b8ecf"
+    }
+  ]
+}

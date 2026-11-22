@@ -91,8 +91,12 @@ export interface PageWords {
   confidences: number[];
 }
 
-/** Turns words found in an image into words on the page. */
-export function placeWords(words: OcrWord[], toPage: core.PixelToPage, minConfidence = 0.25): PageWords {
+/**
+ * Turns words found in an image into words on the page. Every word is kept by default, even the
+ * doubtful ones: a mangled e-mail address often scores near zero, and leaving it out of the text
+ * layer would hide it from search, and so from redaction. The layer is invisible either way.
+ */
+export function placeWords(words: OcrWord[], toPage: core.PixelToPage, minConfidence = 0): PageWords {
   const kept = words.filter((w) => w.confidence >= minConfidence);
   return {
     words: kept.map((w) => ({

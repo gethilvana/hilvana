@@ -81,6 +81,18 @@ describe('findText', () => {
     expect(byPattern.every((m) => m.page === 1 && m.areas.length === 1)).toBe(true);
   });
 
+  it('finds e-mail addresses as OCR mangles them, and user names built from a name (found by the benchmark)', async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const page = doc.addPage([595, 842]);
+    ['Correo: natalia.64(Dcorreo-ejemplo.co Celular', 'escriba a luis.130correo-ejemplo.co hoy', 'o a camilo.35 O correo-ejemplo.co', 'Visite www.banco.com.co o pse.com.co', 'Usuario: valentina.67 y Valentina sola'].forEach((t, i) => page.drawText(t, { x: 40, y: 780 - i * 30, size: 12, font }));
+    const bytes = await doc.save();
+    const emails = await findText(bytes, { patterns: ['email'] });
+    expect(emails.map((m) => m.text)).toEqual(['natalia.64(dcorreo-ejemplo.co', 'luis.130correo-ejemplo.co', 'camilo.35 o correo-ejemplo.co']);
+    const name = await findText(bytes, { terms: ['Valentina Gutiérrez Ríos'] });
+    expect(name.map((m) => m.text)).toEqual(['valentina.67']);
+  });
+
   it('ignores case and accents in words', async () => {
     const matches = await findText(await statement(), { terms: ['ana maria perez'] });
     expect(matches.map((m) => m.text)).toEqual(['ana maria perez']);

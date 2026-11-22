@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRef, PDFString, PDFHexString, degrees, rgb, type PDFPage } from 'pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFString, PDFHexString, degrees, rgb, type PDFObject, type PDFPage } from 'pdf-lib';
 import { drawVisualText, prepareText, textWidth, visualFrame, type FontSource, type VisualFrame } from './text.js';
 import { HilvanaError } from './errors.js';
 import { parsePageRange } from './pages.js';
@@ -34,6 +34,11 @@ export interface PdfInfo {
    * Any change Hilvana makes rewrites the file, so the result no longer carries a valid signature.
    */
   signatures: number;
+  /**
+   * Pages the file declares but that could not be read (a damaged page tree). Every operation
+   * works on the readable pages only, so the result would lack these: say so before going on.
+   */
+  missingPages?: number;
 }
 
 function isSignatureDict(obj: unknown): obj is PDFDict {
@@ -81,10 +86,36 @@ export function dropSignatures(doc: PDFDocument): number {
 }
 
 /** Fails with INVALID_PDF unless the document has a readable page tree. */
+/**
+ * Repairs page resources that real-world files sometimes get wrong (found by the public
+ * benchmark): a /Resources that is a stream instead of a dictionary, or not an object at all.
+ * Every operation reads the resources, so without this they would all fail.
+ */
+function repairResources(doc: PDFDocument) {
+  for (const page of doc.getPages()) {
+    let node: PDFDict | undefined = page.node;
+    let raw: PDFObject | undefined;
+    for (let depth = 0; node && depth < 32 && raw === undefined; depth++) {
+      raw = node.get(PDFName.of('Resources'));
+      node = node.lookupMaybe(PDFName.of('Parent'), PDFDict);
+    }
+    if (raw === undefined) continue;
+    const value = raw instanceof PDFRef ? doc.context.lookup(raw) : raw;
+    if (value instanceof PDFDict) continue;
+    let fixed: PDFDict = doc.context.obj({});
+    if (value instanceof PDFRawStream) {
+      fixed = value.dict.clone(doc.context);
+      for (const k of ['Length', 'Filter', 'DecodeParms']) fixed.delete(PDFName.of(k));
+    }
+    page.node.set(PDFName.of('Resources'), fixed);
+  }
+}
+
 function assertStructure(doc: PDFDocument) {
   try {
     if (!doc.catalog || doc.getPageCount() < 1) throw new Error('no pages');
     doc.getPages();
+    repairResources(doc);
   } catch (err) {
     throw new HilvanaError('INVALID_PDF', { reason: String((err as Error)?.message ?? err).slice(0, 200) });
   }
@@ -146,7 +177,18 @@ export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
     signatures: countSignatures(doc),
     encrypted: false,
     protection: 'none',
+    ...missingPages(doc),
   };
+}
+
+function missingPages(doc: PDFDocument): { missingPages?: number } {
+  try {
+    const declared = doc.catalog.lookupMaybe(PDFName.of('Pages'), PDFDict)?.lookupMaybe(PDFName.of('Count'), PDFNumber)?.asNumber();
+    const missing = declared !== undefined ? declared - doc.getPageCount() : 0;
+    return missing > 0 && missing < 100_000 ? { missingPages: missing } : {};
+  } catch {
+    return {};
+  }
 }
 
 /**

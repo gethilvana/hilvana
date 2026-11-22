@@ -1,6 +1,6 @@
 {
   "name": "hilvana-mcp",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Hilvana MCP server: lets AI agents run private, local PDF workflows (merge, sign, number, clean metadata) through verifiable recipes.",
   "keywords": [
     "mcp",
@@ -40,9 +40,9 @@
     "provenance": true
   },
   "dependencies": {
-    "@hilvana/core": "0.8.0",
-    "@hilvana/office": "0.8.0",
-    "@hilvana/recipes": "0.8.0",
+    "@hilvana/core": "0.9.0",
+    "@hilvana/office": "0.9.0",
+    "@hilvana/recipes": "0.9.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "zod": "^4.1.0"
   }

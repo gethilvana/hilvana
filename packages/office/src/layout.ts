@@ -53,6 +53,9 @@ interface Slice {
   repeat?: Slice[];
 }
 
+/** Style for lines that have no text of their own (Word's default). */
+const FALLBACK_STYLE: RunStyle = { font: 'Calibri', size: 11, bold: false, italic: false, underline: false, strike: false, color: '000000', caps: false };
+
 export class LayoutEngine {
   private images = new Map<Uint8Array, PDFImage>();
   readonly warnings = new Set<string>();
@@ -81,6 +84,8 @@ export class LayoutEngine {
     visit(this.model.blocks);
     visit(this.model.header);
     visit(this.model.footer);
+    // Paragraphs with no text (only an image, or empty) measure their line with this style.
+    uses.push({ style: FALLBACK_STYLE, text: ' ' });
     await this.fonts.prepare(uses);
     for (const img of imgs) {
       if (this.images.has(img.bytes)) continue;
@@ -99,7 +104,9 @@ export class LayoutEngine {
     for (const token of text.split(/(\s+)/)) {
       if (!token) continue;
       const space = /^\s+$/.test(token);
-      const t = space ? token.replace(/[\t\n\r]/g, ' ') : token;
+      // Every kind of space (tab, no-break, narrow no-break…) is drawn as a plain space: some
+      // embedded fonts lack those glyphs, and they look the same.
+      const t = space ? token.replace(/\s/g, ' ') : token;
       const segs = this.fonts.segment(t, style);
       const width = segs.reduce((w, s) => w + s.font.widthOfTextAtSize(s.text, size), 0);
       out.push({ t: 'text', segs, style, size, width, space });
@@ -161,7 +168,7 @@ export class LayoutEngine {
     const s = p.style;
     const atoms = this.atoms(p, fields);
     const fallback = p.inlines.find((i): i is Extract<Inline, { kind: 'text' }> => i.kind === 'text')?.style
-      ?? p.label?.style ?? { font: 'Calibri', size: 11, bold: false, italic: false, underline: false, strike: false, color: '000000', caps: false };
+      ?? p.label?.style ?? FALLBACK_STYLE;
     const lines: Line[] = [];
     const tab = this.model.defaultTab || 36;
 
