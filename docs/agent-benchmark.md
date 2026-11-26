@@ -64,6 +64,8 @@ OLLAMA_HOST=http://<pc>:11434 node bench/agent/run.mjs --model ollama-gpt-oss-20
 node bench/agent/run.mjs --model workers-gpt-oss-20b --only kdp,combo --lang es   # solo una parte
 ```
 
+**En una sesión de Claude Code en la nube**, la llave no va en una variable de entorno: se guarda como *network secret* del entorno, con el dominio del proveedor (`api.cloudflare.com`, `api.groq.com`…). El proxy la agrega a cada llamada y la llave nunca entra a la sesión. Cuando la variable de la llave no existe, el ejecutor llama sin encabezado de autorización y deja que el proxy lo ponga. El `CLOUDFLARE_ACCOUNT_ID` no es secreto y sí va como variable de entorno.
+
 Los modelos candidatos, sus precios y el escenario del PRD al que pertenecen están en `bench/agent/models.json`. Las llaves van en variables de entorno y nunca se guardan en el repositorio. Cada corrida escribe `bench/results/agent/<modelo>.json`, con cada respuesta fallida para revisarla, y actualiza la tabla de abajo.
 
 ## Resultados · Results
