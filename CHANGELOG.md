@@ -1,5 +1,14 @@
 # Changelog
 
+## Sin publicar · Unreleased
+
+- **Agent harness** ([docs/agent-benchmark.md](docs/agent-benchmark.md)), the test that picks the integrated agent's model provider (PRD decision D9b):
+  - 150 requests in Spanish and English: every step, multi-step requests, file names that carry instructions, cases that need a question, and cases Hilvana cannot do.
+  - A grader that checks each answer with `plan()` on stand-in files and compares its meaning, not its spelling. It also fails answers that repeat a password or add steps nobody asked for.
+  - The planner contract (`bench/agent/prompt.mjs`): the model sees names, kinds, page counts and sizes only, and asks for passwords on the device.
+  - Runners for Workers AI, Groq, Anthropic, OpenAI, Mistral, Gemini, OpenRouter and a local Ollama. Results go to `bench/results/agent/`, and the results table updates itself.
+  - No package changes.
+
 ## 0.12.0 · 2026-11-26
 
 - **Amazon KDP print books** ([docs/kdp.md](docs/kdp.md)), paperback and hardcover:

@@ -1,0 +1,19 @@
+{
+  "_comment": "Candidates for the integrated agent (PRD section 9.4, decision D9b). Prices are USD per million tokens (input, output) as researched on 2026-11-26; null when not checked. Keys come from the environment variables named in providers.mjs. Check model IDs in each provider's console before a run: the ones marked verifyId were not confirmed against the API.",
+  "models": [
+    { "id": "reference", "provider": "reference", "scenario": "-", "note": "The expected answers; must score 100 %." },
+
+    { "id": "workers-gpt-oss-20b", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-20b", "scenario": "A", "price": [0.2, 0.3], "retention": "none" },
+    { "id": "workers-gpt-oss-120b", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-120b", "scenario": "A", "price": null, "retention": "none" },
+
+    { "id": "groq-gpt-oss-20b", "provider": "groq", "model": "openai/gpt-oss-20b", "scenario": "B", "price": null, "retention": "ZDR (Data Controls)" },
+    { "id": "groq-gpt-oss-120b", "provider": "groq", "model": "openai/gpt-oss-120b", "scenario": "B", "price": null, "retention": "ZDR (Data Controls)" },
+
+    { "id": "anthropic-haiku-5-5", "provider": "anthropic", "model": "claude-haiku-5-5", "scenario": "C", "price": [0.1, 0.5], "retention": "30 days", "note": "Reference only, with synthetic instructions." },
+    { "id": "openai-luna", "provider": "openai", "model": "gpt-5.6-luna", "scenario": "C", "price": [0.2, 1.2], "retention": "30 days", "verifyId": true, "note": "Reference only, with synthetic instructions." },
+    { "id": "mistral-small-4", "provider": "mistral", "model": "mistral-small-latest", "scenario": "C", "price": [0.15, 0.6], "retention": "30 days" },
+    { "id": "gemini-flash-lite", "provider": "gemini", "model": "gemini-3.5-flash-lite", "scenario": "C", "price": [0.3, 2.5], "retention": "limited logs", "verifyId": true },
+
+    { "id": "ollama-gpt-oss-20b", "provider": "ollama", "model": "gpt-oss:20b", "scenario": "local", "price": [0, 0], "retention": "none (own machine)", "note": "Runs on a local Ollama, e.g. the home-lab PC." }
+  ]
+}
