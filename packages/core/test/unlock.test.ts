@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFile, readdir } from 'node:fs/promises';
 import { PDFDocument } from 'pdf-lib';
-import { HilvanaError, compress, inspect, load, merge, stampText, unlock } from '@hilvana/core';
+import { HilvanaError, compress, inspect, load, merge, removeProtection, stampText, unlock } from '@hilvana/core';
 
 const dir = new URL('./fixtures/encrypted/', import.meta.url);
 const read = async (name: string) => new Uint8Array(await readFile(new URL(name, dir)));
@@ -95,5 +95,32 @@ describe('protected files in every operation', () => {
   it('every fixture is described in the README', async () => {
     const readme = await readFile(new URL('README.md', dir), 'utf8');
     for (const f of (await readdir(dir)).filter((x) => x.endsWith('.pdf'))) expect(readme).toContain(f);
+  });
+});
+
+describe('removeProtection', () => {
+  it('returns the document without restrictions, with every page, word and catalog entry', async () => {
+    const locked = await read('permisos-aes256.pdf');
+    const res = await removeProtection(locked);
+    expect(res.protection).toBe('permissions');
+    expect((await PDFDocument.load(res.bytes)).isEncrypted).toBe(false);
+    expect(await texts(res.bytes)).toEqual(await texts(await original()));
+    const keys = async (b: Uint8Array) => (await PDFDocument.load(b)).catalog.keys().map(String).sort();
+    expect(await keys(res.bytes)).toEqual(await keys((await unlock(locked)).bytes));
+  });
+
+  it('opens a file that needs a password only with it', async () => {
+    const bytes = await read('contrasena-aes256.pdf');
+    await expect(removeProtection(bytes)).rejects.toMatchObject({ code: 'PASSWORD_REQUIRED' });
+    await expect(removeProtection(bytes, 'mala')).rejects.toMatchObject({ code: 'WRONG_PASSWORD' });
+    const res = await removeProtection(bytes, 'abierto');
+    expect(res.protection).toBe('password');
+    expect((await inspect(res.bytes)).encrypted).toBe(false);
+  });
+
+  it('says when a file had no protection', async () => {
+    const res = await removeProtection(await original());
+    expect(res.protection).toBe('none');
+    expect((await inspect(res.bytes)).pageCount).toBe(3);
   });
 });

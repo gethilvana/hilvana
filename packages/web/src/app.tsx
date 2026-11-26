@@ -180,7 +180,7 @@ export function App() {
 
   let blocker: string | null = null;
   if (docs.some((d) => d.status === 'locked')) blocker = s.needUnlock;
-  else if (!usable.length) blocker = s.needFiles({ docs: s.accepts.pdfWord, word: s.accepts.word, images: s.accepts.images }[tool.accept]);
+  else if (!usable.length) blocker = s.needFiles({ docs: s.accepts.pdfWord, pdf: s.accepts.pdf, word: s.accepts.word, images: s.accepts.images }[tool.accept]);
   else if (tool.id === 'merge' && usable.length < 2) blocker = s.needTwo;
   else if (tool.id === 'sign' && !signature) blocker = s.signature.missing;
   else if (tool.id === 'split' && options.splitMode === 'ranges' && !splitRanges(options)) blocker = s.needRanges;
@@ -189,6 +189,7 @@ export function App() {
   else if (tool.id === 'recipes' && !savedRecipe) blocker = s.saved.pick;
   else if (tool.id === 'recipes' && imagesIn(savedRecipe!.recipe).some((n) => !recipeImages[n])) blocker = s.saved.imageMissing(imagesIn(savedRecipe!.recipe).find((n) => !recipeImages[n])!);
   else if (tool.id === 'protect' && newPassword && newPassword !== newPassword2) blocker = s.protect.mismatch;
+  else if (tool.id === 'unlock' && usable[0]?.info?.protection === 'none') blocker = s.unlock.nothing;
   else if (tool.id === 'protect' && !newPassword && options.allowPrint && options.allowCopy && options.allowModify) blocker = s.protect.nothing;
   const nothingToDo = tool.id === 'pages' && !options.pagesOrder;
   const canRun = !blocker && !reading && !busy && !nothingToDo;
@@ -364,6 +365,8 @@ export function App() {
             )}
 
             {tool.id === 'redact' && first && <RedactPanel key={first.id} s={s} lang={lang} engine={engine} docId={first.id} preview={first.preview} o={options} set={setOption} />}
+
+            {tool.id === 'unlock' && <p class="hint">{s.unlock.how}</p>}
 
             {tool.id === 'protect' && first && <ProtectPanel s={s} password={newPassword} confirm={newPassword2} onPassword={setNewPassword} onConfirm={setNewPassword2} o={options} set={setOption} />}
 

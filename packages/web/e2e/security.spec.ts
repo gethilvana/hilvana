@@ -136,3 +136,36 @@ test('forgets the certificate when leaving the tool', async ({ page }) => {
   await expect(page.locator('.cert-card')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Elegir certificado (.p12 o .pfx)' })).toBeVisible();
 });
+
+test('removes a password, keeping every page and word, and never puts it in the recipe', async ({ page }) => {
+  const net = await open(page, 'unlock');
+  await addFiles(page, 'con-contrasena.pdf');
+  await expect(page.locator('.blocker')).toHaveText('Escribe la contraseña de los archivos protegidos, o quítalos, para continuar.');
+  const row = page.locator('.file').first();
+  await row.getByLabel('Contraseña de este PDF').fill('abierto');
+  await row.getByRole('button', { name: 'Abrir' }).click();
+  await expect(row.locator('.file-note')).toHaveText('Abierto con su contraseña: el resultado se guardará sin contraseña.');
+  await runTool(page);
+  const out = await downloadBytes(page);
+  expect(out.name).toBe('con-contrasena-desbloqueado.pdf');
+  expect((await inspect(out.bytes)).protection).toBe('none');
+  const opened = await unlock(new Uint8Array(await readFile(fx('con-contrasena.pdf'))), 'abierto');
+  expect(await pageTexts(out.bytes)).toEqual(await pageTexts(opened.bytes));
+  const r = await recipe(page);
+  expect(r.steps).toEqual([{ op: 'unlock' }]);
+  expect(JSON.stringify(r)).not.toContain('abierto');
+  expect(net.external()).toEqual([]);
+});
+
+test('removes usage restrictions, and says when there is nothing to remove', async ({ page }) => {
+  await open(page, 'unlock', 'en');
+  await addFiles(page, 'factura-octubre.pdf');
+  await expect(page.locator('.blocker')).toHaveText('This PDF has no password or restrictions: there is nothing to remove.');
+  await addFiles(page, 'solo-permisos.pdf');
+  await expect(page.locator('.blocker')).toHaveCount(0);
+  await runTool(page);
+  const out = await downloadBytes(page);
+  expect(out.name).toBe('solo-permisos-unlocked.pdf');
+  expect((await inspect(out.bytes)).protection).toBe('none');
+  expect((await inspect(new Uint8Array(await readFile(fx('solo-permisos.pdf'))))).protection).toBe('permissions');
+});

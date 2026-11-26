@@ -18,7 +18,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 
 - Los archivos se referencian por **nombre** (por defecto, el nombre del archivo). · Files are referenced by **name** (the file name by default).
 - **PDF protegidos · Protected PDFs:** los que solo tienen restricciones se desbloquean solos; los que piden contraseña la reciben en `InputFile.password` (API) o `--password` (CLI). El plan avisa qué se quitó. · Files with only restrictions unlock on their own; those that need a password take it in `InputFile.password` (API) or `--password` (CLI). The plan says what was removed.
-- Si el primer paso no es `merge` ni `fromImages`, Hilvana une primero todos los PDF en el orden recibido. · If the first step is not `merge` or `fromImages`, all PDFs are merged first in the order given.
+- Si el primer paso no es `merge`, `unlock` ni `fromImages`, Hilvana une primero todos los PDF en el orden recibido. · If the first step is not `merge`, `unlock` or `fromImages`, all PDFs are merged first in the order given.
 - `{date}` se reemplaza por la fecha local (AAAA-MM-DD); `{name}` por el nombre del primer archivo. · `{date}` becomes the local date; `{name}` the first input's name.
 
 ## Pasos · Steps
@@ -26,6 +26,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | op | Parámetros · Parameters | Destructivo |
 |---|---|---|
 | `merge` | `files?: string[]` | |
+| `unlock` | — (primer paso, un solo PDF: el documento tal cual, sin contraseña ni restricciones · first step, one PDF: the document as it is, without password or restrictions) | |
 | `fromImages` | `files?: string[]`, `pageSize?: "image" \| "a4" \| "letter"` | |
 | `select` | `pages` (también reordena: `"3,1-2"`) | sí |
 | `remove` | `pages` | sí |

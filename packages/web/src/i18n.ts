@@ -4,7 +4,7 @@ export type ToolId =
   | 'merge' | 'pages' | 'split' | 'rotate'
   | 'word' | 'images' | 'ocr'
   | 'sign' | 'certify' | 'stamp' | 'number' | 'watermark'
-  | 'compress' | 'metadata' | 'redact' | 'protect'
+  | 'compress' | 'metadata' | 'redact' | 'protect' | 'unlock'
   | 'recipes';
 
 interface ToolText {
@@ -32,7 +32,7 @@ const es = {
   tools: 'Herramientas',
   groups: { arrange: 'Unir y ordenar', convert: 'Convertir', mark: 'Firmar y marcar', reduce: 'Reducir y proteger', automate: 'Automatizar' },
   drop: { title: 'Suelta tus archivos aquí', or: 'o', choose: 'elige archivos', again: 'Agregar más archivos' },
-  accepts: { pdf: 'PDF', pdfWord: 'PDF o Word (.docx)', word: 'Word (.docx)', images: 'Imágenes PNG o JPG', one: 'Un PDF o Word' },
+  accepts: { pdf: 'PDF', pdfWord: 'PDF o Word (.docx)', word: 'Word (.docx)', images: 'Imágenes PNG o JPG', one: 'Un PDF o Word', onePdf: 'Un PDF' },
   file: {
     pages: (n: number) => (n === 1 ? '1 página' : `${n} páginas`),
     reading: 'Leyendo…',
@@ -169,6 +169,10 @@ const es = {
     permissionsHint: 'Las restricciones las respetan los lectores de PDF, pero no impiden todo: para mantener el contenido privado, usa una contraseña.',
     nothing: 'Escribe una contraseña o quita algún permiso.',
   },
+  unlock: {
+    nothing: 'Este PDF no tiene contraseña ni restricciones: no hay nada que quitar.',
+    how: 'Si el PDF pide contraseña, escríbela en la lista de archivos. Se usa solo en este navegador y el resultado se guarda sin ella. Hazlo solo con documentos que tengas derecho a modificar.',
+  },
   saved: {
     empty: 'Aún no tienes recetas guardadas. Usa cualquier herramienta y, en el resultado, elige "Guardar receta". También puedes importar un archivo .json.',
     local: 'Tus recetas se guardan solo en este navegador.',
@@ -244,6 +248,7 @@ const es = {
     recipes: { name: 'Mis recetas', purpose: 'Repite una receta guardada con otros archivos, uno por uno o todos juntos.', action: 'Aplicar receta', busy: 'Aplicando…' },
     redact: { name: 'Tachar información', purpose: 'Elimina de verdad números de cuenta, nombres o cualquier parte de la página antes de compartir el PDF.', action: 'Tachar y guardar', busy: 'Tachando…' },
     protect: { name: 'Proteger con contraseña', purpose: 'Cifra el PDF para que solo se abra con una contraseña, o limita lo que se puede hacer con él.', action: 'Proteger PDF', busy: 'Protegiendo…' },
+    unlock: { name: 'Quitar contraseña', purpose: 'Guarda una copia del PDF sin contraseña ni restricciones (por ejemplo, un extracto que no deja copiar o imprimir). No cambia nada más.', action: 'Quitar protección', busy: 'Desbloqueando…' },
   } satisfies Record<ToolId, ToolText>,
 };
 
@@ -267,7 +272,7 @@ const en: Strings = {
   tools: 'Tools',
   groups: { arrange: 'Combine and arrange', convert: 'Convert', mark: 'Sign and mark', reduce: 'Reduce and protect', automate: 'Automate' },
   drop: { title: 'Drop your files here', or: 'or', choose: 'choose files', again: 'Add more files' },
-  accepts: { pdf: 'PDF', pdfWord: 'PDF or Word (.docx)', word: 'Word (.docx)', images: 'PNG or JPG images', one: 'One PDF or Word file' },
+  accepts: { pdf: 'PDF', pdfWord: 'PDF or Word (.docx)', word: 'Word (.docx)', images: 'PNG or JPG images', one: 'One PDF or Word file', onePdf: 'One PDF' },
   file: {
     pages: (n: number) => (n === 1 ? '1 page' : `${n} pages`),
     reading: 'Reading…',
@@ -404,6 +409,10 @@ const en: Strings = {
     permissionsHint: 'PDF readers honor restrictions, but they do not stop everything: to keep the content private, use a password.',
     nothing: 'Type a password or remove a permission.',
   },
+  unlock: {
+    nothing: 'This PDF has no password or restrictions: there is nothing to remove.',
+    how: 'If the PDF asks for a password, type it in the file list. It is used only in this browser and the result is saved without it. Only do this with documents you have the right to modify.',
+  },
   saved: {
     empty: 'You have no saved recipes yet. Use any tool and, in the result, choose "Save recipe". You can also import a .json file.',
     local: 'Your recipes are saved only in this browser.',
@@ -479,6 +488,7 @@ const en: Strings = {
     recipes: { name: 'My recipes', purpose: 'Repeat a saved recipe on other files, one by one or all together.', action: 'Apply recipe', busy: 'Applying…' },
     redact: { name: 'Redact', purpose: 'Truly remove account numbers, names or any part of the page before you share the PDF.', action: 'Redact and save', busy: 'Redacting…' },
     protect: { name: 'Password protect', purpose: 'Encrypt the PDF so it only opens with a password, or limit what can be done with it.', action: 'Protect PDF', busy: 'Protecting…' },
+    unlock: { name: 'Remove password', purpose: 'Save a copy of the PDF without its password or restrictions (for example, a statement that blocks copying or printing). Nothing else changes.', action: 'Remove protection', busy: 'Unlocking…' },
   },
 };
 

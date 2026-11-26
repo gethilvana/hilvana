@@ -37,8 +37,9 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] OCR (español e inglés), en el equipo
 - [x] Benchmark público v1 (`docs/benchmark.md`)
 - [x] QA de la fase 2: brechas frente al PRD y cobertura (`docs/qa/fase-2.md`)
-- [ ] Validador de interior KDP (P2, uso interno)
-- [ ] Puerta de salida: medir recetas guardadas sin romper la privacidad (ver `docs/qa/fase-2.md`, 2.3)
+- [x] Herramienta "Quitar contraseña" (web, CLI `unlock`, paso de receta) y recetas guardadas en el MCP (`recipe_list`, `saved`, recursos `hilvana://recipes/{id}`)
+- [ ] Validador de interior KDP (P2, uso interno; decisión D14 del PRD v0.5)
+- [ ] Puerta de salida: medir recetas guardadas sin romper la privacidad (ver `docs/qa/fase-2.md`, 2.3; decisión D13 del PRD v0.5)
 
 ## Fase 3 · Uso pagado (semanas 15–18)
 

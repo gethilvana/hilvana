@@ -33,6 +33,7 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Reconocer texto de escaneos (OCR en español e inglés, en tu equipo) | `hilvana ocr` | `ocr` |
 | Tachar de verdad (texto, imágenes y formas bajo cada zona) | `hilvana redact` | `redact` |
 | Proteger con contraseña (AES-256) o restringir el uso | `hilvana protect` | `protect` |
+| Quitar la contraseña o las restricciones, sin cambiar nada más | `hilvana unlock` | `unlock` |
 | Ejecutar una receta completa | `hilvana run` | — |
 | Aplicar una receta a cada archivo (lote) | `hilvana run --each` | — |
 
@@ -108,6 +109,8 @@ En la configuración de Claude Desktop (`claude_desktop_config.json`), con la ca
 
 En Windows usa `"command": "cmd"` y antepone `"/c", "npx"` a los argumentos; escribe las rutas con `/` (por ejemplo `C:/Users/tu-usuario/Documents/PDFs`).
 
+Para que Claude use tus **recetas guardadas**, exporta cada una desde *Mis recetas* en la web a `~/.hilvana/recetas` (o agrega `"--recipes", "/ruta/a/tus/recetas"`). Claude las ve con `recipe_list` y las ejecuta por su nombre; esa carpeta solo se lee.
+
 Luego puedes pedirle a Claude, por ejemplo: *"Une las facturas de la carpeta, numera las páginas, firma la última con firma.png y deja el resultado por debajo de 2 MB."*
 
 Herramientas: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, y el recurso `hilvana://recipe-schema`.
@@ -136,6 +139,7 @@ npx hilvana run recipe.json a.pdf b.pdf signature.png --dry-run --lang en
 npx hilvana run stamp.json invoices/*.pdf --each -o stamped/   # the recipe on each file
 npx hilvana certify contract.pdf --cert my-certificate.p12 -o contract-signed.pdf   # asks for the certificate password
 npx hilvana protect statement.pdf -o statement-locked.pdf                       # asks for the new password
+npx hilvana unlock statement.pdf -o statement-open.pdf                          # removes restrictions (--password if it needs one)
 npx hilvana redact statement.pdf --find 123456789 --pattern email -o shared.pdf # removed from the file, not covered
 npx hilvana ocr scan.pdf                    # searchable scans, OCR on your machine (Spanish by default)
 ```
@@ -155,7 +159,7 @@ npx hilvana ocr scan.pdf                    # searchable scans, OCR on your mach
 
 On Windows, use `"command": "cmd"` and put `"/c", "npx"` before the arguments.
 
-Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Destructive steps require `confirm: true`, which the agent should only send after you agree.
+Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Saved recipes (exported from *My recipes* on the web) in `~/.hilvana/recetas`, or the folder given with `--recipes`, add `recipe_list` and `hilvana://recipes/{id}` resources, and run with `saved: "<id>"`; that folder is only read. Destructive steps require `confirm: true`, which the agent should only send after you agree.
 
 ### Safety rules
 

@@ -43,6 +43,8 @@ const messages: Record<Lang, Dict> = {
     'word.MISSING_GLYPHS': 'algunos caracteres (por ejemplo, emojis) se reemplazaron por "?"',
     'word.COLUMNS_IGNORED': 'el texto en varias columnas se puso en una sola',
     NO_PDF_INPUTS: 'La receta necesita al menos un PDF de entrada.',
+    UNLOCK_ONE_PDF: 'Quitar la protección funciona con un solo PDF a la vez.',
+    NOT_PROTECTED: '"{name}" no tiene contraseña ni restricciones: el resultado es el mismo documento.',
     SOURCE_NOT_FIRST: 'El paso {index} crea un documento nuevo; solo puede ir de primero.',
     SIGNED_INPUT: '"{name}" está firmado digitalmente. El resultado es un archivo nuevo y no conserva esa firma: guarda también el original firmado.',
     SPLIT_NOT_LAST: 'El paso {index} divide el documento en varios archivos; solo puede ir de último.',
@@ -100,6 +102,7 @@ const messages: Record<Lang, Dict> = {
     'note.ocrUnreadable': 'Las páginas {pages} son escaneos en un formato que aquí no se puede leer; en la web sí se pueden.',
     // describe
     'step.merge': 'Unir {files}',
+    'step.unlock': 'Quitar la contraseña y las restricciones del PDF, sin cambiar nada más',
     'step.mergeAll': 'Unir todos los PDF en el orden recibido',
     'step.fromImages': 'Crear un PDF con las imágenes {files}',
     'step.fromImagesAll': 'Crear un PDF con todas las imágenes',
@@ -171,6 +174,8 @@ const messages: Record<Lang, Dict> = {
     'word.MISSING_GLYPHS': 'some characters (for example, emoji) were replaced with "?"',
     'word.COLUMNS_IGNORED': 'multi-column text was set in a single column',
     NO_PDF_INPUTS: 'The recipe needs at least one PDF input.',
+    UNLOCK_ONE_PDF: 'Removing protection works on one PDF at a time.',
+    NOT_PROTECTED: '"{name}" has no password or restrictions: the result is the same document.',
     SOURCE_NOT_FIRST: 'Step {index} creates a new document; it can only come first.',
     SIGNED_INPUT: '"{name}" is digitally signed. The result is a new file and does not keep that signature: keep the signed original too.',
     SPLIT_NOT_LAST: 'Step {index} splits the document into several files; it can only come last.',
@@ -227,6 +232,7 @@ const messages: Record<Lang, Dict> = {
     'note.ocrNone': 'Every page already had text; no OCR was needed.',
     'note.ocrUnreadable': 'Pages {pages} are scans in a format that cannot be read here; the web app can read them.',
     'step.merge': 'Merge {files}',
+    'step.unlock': 'Remove the password and restrictions from the PDF, changing nothing else',
     'step.mergeAll': 'Merge every PDF in the order received',
     'step.fromImages': 'Build a PDF from the images {files}',
     'step.fromImagesAll': 'Build a PDF from every image',
@@ -284,6 +290,7 @@ export function describeStep(step: Step, lang: Lang): string {
   };
   switch (step.op) {
     case 'merge': return step.files ? t(lang, 'step.merge', { files: step.files.join(', ') }) : t(lang, 'step.mergeAll');
+    case 'unlock': return t(lang, 'step.unlock');
     case 'fromImages': return step.files ? t(lang, 'step.fromImages', { files: step.files.join(', ') }) : t(lang, 'step.fromImagesAll');
     case 'select': return t(lang, 'step.select', { pages: pages(step.pages, 'all') });
     case 'remove': return t(lang, 'step.remove', { pages: pages(step.pages, 'all') });

@@ -259,6 +259,16 @@ export async function merge(inputs: PdfBytes[]): Promise<PdfBytes> {
   return save(out);
 }
 
+/**
+ * The document as it is, without encryption: opens it (with `password` when it needs one) and saves
+ * it again with nothing else changed. Pages, bookmarks, forms and metadata stay. Digital signatures
+ * cannot survive the rewrite, so their cryptographic part is dropped and their visible image kept.
+ */
+export async function removeProtection(bytes: PdfBytes, password = ''): Promise<{ bytes: PdfBytes; protection: Protection }> {
+  const open = await unlock(bytes, password);
+  return { bytes: await save(await load(open.bytes)), protection: open.protection };
+}
+
 /** Keeps only the selected pages, in the order given by the expression (e.g. "3,1-2"). */
 export async function selectPages(bytes: PdfBytes, range: string): Promise<PdfBytes> {
   const src = await load(bytes);
