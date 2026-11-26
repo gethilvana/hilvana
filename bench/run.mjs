@@ -301,6 +301,24 @@ if (want('pdf') || want('compress')) {
         if (existsSync(path.join(tmp, 'o.pdf'))) row.qpdf = readFileSync(path.join(tmp, 'o.pdf')).length;
         rmSync(tmp, { recursive: true, force: true });
       }
+      // Ghostscript with /ebook (images at 150 dpi), the closest to Hilvana's balanced level. Only as a
+      // local reference: it is AGPL, so Hilvana never ships or links it (decision D15).
+      if (has('gs')) {
+        const tmp = mkdtempSync(path.join(tmpdir(), 'hb-g-'));
+        const out = path.join(tmp, 'o.pdf');
+        try {
+          execFileSync('gs', ['-sDEVICE=pdfwrite', '-dPDFSETTINGS=/ebook', '-dCompatibilityLevel=1.6', '-dNOPAUSE', '-dBATCH', '-dQUIET', '-dSAFER', `-sOutputFile=${out}`, path.join(root, d.path)], { stdio: 'ignore', timeout: 120_000 });
+        } catch { /* a file Ghostscript cannot read leaves no column */ }
+        if (existsSync(out)) {
+          const gsBytes = new Uint8Array(readFileSync(out));
+          row.gs = gsBytes.length;
+          try {
+            const after = await pdfText(gsBytes, 5);
+            row.gsTextKept = ![...new Set(tokens(before))].some((w) => !new Set(tokens(after.text)).has(w));
+          } catch { row.gsTextKept = false; }
+        }
+        rmSync(tmp, { recursive: true, force: true });
+      }
     }
     rows.push(row);
     process.stdout.write(`\rPDF ${rows.length}/${docs.length}`);
@@ -332,7 +350,13 @@ if (want('pdf') || want('compress')) {
       smaller: rs.filter((r) => r.ops.comprimir.size < r.bytes).length,
       textKept: rs.filter((r) => r.ops.comprimir.textKept).length,
       qpdfRatio: median(rs.filter((r) => r.qpdf).map((r) => r.qpdf / r.bytes)),
+      gsRatio: median(rs.filter((r) => r.gs).map((r) => r.gs / r.bytes)),
+      gsSmaller: rs.filter((r) => r.gs && r.gs < r.bytes).length,
+      gsTextKept: rs.filter((r) => r.gs && r.gsTextKept).length,
+      gsDocs: rs.filter((r) => r.gs).length,
     };
+    results.versions.ghostscript = has('gs') ? version('gs') : undefined;
+    results.versions.qpdf = has('qpdf') ? version('qpdf') : undefined;
   }
 }
 
@@ -372,7 +396,8 @@ if (R.pdf) {
 }
 if (R.compress) {
   const c = R.compress;
-  lines.push(`### Compresión (${c.docs} PDF reales con imágenes y más de 100 KB, nivel equilibrado)`, '', '| | Hilvana | qpdf (sin pérdida) |', '|---|---|---|', `| Tamaño mediano del resultado | ${pct(c.ratio)} del original | ${pct(c.qpdfRatio)} del original |`, `| Archivos más pequeños | ${c.smaller} de ${c.docs} | — |`, `| Texto intacto | ${c.textKept} de ${c.docs} | — |`, '');
+  const gs = c.gsDocs ? [`${pct(c.gsRatio)} del original`, `${c.gsSmaller} de ${c.gsDocs}`, `${c.gsTextKept} de ${c.gsDocs}`] : ['—', '—', '—'];
+  lines.push(`### Compresión (${c.docs} PDF reales con imágenes y más de 100 KB, nivel equilibrado)`, '', '| | Hilvana | qpdf (sin pérdida) | Ghostscript (/ebook, 150 ppp) |', '|---|---|---|---|', `| Tamaño mediano del resultado | ${pct(c.ratio)} del original | ${pct(c.qpdfRatio)} del original | ${gs[0]} |`, `| Archivos más pequeños | ${c.smaller} de ${c.docs} | — | ${gs[1]} |`, `| Texto intacto | ${c.textKept} de ${c.docs} | — | ${gs[2]} |`, '');
 }
 const doc = path.join(repo, 'docs', 'benchmark.md');
 if (existsSync(doc)) {

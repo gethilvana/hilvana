@@ -117,6 +117,21 @@ export const SignDigitalStep = z.object({
   anchor: anchor.optional().describe('Defaults to "bottom-right".'),
 }).strict().describe('Last step only: signs the result with a digital certificate (PAdES B-B). The private key never leaves the device.');
 
+/** An Amazon KDP print book: binding, trim size, bleed and ink. */
+export const KdpSpec = z.object({
+  binding: z.enum(['paperback', 'hardcover']).describe('paperback (tapa blanda) or hardcover (tapa dura).'),
+  trim: z.string().regex(/^\s*\d+(\.\d+)?\s*[x×]\s*\d+(\.\d+)?\s*$/i).describe('Trim size in inches, width x height: "8.5x11", "6x9". Paperbacks also take custom sizes.'),
+  bleed: z.boolean().optional().describe('True when anything prints to the page edge. Defaults to false.'),
+  ink: z.enum(['black-white', 'black-cream', 'black-groundwood', 'standard-color', 'premium-color']).optional().describe('Ink and paper. Defaults to black-white.'),
+}).strict();
+export type KdpSpec = z.infer<typeof KdpSpec>;
+
+export const KdpPrepareStep = KdpSpec.extend({
+  op: z.literal('kdpPrepare'),
+  fitMargins: z.boolean().optional().describe('Scale content that crosses the margins into the safe area (books without bleed). Defaults to true.'),
+  padToMinimum: z.boolean().optional().describe('Add blank pages at the end up to KDP\'s minimum page count. Defaults to false.'),
+}).strict().describe('Prepares an Amazon KDP print interior: pages scaled to the trim size, content inside the margins, an even page count, and annotations, bookmarks and metadata removed. The result is then checked as goals.kdp.');
+
 export const Step = z.discriminatedUnion('op', [
   MergeStep,
   UnlockStep,
@@ -137,6 +152,7 @@ export const Step = z.discriminatedUnion('op', [
   RedactStep,
   ProtectStep,
   SignDigitalStep,
+  KdpPrepareStep,
 ]);
 export type Step = z.infer<typeof Step>;
 
@@ -145,6 +161,7 @@ export const Goals = z.object({
   pageCount: z.number().int().positive().optional().describe('The result must have exactly this many pages.'),
   maxPages: z.number().int().positive().optional(),
   noMetadata: z.boolean().optional().describe('The result must carry no identifying metadata.'),
+  kdp: KdpSpec.optional().describe('The result must meet Amazon KDP\'s requirements for this print book (trim size, page count, margins, fonts, image resolution). A kdpPrepare step checks this by itself.'),
 }).strict();
 export type Goals = z.infer<typeof Goals>;
 
@@ -164,7 +181,7 @@ export type Recipe = z.infer<typeof Recipe>;
 export const recipeJsonSchema = () => z.toJSONSchema(Recipe);
 
 /** Steps that drop content or overwrite information; running them requires explicit confirmation. */
-export const DESTRUCTIVE_OPS = new Set<Step['op']>(['select', 'remove', 'stripMetadata', 'setMetadata', 'redact']);
+export const DESTRUCTIVE_OPS = new Set<Step['op']>(['select', 'remove', 'stripMetadata', 'setMetadata', 'redact', 'kdpPrepare']);
 
 /** Steps that produce the final file(s); a recipe can end with at most one of them. */
 export const FINAL_OPS = new Set<Step['op']>(['split', 'protect', 'signDigital']);

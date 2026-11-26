@@ -2,7 +2,7 @@ import * as core from '@hilvana/core';
 import { HilvanaError, parsePageRange } from '@hilvana/core';
 import { DocxError, fallbackTextFonts, isDocx, makeSearchable, wordToPdf, type OcrAssets, type PageWords } from '@hilvana/office';
 import { DESTRUCTIVE_OPS, FINAL_OPS, Recipe, type Goals, type Step } from './schema.js';
-import { describeStep, formatBytes, localDate, t, type Lang } from './i18n.js';
+import { describeStep, formatBytes, kdpBook, localDate, t, type Lang } from './i18n.js';
 
 export type FileKind = 'pdf' | 'word' | 'image' | 'certificate' | 'other';
 
@@ -132,6 +132,8 @@ export interface RunResult {
   warnings: string[];
   /** What some steps did, in plain language (e.g. compression results). */
   notes: string[];
+  /** The KDP check of the (first) result, when the recipe has goals.kdp or a kdpPrepare step. */
+  kdp?: core.KdpReport;
 }
 
 /** What kind of file an input is. Certificates have no magic number, so they are told by their name. */
@@ -336,6 +338,17 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
       case 'numberPages':
         checkRange(step.pages);
         break;
+      case 'kdpPrepare': {
+        let range: ReturnType<typeof core.kdpPageRange>;
+        try { range = core.kdpPageRange(step); } catch { range = undefined; }
+        if (!range) {
+          issues.push({ code: 'KDP_UNSUPPORTED', message: t(lang, 'KDP_UNSUPPORTED', { binding: t(lang, `kdp.binding.${step.binding}`), trim: step.trim, ink: t(lang, `kdp.ink.${step.ink ?? 'black-white'}`) }), step: n });
+        } else if (pages !== undefined) {
+          if (step.padToMinimum && pages < range.min) pages = range.min;
+          if (pages % 2 === 1) pages += 1;
+        }
+        break;
+      }
       default:
         break;
     }
@@ -397,7 +410,7 @@ function describeGoals(goals: Goals | undefined, lang: Lang): string[] {
   if (!goals) return [];
   return (Object.entries(goals) as [keyof Goals, unknown][])
     .filter(([, v]) => v !== undefined && v !== false)
-    .map(([k, v]) => t(lang, `goal.${k}`, { expected: k === 'maxBytes' ? formatBytes(v as number) : v }));
+    .map(([k, v]) => (k === 'kdp' ? t(lang, 'goal.kdp', { book: kdpBook(v as Goals['kdp'] & object, lang) }) : t(lang, `goal.${k}`, { expected: k === 'maxBytes' ? formatBytes(v as number) : v })));
 }
 
 export class RecipeError extends Error {
@@ -491,6 +504,7 @@ export async function run(
 
   const outputs: RunOutput[] = [];
   const goals: GoalResult[] = [];
+  let kdp: core.KdpReport | undefined;
   // A result protected with a password is opened with it, only to check it here.
   const openWith = last.op === 'protect' ? last.password : inPlace ? passwords.get(docs[0]!.name) : undefined;
   // Repeated ranges ("1", "1") or ones that read the same once cleaned ("1,3" and "1_3") would share a
@@ -504,6 +518,14 @@ export async function run(
     used.add(filename.toLowerCase());
     outputs.push({ bytes: part.bytes, filename, pageCount: info.pageCount, byteLength: part.bytes.byteLength });
     for (const g of verify(recipe.goals, part.bytes, info, lang)) goals.push(parts.length > 1 ? { ...g, message: `${filename}: ${g.message}` } : g);
+    // KDP: the goal, or the spec of a kdpPrepare step, checked on the result.
+    const kdpSpec = recipe.goals?.kdp ?? [...recipe.steps].reverse().find((s): s is Extract<Step, { op: 'kdpPrepare' }> => s.op === 'kdpPrepare');
+    if (kdpSpec) {
+      const spec = { binding: kdpSpec.binding, trim: kdpSpec.trim, bleed: kdpSpec.bleed, ink: kdpSpec.ink };
+      const report = await core.kdpCheck(part.bytes, spec);
+      kdp ??= report;
+      for (const g of kdpGoals(report, spec, lang)) goals.push(parts.length > 1 ? { ...g, message: `${filename}: ${g.message}` } : g);
+    }
   }
 
   return {
@@ -517,7 +539,26 @@ export async function run(
     steps: p.steps,
     warnings: p.warnings,
     notes,
+    ...(kdp ? { kdp } : {}),
   };
+}
+
+/** One goal line per KDP finding (warnings count as met), or one line saying the file is ready. */
+export function kdpGoals(report: core.KdpReport, spec: core.KdpSpec, lang: Lang): GoalResult[] {
+  const book = kdpBook(spec as { binding: string; trim: string; bleed?: boolean }, lang);
+  if (!report.issues.length) return [{ goal: 'kdp', expected: spec, actual: true, met: true, message: `✓ ${t(lang, 'goal.kdpOk', { book })}` }];
+  return report.issues.map((issue) => {
+    const met = issue.severity === 'warning';
+    const pages = issue.pages ? formatPages(issue.pages) : '';
+    const message = t(lang, `kdp.${issue.code}`, { ...issue.details, list: pages, book, binding: t(lang, `kdp.binding.${spec.binding}`), ink: t(lang, `kdp.ink.${spec.ink ?? 'black-white'}`) });
+    return { goal: 'kdp', expected: spec, actual: issue, met, message: `${met ? '⚠' : '✗'} ${message}` };
+  });
+}
+
+/** "1, 2, 3 y 7 más" style list, short enough for a status line. */
+function formatPages(pages: number[]): string {
+  const shown = pages.slice(0, 12).join(', ');
+  return pages.length > 12 ? `${shown}… (${pages.length})` : shown;
 }
 
 async function apply(
@@ -593,6 +634,19 @@ async function apply(
       ctx.notes.push(t(ctx.lang, 'note.signed', { name: res.signer.name, issuer: res.signer.issuer, to: localDate(res.signer.validTo) }));
       if (!res.visible) ctx.notes.push(t(ctx.lang, 'note.signedInvisible'));
       return res.bytes;
+    }
+    case 'kdpPrepare': {
+      const { lang } = ctx;
+      const { bytes, report } = await core.kdpPrepare(need(), { binding: step.binding, trim: step.trim, bleed: step.bleed, ink: step.ink }, { fitMargins: step.fitMargins, padToMinimum: step.padToMinimum });
+      if (report.resized.length) ctx.notes.push(t(lang, 'note.kdpResized', { count: report.resized.length, trim: step.trim.replace(/\s+/g, '') }));
+      const scaled = report.fitted.filter((f) => f.scale < 0.999);
+      if (scaled.length) ctx.notes.push(t(lang, 'note.kdpScaled', { list: formatPages(scaled.map((f) => f.page)), percent: Math.round(Math.min(...scaled.map((f) => f.scale)) * 100) }));
+      const moved = report.fitted.filter((f) => f.scale >= 0.999);
+      if (moved.length) ctx.notes.push(t(lang, 'note.kdpMoved', { list: formatPages(moved.map((f) => f.page)) }));
+      if (report.added) ctx.notes.push(t(lang, report.added === 1 ? 'note.kdpAdded1' : 'note.kdpAdded', { count: report.added }));
+      const removed = [report.annotationsRemoved ? t(lang, 'kdp.removed.annotations', { count: report.annotationsRemoved }) : '', report.bookmarksRemoved ? t(lang, 'kdp.removed.bookmarks') : '', report.metadataRemoved ? t(lang, 'kdp.removed.metadata') : ''].filter(Boolean);
+      if (removed.length) ctx.notes.push(t(lang, 'note.kdpRemoved', { what: removed.join(', ') }));
+      return bytes;
     }
     case 'compress': {
       // With no explicit level, aim for the recipe's size goal if there is one.

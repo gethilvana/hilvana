@@ -8,7 +8,7 @@ import * as core from '@hilvana/core';
 import { UnsafeOutputError, safeWrite } from './safewrite.js';
 import { HilvanaError } from '@hilvana/core';
 import { convertWord, fallbackTextFonts, isDocx, makeSearchable, type WordEngine } from '@hilvana/office';
-import { RecipeError, localDate, plan, planBatch, recipeJsonSchema, run, runBatch, t, type Lang, type WordConverter } from '@hilvana/recipes';
+import { RecipeError, kdpGoals, localDate, plan, planBatch, recipeJsonSchema, run, runBatch, t, type Lang, type WordConverter } from '@hilvana/recipes';
 
 // Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
 const VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
@@ -31,6 +31,7 @@ Uso:
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
   hilvana ocr <escaneo.pdf> [--language spa|eng] [--force] -o <salida.pdf>
+  hilvana kdp <libro.pdf> --trim 8.5x11 [--binding paperback|hardcover] [--bleed] [--ink black-white|black-cream|standard-color|premium-color] [--fix [--pad] [--no-fit] -o <salida.pdf>] [--json]
   hilvana redact <archivo.pdf> [--find "texto"]... [--pattern email,card,number,phone] [--area "página:x,y,ancho,alto"]... [--list] -o <salida.pdf>
   hilvana protect <archivo.pdf> [--restrict print,copy,modify] -o <salida.pdf>
   hilvana certify <archivo.pdf> --cert <certificado.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <salida.pdf>
@@ -48,6 +49,8 @@ Tachar: elimina del archivo el texto, las imágenes y las formas bajo cada coinc
 Proteger: la contraseña nueva se pide al ejecutar (o HILVANA_NEW_PASSWORD); --restrict solo quita permisos.
 Firma digital: certificado .p12/.pfx; su contraseña se pide al ejecutar (o HILVANA_CERT_PASSWORD).
   La clave privada no sale de tu equipo. En "run", los .p12/.pfx usan esa contraseña.
+KDP: revisa un interior para Amazon KDP (tamaño, páginas, márgenes, fuentes, DPI). Con --fix lo corrige: ajusta el tamaño y los
+  márgenes, deja un número par de páginas (--pad completa el mínimo) y quita anotaciones, marcadores y metadatos.
 Word: --engine native usa el motor integrado; libreoffice usa LibreOffice si está instalado;
       auto (por defecto) usa el integrado y recurre a LibreOffice si tuvo que omitir contenido.
 Todo se procesa en tu equipo. Ningún archivo sale de él.
@@ -69,6 +72,7 @@ Usage:
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
   hilvana ocr <scan.pdf> [--language spa|eng] [--force] -o <out.pdf>
+  hilvana kdp <book.pdf> --trim 8.5x11 [--binding paperback|hardcover] [--bleed] [--ink black-white|black-cream|standard-color|premium-color] [--fix [--pad] [--no-fit] -o <out.pdf>] [--json]
   hilvana redact <file.pdf> [--find "text"]... [--pattern email,card,number,phone] [--area "page:x,y,width,height"]... [--list] -o <out.pdf>
   hilvana protect <file.pdf> [--restrict print,copy,modify] -o <out.pdf>
   hilvana certify <file.pdf> --cert <certificate.p12> [--reason "…"] [--location "…"] [--invisible] [--pages last] [--anchor bottom-right] -o <out.pdf>
@@ -86,6 +90,8 @@ Redact: removes the text, images and shapes under each match or area from the fi
 Protect: the new password is asked for when it runs (or HILVANA_NEW_PASSWORD); --restrict only removes permissions.
 Digital signature: a .p12/.pfx certificate; its password is asked for when it runs (or HILVANA_CERT_PASSWORD).
   The private key never leaves your machine. In "run", .p12/.pfx inputs use that password.
+KDP: checks an Amazon KDP interior (size, pages, margins, fonts, DPI). With --fix it corrects it: fits the size and
+  margins, makes the page count even (--pad fills up to the minimum) and removes annotations, bookmarks and metadata.
 Word: --engine native uses the built-in engine; libreoffice uses a local LibreOffice install;
       auto (default) uses the built-in one and falls back to LibreOffice if it had to drop content.
 Everything runs on your machine. No file leaves it.
@@ -124,6 +130,13 @@ const options = {
   reason: { type: 'string' },
   location: { type: 'string' },
   invisible: { type: 'boolean' },
+  trim: { type: 'string' },
+  binding: { type: 'string' },
+  bleed: { type: 'boolean' },
+  ink: { type: 'string' },
+  fix: { type: 'boolean' },
+  pad: { type: 'boolean' },
+  'no-fit': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -418,6 +431,31 @@ async function main(argv: string[]) {
       if (rest.length < 1) throw new UsageError(HELP[lang]);
       const out = await core.imagesToPdf(await Promise.all(rest.map(read)), { pageSize: v['page-size'] as 'a4' | undefined });
       return write(v.output ?? defaultOutput(rest[0]!, 'images'), out, rest, v.force, lang);
+    }
+    case 'kdp': {
+      const [input] = rest;
+      if (!input) throw new UsageError(HELP[lang]);
+      if (!v.trim) throw new UsageError(lang === 'es' ? 'Falta --trim (por ejemplo, --trim 8.5x11).' : 'Missing --trim (for example, --trim 8.5x11).');
+      const binding = v.binding ?? 'paperback';
+      if (binding !== 'paperback' && binding !== 'hardcover') throw new UsageError(lang === 'es' ? '--binding debe ser paperback o hardcover.' : '--binding must be paperback or hardcover.');
+      const INKS = ['black-white', 'black-cream', 'black-groundwood', 'standard-color', 'premium-color'];
+      if (v.ink && !INKS.includes(v.ink)) throw new UsageError(`--ink: ${INKS.join(', ')}`);
+      const spec = { binding, trim: v.trim, ...(v.bleed ? { bleed: true } : {}), ...(v.ink ? { ink: v.ink } : {}) } as core.KdpSpec;
+      const raw = await read(input);
+      let report: core.KdpReport;
+      if (v.fix) {
+        const step = { op: 'kdpPrepare' as const, ...spec, ...(v.pad ? { padToMinimum: true } : {}), ...(v['no-fit'] ? { fitMargins: false } : {}) };
+        const res = await run({ version: 1, steps: [step] }, [{ name: path.basename(input), bytes: raw, password: passwordOf(v) || undefined }], { lang, confirmed: true });
+        await write(v.output ?? defaultOutput(input, 'kdp'), res.bytes, [input], v.force, lang);
+        for (const n of res.notes) process.stdout.write(`  ${n}\n`);
+        report = res.kdp!;
+      } else {
+        report = await core.kdpCheck(await openPdf(input, raw, v, lang), spec);
+      }
+      if (v.json) process.stdout.write(JSON.stringify(report, null, 2) + '\n');
+      else for (const g of kdpGoals(report, spec, lang)) process.stdout.write(`  ${g.message}\n`);
+      if (!report.ok) process.exitCode = 1;
+      return;
     }
     case 'ocr': {
       const [input] = rest;

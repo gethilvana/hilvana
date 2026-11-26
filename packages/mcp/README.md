@@ -10,7 +10,7 @@ MCP server that lets AI agents (Claude and others) run **private, local** PDF an
 }
 ```
 
-Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run` · Resource: `hilvana://recipe-schema` · MIT
+Tools: `pdf_list`, `pdf_inspect`, `kdp_check`, `word_to_pdf`, `recipe_plan`, `recipe_run` · Resource: `hilvana://recipe-schema` · MIT
 
 `pdf_inspect` returns structure only: which metadata fields are set (`metadataFields`), never their values.
 

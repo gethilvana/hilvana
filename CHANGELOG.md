@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.0 · 2026-11-26
+
+- **Amazon KDP print books** ([docs/kdp.md](docs/kdp.md)), paperback and hardcover:
+  - **@hilvana/core**:
+    - `kdpCheck()` reports what KDP would reject, by page. It covers page size (trim plus bleed), page count by binding, trim and ink, margins and gutter by page count (left on odd pages, right on even ones), unembedded fonts, images under 300 DPI at their printed size, transparency, annotations, bookmarks, metadata, encryption and rotated pages.
+    - `kdpPrepare()` fixes what can be fixed safely:
+      - pages scaled to the trim size without distortion;
+      - content moved or scaled into the margins (without bleed);
+      - an even page count, and optionally KDP's minimum;
+      - annotations, bookmarks and metadata removed.
+    - `kdpPageRange()` and `kdpMargins()` expose the specification.
+  - **@hilvana/recipes**: new destructive `kdpPrepare` step and `kdp` goal. The result of a `kdpPrepare` step is checked automatically, and `RunResult.kdp` carries the report.
+  - **hilvana**: `kdp` command (`--trim`, `--binding`, `--bleed`, `--ink`, `--fix`, `--pad`, `--no-fit`, `--json`); it exits with 1 while KDP would reject the file.
+  - **hilvana-mcp**: read-only `kdp_check` tool.
+- **Benchmark**: Ghostscript (`/ebook`) joins qpdf as a local reference for compression (decision D15). Hilvana's balanced level reduces far less (median 94.5 % of the original vs 52.4 %), which is now on the roadmap.
+
 ## 0.11.0 · 2026-11-26
 
 Fixes for the confirmed findings of the 2026-11-24 audit (response: [docs/qa/auditoria-2026-11-24.md](docs/qa/auditoria-2026-11-24.md)).

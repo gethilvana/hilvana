@@ -44,7 +44,7 @@ afterAll(async () => {
 describe('hilvana-mcp', () => {
   it('exposes the tools and the recipe schema', async () => {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-    expect(tools).toEqual(['pdf_inspect', 'pdf_list', 'recipe_plan', 'recipe_run', 'word_to_pdf']);
+    expect(tools).toEqual(['kdp_check', 'pdf_inspect', 'pdf_list', 'recipe_plan', 'recipe_run', 'word_to_pdf']);
     const res = await client.readResource({ uri: 'hilvana://recipe-schema' });
     expect((res.contents[0] as { text: string }).text).toContain('"steps"');
   });
@@ -55,6 +55,13 @@ describe('hilvana-mcp', () => {
     expect(res.metadataFields).toContain('author');
     expect(res.metadata).toBeUndefined();
     expect(JSON.stringify(res)).not.toContain('Ana');
+  });
+
+  it('checks a PDF for Amazon KDP without reading its text', async () => {
+    const res = json(await call('kdp_check', { path: 'b.pdf', binding: 'paperback', trim: '8.5x11', lang: 'en' }));
+    expect(res.ok).toBe(false);
+    expect(res.issues.map((i: { code: string }) => i.code)).toContain('KDP_PAGE_COUNT_LOW');
+    expect(res.summary[0]).toMatch(/KDP needs at least 24/);
   });
 
   it('lists regular files with page counts and skips symlinks', async () => {

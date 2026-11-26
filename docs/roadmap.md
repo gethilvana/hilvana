@@ -38,8 +38,8 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Benchmark público v1 (`docs/benchmark.md`)
 - [x] QA de la fase 2: brechas frente al PRD y cobertura (`docs/qa/fase-2.md`)
 - [x] Herramienta "Quitar contraseña" (web, CLI `unlock`, paso de receta) y recetas guardadas en el MCP (`recipe_list`, `saved`, recursos `hilvana://recipes/{id}`)
-- [ ] Validador de interior KDP (P2, uso interno; decisión D14 del PRD v0.5)
-- [ ] Puerta de salida: medir recetas guardadas sin romper la privacidad (ver `docs/qa/fase-2.md`, 2.3; decisión D13 del PRD v0.5)
+- [x] Validador y preparación de interiores para Amazon KDP, tapa blanda y dura (`docs/kdp.md`; decisión D14: en Hilvana, como receta)
+- [ ] Puerta de salida: medir con señales públicas (descargas de `hilvana-mcp` en npm, estrellas, recetas compartidas); la web sigue sin enviar nada (decisión D13: escenario B)
 
 ## Motor de Word · Pendientes de la auditoría del 24 de noviembre
 
@@ -50,6 +50,7 @@ Detalle y verificación en [`docs/qa/auditoria-2026-11-24.md`](qa/auditoria-2026
 - [ ] P2 · Reordenamiento bidireccional completo y párrafos `w:bidi`
 - [ ] P2 · Hipervínculos como enlaces y títulos como marcadores
 - [ ] P2 · Altura y sombreado de celdas combinadas verticalmente
+- [ ] P1 · Compresión: el benchmark con Ghostscript como referencia (decisión D15) muestra que Hilvana reduce mucho menos (mediana 94,5 % del original frente a 52,4 %); revisar el nivel equilibrado
 - [ ] P3 · Conflictos de bordes en tablas, EMF/WMF nativos, anchos en porcentaje, rellenos de tabulación, EXIF espejado
 
 ## Fase 3 · Uso pagado (semanas 15–18)

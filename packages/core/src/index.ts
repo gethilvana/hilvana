@@ -7,3 +7,4 @@ export * from './security.js';
 export { visualFrame, type FontSource, type VisualFrame } from './text.js';
 export * from './redact.js';
 export * from './textlayer.js';
+export * from './kdp.js';
