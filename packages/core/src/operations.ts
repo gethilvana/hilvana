@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFString, PDFHexString, degrees, rgb, type PDFObject, type PDFPage } from 'pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFStream, PDFString, PDFHexString, degrees, rgb, type PDFObject, type PDFPage } from 'pdf-lib';
 import { drawVisualText, prepareText, textWidth, visualFrame, type FontSource, type VisualFrame } from './text.js';
 import { HilvanaError } from './errors.js';
 import { parsePageRange } from './pages.js';
@@ -21,7 +21,12 @@ export interface PdfInfo {
     creator?: string;
     producer?: string;
   };
-  /** True when any of the identifying metadata fields above is set. */
+  /**
+   * XMP metadata streams anywhere in the file: on the document, pages, images or fonts. They can
+   * repeat author, tool and file names, so they count as identifying metadata.
+   */
+  xmpStreams: number;
+  /** True when any of the identifying metadata fields above is set, or the file carries XMP metadata. */
   hasMetadata: boolean;
   /**
    * How the original file was protected. 'permissions': usage restrictions only (it opens without a
@@ -173,12 +178,33 @@ export async function inspect(bytes: PdfBytes): Promise<PdfInfo> {
     byteLength: bytes.byteLength,
     pages: doc.getPages().map((p) => ({ width: p.getWidth(), height: p.getHeight(), rotation: p.getRotation().angle })),
     metadata: clean,
-    hasMetadata: Object.keys(clean).length > 0,
+    xmpStreams: metadataRefs(doc).streams.length,
+    hasMetadata: Object.keys(clean).length > 0 || metadataRefs(doc).streams.length > 0,
     signatures: countSignatures(doc),
     encrypted: false,
     protection: 'none',
     ...missingPages(doc),
   };
+}
+
+/**
+ * Every XMP metadata stream in the file and every dictionary that points at one. PDF allows them
+ * on the catalog, on pages, and on images, forms and fonts, not only on the document.
+ */
+function metadataRefs(doc: PDFDocument): { streams: PDFRef[]; holders: PDFDict[] } {
+  const streams = new Set<PDFRef>();
+  const holders: PDFDict[] = [];
+  for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+    const dict = obj instanceof PDFDict ? obj : obj instanceof PDFStream ? obj.dict : undefined;
+    if (!dict) continue;
+    if (obj instanceof PDFStream && dict.get(PDFName.of('Type')) === PDFName.of('Metadata')) streams.add(ref);
+    const m = dict.get(PDFName.of('Metadata'));
+    if (m) {
+      holders.push(dict);
+      if (m instanceof PDFRef) streams.add(m);
+    }
+  }
+  return { streams: [...streams], holders };
 }
 
 function missingPages(doc: PDFDocument): { missingPages?: number } {
@@ -399,16 +425,55 @@ function imageKind(bytes: Uint8Array): 'png' | 'jpg' {
   throw new HilvanaError('UNSUPPORTED_IMAGE');
 }
 
-/** Places an image such as a handwritten signature. Defaults to the last page, bottom-right. */
-export async function stampImage(bytes: PdfBytes, stamp: ImageStamp): Promise<PdfBytes> {
-  const doc = await load(bytes);
-  let img;
+/** Embeds a PNG or JPEG, turning a damaged one into UNSUPPORTED_IMAGE instead of a raw parser error. */
+async function embedImage(doc: PDFDocument, bytes: Uint8Array) {
   try {
-    img = imageKind(stamp.image) === 'png' ? await doc.embedPng(stamp.image) : await doc.embedJpg(stamp.image);
+    return imageKind(bytes) === 'png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
   } catch (err) {
     if (err instanceof HilvanaError) throw err;
     throw new HilvanaError('UNSUPPORTED_IMAGE', { reason: String((err as Error)?.message ?? err).slice(0, 120) });
   }
+}
+
+/**
+ * The EXIF orientation of a JPEG (1 = as stored), read from its APP1 segment. Phones store photos
+ * sideways and set this tag so viewers turn them. Undefined when there is none.
+ */
+export function jpegOrientation(bytes: Uint8Array): number | undefined {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return undefined;
+  let i = 2;
+  while (i + 4 <= bytes.length && bytes[i] === 0xff) {
+    const marker = bytes[i + 1]!;
+    const len = (bytes[i + 2]! << 8) | bytes[i + 3]!;
+    if (marker === 0xda || len < 2) return undefined; // image data starts: no EXIF before it
+    if (marker === 0xe1 && bytes[i + 4] === 0x45 && bytes[i + 5] === 0x78 && bytes[i + 6] === 0x69 && bytes[i + 7] === 0x66) {
+      const t = i + 10; // TIFF header, after "Exif\0\0"
+      const le = bytes[t] === 0x49;
+      const u16 = (o: number) => (le ? bytes[o]! | (bytes[o + 1]! << 8) : (bytes[o]! << 8) | bytes[o + 1]!);
+      const u32 = (o: number) => (le ? u16(o) + u16(o + 2) * 65536 : u16(o) * 65536 + u16(o + 2));
+      if (t + 8 > bytes.length) return undefined;
+      const ifd = t + u32(t + 4);
+      if (ifd + 2 > bytes.length) return undefined;
+      const count = u16(ifd);
+      for (let e = 0; e < count; e++) {
+        const at = ifd + 2 + e * 12;
+        if (at + 12 > bytes.length) return undefined;
+        if (u16(at) === 0x0112) {
+          const v = u16(at + 8);
+          return v >= 1 && v <= 8 ? v : undefined;
+        }
+      }
+      return undefined;
+    }
+    i += 2 + len;
+  }
+  return undefined;
+}
+
+/** Places an image such as a handwritten signature. Defaults to the last page, bottom-right. */
+export async function stampImage(bytes: PdfBytes, stamp: ImageStamp): Promise<PdfBytes> {
+  const doc = await load(bytes);
+  const img = await embedImage(doc, stamp.image);
   for (const i of parsePageRange(stamp.pages ?? 'last', doc.getPageCount())) {
     const page = doc.getPage(i);
     const frame = visualFrame(page);
@@ -478,8 +543,12 @@ export async function stripMetadata(bytes: PdfBytes): Promise<PdfBytes> {
   if (info instanceof PDFDict) {
     for (const key of info.keys()) info.delete(key);
   }
-  // Drop the XMP metadata stream, which often duplicates author and tool names.
+  // Drop every XMP metadata stream, which often duplicates author and tool names: the document's,
+  // and those on pages, images, forms and fonts. The streams themselves go too, not just the links.
   doc.catalog.delete(PDFName.of('Metadata'));
+  const { streams, holders } = metadataRefs(doc);
+  for (const dict of holders) dict.delete(PDFName.of('Metadata'));
+  for (const ref of streams) doc.context.delete(ref);
   return save(doc);
 }
 
@@ -504,19 +573,35 @@ export async function imagesToPdf(images: Uint8Array[], opts: { pageSize?: 'imag
   const doc = await PDFDocument.create({ updateMetadata: false });
   const sizes = { a4: [595.28, 841.89], letter: [612, 792] } as const;
   for (const bytes of images) {
-    const img = imageKind(bytes) === 'png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    const img = await embedImage(doc, bytes);
+    // Photos stored sideways are turned as phones show them (EXIF 3, 6 and 8; mirrored ones stay as stored).
+    const turn = ({ 3: 180, 6: 90, 8: 270 } as Record<number, number>)[jpegOrientation(bytes) ?? 1] ?? 0;
+    const sideways = turn === 90 || turn === 270;
+    const shownW = sideways ? img.height : img.width;
+    const shownH = sideways ? img.width : img.height;
+    let W: number, H: number, scale: number;
     if ((opts.pageSize ?? 'image') === 'image') {
-      const page = doc.addPage([img.width, img.height]);
-      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      [W, H, scale] = [shownW, shownH, 1];
     } else {
-      const [W, H] = sizes[opts.pageSize as 'a4' | 'letter'];
+      // Landscape images get a landscape page, as other converters do.
+      const [a, b] = sizes[opts.pageSize as 'a4' | 'letter'];
+      [W, H] = shownW > shownH ? [b, a] : [a, b];
       const m = opts.margin ?? 36;
-      const scale = Math.min((W - 2 * m) / img.width, (H - 2 * m) / img.height, 1);
-      const w = img.width * scale;
-      const h = img.height * scale;
-      const page = doc.addPage([W, H]);
-      page.drawImage(img, { x: (W - w) / 2, y: (H - h) / 2, width: w, height: h });
+      scale = Math.min((W - 2 * m) / shownW, (H - 2 * m) / shownH, 1);
     }
+    const page = doc.addPage([W, H]);
+    // The box the image occupies as shown, centered; then where its stored lower-left corner goes.
+    const bw = shownW * scale;
+    const bh = shownH * scale;
+    const X = (W - bw) / 2;
+    const Y = (H - bh) / 2;
+    const w = img.width * scale;
+    const h = img.height * scale;
+    // pdf-lib rotates counterclockwise around (x, y); a clockwise turn is a negative angle.
+    if (turn === 90) page.drawImage(img, { x: X, y: Y + bh, width: w, height: h, rotate: degrees(-90) });
+    else if (turn === 270) page.drawImage(img, { x: X + bw, y: Y, width: w, height: h, rotate: degrees(90) });
+    else if (turn === 180) page.drawImage(img, { x: X + bw, y: Y + bh, width: w, height: h, rotate: degrees(180) });
+    else page.drawImage(img, { x: X, y: Y, width: w, height: h });
   }
   return save(doc);
 }

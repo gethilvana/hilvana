@@ -167,3 +167,63 @@ describe('Word documents from the public benchmark', { timeout: 60_000 }, () => 
     for (const s of ['Nota', 'Detalle', 'Elija un elemento.', 'Fila dentro de un control']) expect(text).toContain(s);
   });
 });
+
+// Audit 2026-11-24 (docs/qa/auditoria-2026-11-24.md).
+describe('Word findings of the 2026-11-24 audit', { timeout: 60_000 }, () => {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const p = (t: string) => `<w:p><w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+  const docx = (body: string, header?: string) => zipSync({
+    '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+    '_rels/.rels': strToU8('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'),
+    'word/document.xml': strToU8(`<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`),
+    'word/_rels/document.xml.rels': strToU8(`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${header ? '<Relationship Id="h1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>' : ''}</Relationships>`),
+    ...(header ? { 'word/header1.xml': strToU8(`<?xml version="1.0"?><w:hdr ${W}>${header}</w:hdr>`) } : {}),
+  });
+  async function positions(bytes: Uint8Array) {
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const doc = await pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 }).promise;
+    const items = (await (await doc.getPage(1)).getTextContent()).items.filter((x) => 'str' in x && x.str.trim()) as { str: string; transform: number[] }[];
+    return new Map(items.map((x) => [x.str, { x: x.transform[4]!, y: x.transform[5]! }]));
+  }
+
+  it('finding 3: takes column widths from the cells when the table has no grid', async () => {
+    const tc = (w: number, t: string) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/></w:tcPr>${p(t)}</w:tc>`;
+    const res = await wordToPdf(docx(`<w:tbl><w:tr>${tc(1440, 'Uno')}${tc(7200, 'Dos')}</w:tr><w:tr>${tc(1440, 'Tres')}${tc(7200, 'Cuatro')}</w:tr></w:tbl>`));
+    const at = await positions(res.pdf);
+    // The second column starts one inch (72 pt) after the first, as the cells declare; not at half the width.
+    expect(Math.round(at.get('Dos')!.x - at.get('Uno')!.x)).toBe(72);
+    expect(Math.round(at.get('Cuatro')!.x - at.get('Tres')!.x)).toBe(72);
+  });
+
+  it('finding 7: honors center and right tab stops, as in Word headers', async () => {
+    const res = await wordToPdf(docx('<w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="4680"/><w:tab w:val="right" w:pos="9360"/></w:tabs></w:pPr><w:r><w:t>Izq</w:t></w:r><w:r><w:tab/><w:t>Centro</w:t></w:r><w:r><w:tab/><w:t>Der</w:t></w:r></w:p>'));
+    const at = await positions(res.pdf);
+    const margin = 72;
+    // "Der" ends at the right stop (468 pt from the margin); "Centro" is centered on 234 pt.
+    expect(at.get('Der')!.x).toBeGreaterThan(margin + 440);
+    expect(at.get('Der')!.x).toBeLessThan(margin + 468);
+    expect(Math.abs(at.get('Centro')!.x - (margin + 234 - 14))).toBeLessThan(6);
+  });
+
+  it('finding 7: a style can clear an inherited tab stop', async () => {
+    const res = await wordToPdf(docx('<w:p><w:pPr><w:tabs><w:tab w:val="right" w:pos="9360"/><w:tab w:val="clear" w:pos="9360"/></w:tabs></w:pPr><w:r><w:t>A</w:t></w:r><w:r><w:tab/><w:t>B</w:t></w:r></w:p>'));
+    const at = await positions(res.pdf);
+    expect(at.get('B')!.x).toBeLessThan(72 + 40); // back to the default half-inch tabs
+  });
+
+  it('finding 9: each section keeps its own header; a cover section without one has none', async () => {
+    const res = await wordToPdf(docx(`${p('Portada')}<w:p><w:pPr><w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:pPr></w:p>${p('Capitulo')}<w:sectPr><w:headerReference w:type="default" r:id="h1"/></w:sectPr>`, p('Encabezado del capitulo')));
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const doc = await pdfjs.getDocument({ data: res.pdf.slice(), verbosity: 0 }).promise;
+    const text = async (n: number) => (await (await doc.getPage(n)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ');
+    expect(await text(1)).not.toContain('Encabezado');
+    expect(await text(2)).toContain('Encabezado del capitulo');
+  });
+
+  it('finding 8: a header taller than its margin pushes the body down instead of printing over it', async () => {
+    const header = Array.from({ length: 8 }, (_, i) => p(`Encabezado ${i + 1}`)).join('');
+    const res = await wordToPdf(docx(`${p('Cuerpo')}<w:sectPr><w:headerReference w:type="default" r:id="h1"/><w:pgMar w:top="1440" w:bottom="1440" w:left="1440" w:right="1440" w:header="720" w:footer="720"/></w:sectPr>`, header));
+    const at = await positions(res.pdf);
+    expect(at.get('Cuerpo')!.y).toBeLessThan(at.get('Encabezado 8')!.y - 8);
+  });
+});

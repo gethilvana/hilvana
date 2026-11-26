@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0 · 2026-11-26
+
+Fixes for the confirmed findings of the 2026-11-24 audit (response: [docs/qa/auditoria-2026-11-24.md](docs/qa/auditoria-2026-11-24.md)).
+
+- **@hilvana/office**:
+  - `engine: 'auto'` also switches to LibreOffice for `MISSING_GLYPHS`, `COLUMNS_IGNORED` and `CONTENT_TALLER_THAN_PAGE` (findings 1, 2 and 4). `CONTENT_LOSS` is exported.
+  - Tables without `<w:tblGrid>` take their column widths from the cells' `<w:tcW>` (finding 3).
+  - Custom tab stops (left, center, right; decimal as right), inherited through styles and clearable (finding 7).
+  - Headers and footers taller than their margin push the body instead of printing over it (finding 8).
+  - Each section keeps its own header and footer; a section without them inherits the previous one's, and the first has none (finding 9).
+  - Font files are read once per process (finding 20).
+- **@hilvana/core**:
+  - `stripMetadata` removes XMP metadata streams on pages, images, forms and fonts, not only the document's. `PdfInfo.xmpStreams` counts them and `hasMetadata` includes them (finding 6).
+  - `imagesToPdf`: landscape images get landscape A4/Letter pages; JPEG EXIF orientation 3, 6 and 8 is applied (finding 13); damaged images raise `UNSUPPORTED_IMAGE` (finding 16). New `jpegOrientation()`.
+- **@hilvana/recipes**: split parts with the same name get " (2)", " (3)" instead of overwriting each other (finding 15).
+- **hilvana-mcp**: `pdf_inspect` returns `metadataFields` (which fields are set) instead of their values (finding 5).
+- **hilvana**: `inspect` reports XMP metadata blocks. **Web**: *Quitar metadatos* shows XMP blocks.
+
 ## 0.10.0 · 2026-11-26
 
 - **@hilvana/core**: `removeProtection(bytes, password?)` returns the document as it is, without encryption or usage restrictions: pages, bookmarks, forms and metadata stay. Signatures lose their cryptographic part, as with every change.

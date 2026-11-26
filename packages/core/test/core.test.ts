@@ -105,7 +105,8 @@ describe('operations', () => {
     const out = await imagesToPdf([TINY_PNG, TINY_PNG], { pageSize: 'a4' });
     const info = await inspect(out);
     expect(info.pageCount).toBe(2);
-    expect(Math.round(info.pages[0]!.width)).toBe(595);
+    // TINY_PNG is wider than tall, so it gets a landscape A4 page.
+    expect([Math.round(info.pages[0]!.width), Math.round(info.pages[0]!.height)]).toEqual([842, 595]);
   });
 
   it('reports invalid input with a stable code', async () => {

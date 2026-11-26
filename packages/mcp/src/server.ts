@@ -181,14 +181,16 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     'pdf_inspect',
     {
       title: 'Inspect a PDF',
-      description: 'Returns structure only: page count, page sizes and rotation, encryption, metadata fields and file size. Never returns text or images.',
+      description: 'Returns structure only: page count, page sizes and rotation, encryption, which metadata fields are set (names only, never their values), signatures and file size. Never returns text or images.',
       inputSchema: { path: z.string() },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ path: p }) => {
       try {
         const real = await guard.readable(p);
-        return text({ path: real, ...(await inspect(new Uint8Array(await fs.readFile(real)))) });
+        // Metadata values (a title, an author's name) can be as confidential as the text: only say which are set.
+        const { metadata, ...info } = await inspect(new Uint8Array(await fs.readFile(real)));
+        return text({ path: real, ...info, metadataFields: Object.keys(metadata) });
       } catch (err) {
         if (err instanceof HilvanaError) {
           const l = defaults.lang ?? 'es';

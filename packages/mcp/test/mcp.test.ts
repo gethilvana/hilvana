@@ -49,6 +49,14 @@ describe('hilvana-mcp', () => {
     expect((res.contents[0] as { text: string }).text).toContain('"steps"');
   });
 
+  // Audit 2026-11-24, finding 5: metadata values (a title, an author) can be as confidential as the text.
+  it('pdf_inspect says which metadata fields are set, never their values', async () => {
+    const res = json(await call('pdf_inspect', { path: 'a.pdf' }));
+    expect(res.metadataFields).toContain('author');
+    expect(res.metadata).toBeUndefined();
+    expect(JSON.stringify(res)).not.toContain('Ana');
+  });
+
   it('lists regular files with page counts and skips symlinks', async () => {
     const res = json(await call('pdf_list', {}));
     expect(res.files.map((f: { name: string; pages?: number }) => [f.name, f.pages])).toEqual([
