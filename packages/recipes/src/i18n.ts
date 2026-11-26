@@ -136,6 +136,46 @@ const messages: Record<Lang, Dict> = {
     'pages.all': 'todas las páginas',
     'pages.last': 'la última página',
     'pages.one': 'la página {p}',
+    // Amazon KDP
+    'step.kdpPrepare': 'Preparar el interior para KDP ({book}): tamaño de corte, márgenes, número par de páginas, sin anotaciones, marcadores ni metadatos',
+    'goal.kdp': 'Cumple los requisitos de KDP para {book}',
+    'goal.kdpOk': 'Cumple los requisitos de KDP para {book}',
+    'kdp.book': '{binding} {trim}" {bleed}',
+    'kdp.binding.paperback': 'tapa blanda',
+    'kdp.binding.hardcover': 'tapa dura',
+    'kdp.withBleed': 'con sangrado',
+    'kdp.noBleed': 'sin sangrado',
+    'kdp.ink.black-white': 'tinta negra en papel blanco',
+    'kdp.ink.black-cream': 'tinta negra en papel crema',
+    'kdp.ink.black-groundwood': 'tinta negra en papel de pulpa mecánica',
+    'kdp.ink.standard-color': 'color estándar',
+    'kdp.ink.premium-color': 'color premium',
+    KDP_UNSUPPORTED: 'KDP no imprime {binding} de {trim}" con {ink}.',
+    KDP_TRIM_UNSUPPORTED: 'El tamaño de corte "{trim}" no es válido para KDP.',
+    'kdp.KDP_TRIM_UNSUPPORTED': 'KDP no ofrece {binding} en {trim}".',
+    'kdp.KDP_INK_UNSUPPORTED': 'KDP no ofrece {binding} de {trim}" con esa tinta y papel ({ink}).',
+    'kdp.KDP_PAGE_SIZE': 'Páginas {list}: el tamaño debe ser {width} × {height}". El paso kdpPrepare (o --fix en la CLI) las ajusta.',
+    'kdp.KDP_PAGE_ROTATED': 'Páginas {list}: están giradas; KDP necesita las páginas derechas. Gíralas antes de preparar el libro.',
+    'kdp.KDP_PAGE_COUNT_LOW': 'Tiene {count} páginas y KDP pide al menos {min}. kdpPrepare puede completarlas con páginas en blanco (padToMinimum, o --fix --pad en la CLI).',
+    'kdp.KDP_PAGE_COUNT_HIGH': 'Tiene {count} páginas y KDP admite como máximo {max} para este formato.',
+    'kdp.KDP_PAGE_COUNT_ODD': 'Tiene {count} páginas: KDP agrega una en blanco al final para que sean pares.',
+    'kdp.KDP_MARGINS': 'Páginas {list}: hay contenido fuera de los márgenes (medianil {inside}", exteriores {outside}"). Sin sangrado, kdpPrepare (o --fix) lo ajusta.',
+    'kdp.KDP_FONTS_NOT_EMBEDDED': 'Páginas {list}: fuentes sin incrustar ({fonts}). Expórtalo de nuevo con las fuentes incrustadas.',
+    'kdp.KDP_LOW_RESOLUTION': 'Páginas {list}: imágenes por debajo de {min} DPI (la más baja, {dpi} DPI). Usa imágenes de mayor resolución.',
+    'kdp.KDP_TRANSPARENCY': 'Páginas {list}: usan transparencias. KDP recomienda aplanarlas al exportar.',
+    'kdp.KDP_ENCRYPTED': 'El archivo está protegido; KDP no acepta archivos bloqueados.',
+    'kdp.KDP_ANNOTATIONS': 'Páginas {list}: tienen anotaciones o comentarios. kdpPrepare los quita.',
+    'kdp.KDP_BOOKMARKS': 'Tiene marcadores; KDP pide quitarlos. kdpPrepare los quita.',
+    'kdp.KDP_METADATA': 'Tiene metadatos; KDP pide no incluirlos. kdpPrepare los quita.',
+    'kdp.removed.annotations': '{count} anotaciones',
+    'kdp.removed.bookmarks': 'los marcadores',
+    'kdp.removed.metadata': 'los metadatos',
+    'note.kdpResized': '{count} páginas se ajustaron al tamaño de corte de {trim}", sin deformarlas.',
+    'note.kdpScaled': 'Páginas {list}: el contenido se redujo para quedar dentro de los márgenes (hasta {percent} %). Revísalas.',
+    'note.kdpMoved': 'Páginas {list}: el contenido se movió, sin cambiar su tamaño, para quedar dentro de los márgenes.',
+    'note.kdpAdded': 'Se agregaron {count} páginas en blanco al final.',
+    'note.kdpAdded1': 'Se agregó una página en blanco al final.',
+    'note.kdpRemoved': 'Se quitaron {what}.',
     'pages.many': 'las páginas {p}',
   },
   en: {
@@ -230,7 +270,7 @@ const messages: Record<Lang, Dict> = {
     'note.ocr': 'OCR: pages {pages}, {words} words, mean confidence {confidence} %. The text can now be searched, copied and redacted.',
     'note.ocrCheck': 'OCR can make mistakes: check important figures and names.',
     'note.ocrNone': 'Every page already had text; no OCR was needed.',
-    'note.ocrUnreadable': 'Pages {pages} are scans in a format that cannot be read here; the web app can read them.',
+    'note.ocrUnreadable': 'Pages {list} are scans in a format that cannot be read here; the web app can read them.',
     'step.merge': 'Merge {files}',
     'step.unlock': 'Remove the password and restrictions from the PDF, changing nothing else',
     'step.mergeAll': 'Merge every PDF in the order received',
@@ -266,6 +306,46 @@ const messages: Record<Lang, Dict> = {
     'pages.all': 'all pages',
     'pages.last': 'the last page',
     'pages.one': 'page {p}',
+    // Amazon KDP
+    'step.kdpPrepare': 'Prepare the KDP interior ({book}): trim size, margins, even page count, no annotations, bookmarks or metadata',
+    'goal.kdp': 'Meets KDP requirements for {book}',
+    'goal.kdpOk': 'Meets KDP requirements for {book}',
+    'kdp.book': '{trim}" {binding}, {bleed}',
+    'kdp.binding.paperback': 'paperback',
+    'kdp.binding.hardcover': 'hardcover',
+    'kdp.withBleed': 'with bleed',
+    'kdp.noBleed': 'no bleed',
+    'kdp.ink.black-white': 'black ink on white paper',
+    'kdp.ink.black-cream': 'black ink on cream paper',
+    'kdp.ink.black-groundwood': 'black ink on groundwood paper',
+    'kdp.ink.standard-color': 'standard color',
+    'kdp.ink.premium-color': 'premium color',
+    KDP_UNSUPPORTED: 'KDP does not print {trim}" {binding} books with {ink}.',
+    KDP_TRIM_UNSUPPORTED: 'The trim size "{trim}" is not valid for KDP.',
+    'kdp.KDP_TRIM_UNSUPPORTED': 'KDP does not offer {binding} books in {trim}".',
+    'kdp.KDP_INK_UNSUPPORTED': 'KDP does not offer {trim}" {binding} books with that ink and paper ({ink}).',
+    'kdp.KDP_PAGE_SIZE': 'Pages {list}: the page size must be {width} × {height}". The kdpPrepare step (or --fix in the CLI) fits them.',
+    'kdp.KDP_PAGE_ROTATED': 'Pages {list}: they are rotated; KDP needs upright pages. Turn them before preparing the book.',
+    'kdp.KDP_PAGE_COUNT_LOW': 'It has {count} pages and KDP needs at least {min}. kdpPrepare can add blank pages (padToMinimum, or --fix --pad in the CLI).',
+    'kdp.KDP_PAGE_COUNT_HIGH': 'It has {count} pages and KDP allows at most {max} for this format.',
+    'kdp.KDP_PAGE_COUNT_ODD': 'It has {count} pages: KDP adds a blank one at the end to make them even.',
+    'kdp.KDP_MARGINS': 'Pages {list}: content crosses the margins (gutter {inside}", outside {outside}"). Without bleed, kdpPrepare (or --fix) fits it.',
+    'kdp.KDP_FONTS_NOT_EMBEDDED': 'Pages {list}: fonts not embedded ({fonts}). Export it again with fonts embedded.',
+    'kdp.KDP_LOW_RESOLUTION': 'Pages {list}: images below {min} DPI (lowest {dpi} DPI). Use higher-resolution images.',
+    'kdp.KDP_TRANSPARENCY': 'Pages {list}: they use transparency. KDP recommends flattening it when exporting.',
+    'kdp.KDP_ENCRYPTED': 'The file is protected; KDP does not accept locked files.',
+    'kdp.KDP_ANNOTATIONS': 'Pages {list}: they have annotations or comments. kdpPrepare removes them.',
+    'kdp.KDP_BOOKMARKS': 'It has bookmarks; KDP asks to remove them. kdpPrepare removes them.',
+    'kdp.KDP_METADATA': 'It has metadata; KDP asks to leave it out. kdpPrepare removes it.',
+    'kdp.removed.annotations': '{count} annotations',
+    'kdp.removed.bookmarks': 'the bookmarks',
+    'kdp.removed.metadata': 'the metadata',
+    'note.kdpResized': '{count} pages were fitted to the {trim}" trim size, without distorting them.',
+    'note.kdpScaled': 'Pages {list}: content was scaled down to stay inside the margins (down to {percent}%). Check them.',
+    'note.kdpMoved': 'Pages {list}: content was moved, at the same size, to stay inside the margins.',
+    'note.kdpAdded': '{count} blank pages were added at the end.',
+    'note.kdpAdded1': 'A blank page was added at the end.',
+    'note.kdpRemoved': 'Removed {what}.',
     'pages.many': 'pages {p}',
   },
 };
@@ -279,6 +359,11 @@ export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+/** "tapa blanda 8.5x11" sin sangrado" / "8.5x11" paperback, no bleed". */
+export function kdpBook(spec: { binding: string; trim: string; bleed?: boolean }, lang: Lang): string {
+  return t(lang, 'kdp.book', { binding: t(lang, `kdp.binding.${spec.binding}`), trim: spec.trim.replace(/\s+/g, ''), bleed: t(lang, spec.bleed ? 'kdp.withBleed' : 'kdp.noBleed') });
 }
 
 export function describeStep(step: Step, lang: Lang): string {
@@ -317,6 +402,7 @@ export function describeStep(step: Step, lang: Lang): string {
     }
     case 'signDigital': return t(lang, 'step.signDigital', { certificate: step.certificate });
     case 'ocr': return t(lang, step.force ? 'step.ocrForce' : 'step.ocr', { language: t(lang, `lang.${step.language ?? 'spa'}`) });
+    case 'kdpPrepare': return t(lang, 'step.kdpPrepare', { book: kdpBook(step, lang) });
     case 'redact': {
       const what: string[] = [];
       const nt = step.terms?.length ?? 0;

@@ -34,6 +34,7 @@ Lo distinto es que trabaja con **recetas**: describes el resultado y Hilvana enc
 | Tachar de verdad (texto, imágenes y formas bajo cada zona) | `hilvana redact` | `redact` |
 | Proteger con contraseña (AES-256) o restringir el uso | `hilvana protect` | `protect` |
 | Quitar la contraseña o las restricciones, sin cambiar nada más | `hilvana unlock` | `unlock` |
+| Revisar y preparar un libro para Amazon KDP (tapa blanda o dura) | `hilvana kdp` | `kdpPrepare`, meta `kdp` |
 | Ejecutar una receta completa | `hilvana run` | — |
 | Aplicar una receta a cada archivo (lote) | `hilvana run --each` | — |
 
@@ -159,7 +160,7 @@ npx hilvana ocr scan.pdf                    # searchable scans, OCR on your mach
 
 On Windows, use `"command": "cmd"` and put `"/c", "npx"` before the arguments.
 
-Tools: `pdf_list`, `pdf_inspect`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Saved recipes (exported from *My recipes* on the web) in `~/.hilvana/recetas`, or the folder given with `--recipes`, add `recipe_list` and `hilvana://recipes/{id}` resources, and run with `saved: "<id>"`; that folder is only read. Destructive steps require `confirm: true`, which the agent should only send after you agree.
+Tools: `pdf_list`, `pdf_inspect`, `kdp_check`, `word_to_pdf`, `recipe_plan`, `recipe_run`, plus the `hilvana://recipe-schema` resource. Saved recipes (exported from *My recipes* on the web) in `~/.hilvana/recetas`, or the folder given with `--recipes`, add `recipe_list` and `hilvana://recipes/{id}` resources, and run with `saved: "<id>"`; that folder is only read. Destructive steps require `confirm: true`, which the agent should only send after you agree.
 
 ### Safety rules
 

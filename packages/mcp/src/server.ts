@@ -3,9 +3,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { HilvanaError, inspect } from '@hilvana/core';
+import { HilvanaError, inspect, kdpCheck } from '@hilvana/core';
 import { convertWord, type WordEngine } from '@hilvana/office';
-import { RecipeError, describeStep, kindOf, plan, planBatch, recipeJsonSchema, run, runBatch, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
+import { RecipeError, describeStep, kdpGoals, kindOf, plan, planBatch, recipeJsonSchema, run, runBatch, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
 import { safeWrite } from './safewrite.js';
 import type { RecipeShelf } from './recipes.js';
@@ -84,6 +84,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
         'To make files smaller use the compress step: {"op":"compress"} with goals.maxBytes aims for that size automatically; levels are lossless, balanced (150 dpi images, default), strong (110 dpi) and max (72 dpi). Text is never rasterized.',
         'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
         'Recipes can end with protect (allowPrint/allowCopy/allowModify false restricts use). Password protection and signDigital (certificate signatures) need a secret and are refused here: never ask for passwords in the chat; point the person to https://pdf.jorgegrajales.dev or `npx hilvana protect` / `npx hilvana certify`.',
+        'Amazon KDP print books: kdp_check reports what KDP would reject (trim size, page count, margins and gutter, unembedded fonts, images under 300 DPI, annotations, bookmarks, metadata). To fix it, run a recipe with {"op":"kdpPrepare","binding":"paperback","trim":"8.5x11"} (binding paperback or hardcover; bleed true when art reaches the page edge; padToMinimum to add blank pages up to KDP\'s minimum). It is destructive (it scales content into the margins and removes bookmarks and metadata): show the plan and get the user\'s agreement first. The result is checked against KDP automatically.',
         'To remove usage restrictions from one PDF and change nothing else, use {"op":"unlock"} as the only step. Files that need a password to open cannot be unlocked here (see below).',
         ...(shelf ? [`The person keeps saved recipes in ${shelf.folder}: call recipe_list to see them, and pass saved="<id>" to recipe_plan and recipe_run instead of writing the recipe again. Prefer a saved recipe when one fits the request.`] : []),
         'Workflow: 1) pdf_list or pdf_inspect to learn page counts; 2) recipe_plan to validate and show the user the steps; 3) recipe_run. Steps marked destructive (select, remove, stripMetadata, setMetadata) need confirm=true, and you should only set it after the user agrees.',
@@ -194,6 +195,37 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       } catch (err) {
         if (err instanceof HilvanaError) {
           const l = defaults.lang ?? 'es';
+          return fail(JSON.stringify({ code: err.code, message: t(l, err.code, err.details), ...(err.code === 'PASSWORD_REQUIRED' ? { hint: PASSWORD_HINT[l] } : {}) }, null, 2));
+        }
+        return fail(String((err as Error).message));
+      }
+    },
+  );
+
+  server.registerTool(
+    'kdp_check',
+    {
+      title: 'Check a PDF for Amazon KDP',
+      description: 'Checks a print interior against Amazon KDP requirements for a paperback or hardcover: page size (trim plus bleed), page count, margins and gutter by page count, embedded fonts, image resolution (300 DPI), transparency, annotations, bookmarks, metadata. Returns the findings by page; never page text or images. Read only.',
+      inputSchema: {
+        path: z.string().describe('The PDF, inside an allowed folder.'),
+        binding: z.enum(['paperback', 'hardcover']),
+        trim: z.string().describe('Trim size in inches, e.g. "8.5x11" or "6x9".'),
+        bleed: z.boolean().optional().describe('True when art reaches the page edge.'),
+        ink: z.enum(['black-white', 'black-cream', 'black-groundwood', 'standard-color', 'premium-color']).optional(),
+        lang: z.enum(['es', 'en']).optional(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ path: p, binding, trim, bleed, ink, lang }) => {
+      const l = lang ?? defaults.lang ?? 'es';
+      try {
+        const real = await guard.readable(p);
+        const spec = { binding, trim, ...(bleed ? { bleed } : {}), ...(ink ? { ink } : {}) };
+        const report = await kdpCheck(new Uint8Array(await fs.readFile(real)), spec);
+        return text({ path: real, ...report, summary: kdpGoals(report, spec, l).map((g) => g.message) });
+      } catch (err) {
+        if (err instanceof HilvanaError) {
           return fail(JSON.stringify({ code: err.code, message: t(l, err.code, err.details), ...(err.code === 'PASSWORD_REQUIRED' ? { hint: PASSWORD_HINT[l] } : {}) }, null, 2));
         }
         return fail(String((err as Error).message));

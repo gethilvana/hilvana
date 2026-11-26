@@ -16,7 +16,8 @@ export type HilvanaErrorCode =
   | 'INVALID_ARGUMENT'
   | 'UNSUPPORTED_CHARACTERS'
   | 'REDACTION_UNSUPPORTED'
-  | 'REDACTION_INCOMPLETE';
+  | 'REDACTION_INCOMPLETE'
+  | 'KDP_TRIM_UNSUPPORTED';
 
 /** Error with a stable code so every surface (web, CLI, MCP) can localize it. */
 export class HilvanaError extends Error {

@@ -20,6 +20,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 - **PDF protegidos · Protected PDFs:** los que solo tienen restricciones se desbloquean solos; los que piden contraseña la reciben en `InputFile.password` (API) o `--password` (CLI). El plan avisa qué se quitó. · Files with only restrictions unlock on their own; those that need a password take it in `InputFile.password` (API) or `--password` (CLI). The plan says what was removed.
 - Si el primer paso no es `merge`, `unlock` ni `fromImages`, Hilvana une primero todos los PDF en el orden recibido. · If the first step is not `merge`, `unlock` or `fromImages`, all PDFs are merged first in the order given.
 - **Word en recetas · Word in recipes:** `@hilvana/recipes` usa por defecto el motor nativo, porque también corre en el navegador. En Node, pasa `word: (d) => convertWord(d)` de `@hilvana/office` para tener el respaldo de LibreOffice; la CLI y el servidor MCP ya lo hacen. · The recipe engine defaults to the native Word engine (it also runs in browsers); Node callers pass `convertWord` for the LibreOffice fallback, as the CLI and MCP server do.
+- **Meta `kdp` · `kdp` goal:** `{"binding": "paperback", "trim": "8.5x11"}` revisa el resultado con los requisitos de Amazon KDP; un paso `kdpPrepare` la aplica solo ([kdp.md](kdp.md)). · Checks the result against Amazon KDP's requirements; a `kdpPrepare` step applies it by itself.
 - `{date}` se reemplaza por la fecha local (AAAA-MM-DD); `{name}` por el nombre del primer archivo. · `{date}` becomes the local date; `{name}` the first input's name.
 
 ## Pasos · Steps
@@ -45,6 +46,7 @@ A recipe is a JSON list of steps applied in order to a working document. The ful
 | `redact` | `terms?: string[]`, `patterns?: ("email" \| "card" \| "number" \| "phone")[]`, `areas?: {page, x, y, width, height}[]` | sí |
 | `protect` | `password?`, `allowPrint?`, `allowCopy?`, `allowModify?` (por defecto `true`). **Solo como último paso** · Last step only | |
 | `signDigital` | `certificate` (nombre de la entrada `.p12`/`.pfx`), `reason?`, `location?`, `visible?` (por defecto `true`), `pages?` (`last`), `anchor?` (`bottom-right`). **Solo como último paso** · Last step only | |
+| `kdpPrepare` | `binding: "paperback" \| "hardcover"`, `trim` ("8.5x11"), `bleed?`, `ink?`, `fitMargins?` (true), `padToMinimum?` (false). Ver [kdp.md](kdp.md) | sí |
 
 **Dividir · Split:** una receta que termina en `split` produce varios archivos: `{nombre}-{rango}.pdf` (o `{nombre}-{página}.pdf`). Los objetivos se comprueban en cada parte. En la CLI, `-o` es la carpeta de las partes y se crea si no existe. En el MCP, `output` es una carpeta existente dentro de las autorizadas; se comprueban todos los destinos antes de escribir. · A recipe ending with `split` produces several files, and goals are checked on each part. CLI: `-o` is the folder (created if needed). MCP: `output` is an existing allowed folder; every destination is checked before anything is written.
 

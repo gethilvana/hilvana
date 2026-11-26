@@ -12,7 +12,7 @@ Qué tan bien funciona Hilvana con documentos que no hicimos nosotros, medido de
 | Tachado | Los mismos 12 documentos, en PDF digital y escaneados con calidad de celular | Cuántos de los 5 datos sensibles de cada documento siguen legibles (en el texto del resultado y en un segundo OCR), y cuánto del resto del texto se conserva | — |
 | Word a PDF | 130 documentos de prueba de [Apache POI](https://github.com/apache/poi/tree/trunk/test-data/document) | Documentos convertidos, palabras del Word presentes en el PDF, páginas frente a LibreOffice | LibreOffice |
 | PDF reales | 200 archivos de prueba de [pdf.js](https://github.com/mozilla/pdf.js/tree/master/test/pdfs) (muestra fija) | Unir, sellar y tachar: resultado válido, mismas páginas, texto intacto, o rechazo con explicación | — |
-| Compresión | Los PDF de la muestra con imágenes y más de 100 KB | Tamaño del resultado y texto intacto | qpdf (sin pérdida) |
+| Compresión | Los PDF de la muestra con imágenes y más de 100 KB | Tamaño del resultado y texto intacto | qpdf (sin pérdida) y Ghostscript (`/ebook`, imágenes a 150 ppp) |
 
 **Condiciones de escaneo:** `limpio-300` (300 ppp, JPEG de buena calidad), `movil-200` (200 ppp, JPEG calidad 60, como una app de celular), `torcido-200` (girado 1,5° y con ruido), `byn-200` (blanco y negro de 1 bit, como un escáner de oficina) y `baja-150` (150 ppp, desenfocado, JPEG calidad 50).
 
@@ -22,7 +22,7 @@ Qué tan bien funciona Hilvana con documentos que no hicimos nosotros, medido de
 
 > **El texto se compara sin importar el orden.** El OCR puede leer una tabla columna por columna; las palabras quedan bien aunque el orden cambie. Por eso la medida principal es el F1 de palabras, y los errores por carácter se informan solo en las cartas.
 
-> **Smallpdf y otros servicios en línea no se incluyen.** Exigen subir los documentos, y el benchmark compara solo herramientas que corren en el equipo. Las referencias son las alternativas de código abierto que la gente usa localmente.
+> **Smallpdf y otros servicios en línea no se incluyen.** Exigen subir los documentos, y el benchmark compara solo herramientas que corren en el equipo. Las referencias son las alternativas de código abierto que la gente usa localmente (decisión D15 del PRD). Ghostscript es AGPL: se usa solo como referencia externa al medir; Hilvana no lo incluye ni lo enlaza.
 
 > **Los corpus de POI y pdf.js no se redistribuyen.** `bench/corpus.mjs` los descarga de su origen en un commit fijo y guarda el SHA-256 de cada archivo en `bench/corpus.json`. Cada documento conserva los derechos de sus autores.
 
@@ -30,7 +30,7 @@ Qué tan bien funciona Hilvana con documentos que no hicimos nosotros, medido de
 
 ## Cómo repetirlo · How to run it
 
-Necesita Node.js 20 o superior, Poppler (`pdftoppm`, `pdfimages`) e ImageMagick (`convert`). Para las referencias: Tesseract 5 con el idioma `spa`, LibreOffice y qpdf (opcionales: sin ellos esas columnas quedan vacías).
+Necesita Node.js 20 o superior, Poppler (`pdftoppm`, `pdfimages`) e ImageMagick (`convert`). Para las referencias: Tesseract 5 con el idioma `spa`, LibreOffice, qpdf y Ghostscript (opcionales: sin ellos esas columnas quedan vacías).
 
 ```bash
 npm ci && npm run build
@@ -44,7 +44,7 @@ El resultado completo, documento por documento, queda en `bench/results/latest.j
 ## Resultados · Results
 
 <!-- results:start -->
-Última ejecución: 2026-11-22 · Hilvana 0.9.0 · Node v22.23.5 · Intel(R) Xeon(R) Processor @ 2.30GHz
+Última ejecución: 2026-11-26 · Hilvana 0.11.0 · Node v22.23.5 · Intel(R) Xeon(R) Processor @ 2.10GHz
 
 ### OCR en español (12 documentos sintéticos por condición)
 
@@ -80,18 +80,18 @@ Palabras: F1 de las palabras leídas frente al texto exacto, sin importar el ord
 
 | Operación | Correctos | Texto intacto | Rechazados con explicación | Fallos | Tiempo mediano |
 |---|---|---|---|---|---|
-| unir | 194 de 194 | 192 de 194 | 0 | 0 | 1 ms |
-| sello | 193 de 194 | 189 de 193 | 1 | 0 | 2 ms |
-| tachar | 186 de 194 | — | 8 | 0 | 4 ms |
-| comprimir | 193 de 194 | 191 de 193 | 1 | 0 | 1 ms |
+| unir | 194 de 194 | 192 de 194 | 0 | 0 | 2 ms |
+| sello | 193 de 194 | 189 de 193 | 1 | 0 | 3 ms |
+| tachar | 186 de 194 | — | 8 | 0 | 6 ms |
+| comprimir | 193 de 194 | 191 de 193 | 1 | 0 | 2 ms |
 
 ### Compresión (15 PDF reales con imágenes y más de 100 KB, nivel equilibrado)
 
-| | Hilvana | qpdf (sin pérdida) |
-|---|---|---|
-| Tamaño mediano del resultado | 94.5 % del original | 96.4 % del original |
-| Archivos más pequeños | 14 de 15 | — |
-| Texto intacto | 15 de 15 | — |
+| | Hilvana | qpdf (sin pérdida) | Ghostscript (/ebook, 150 ppp) |
+|---|---|---|---|
+| Tamaño mediano del resultado | 94.5 % del original | 96.4 % del original | 52.4 % del original |
+| Archivos más pequeños | 14 de 15 | — | 14 de 15 |
+| Texto intacto | 15 de 15 | — | 13 de 15 |
 
 <!-- results:end -->
 

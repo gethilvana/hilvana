@@ -153,6 +153,25 @@ describe('protected PDFs', () => {
   });
 });
 
+describe('Amazon KDP', () => {
+  it('checks an interior, fixes it with --fix, and exits 1 while it does not meet KDP', async () => {
+    const { PDFDocument, rgb } = await import('pdf-lib');
+    const doc = await PDFDocument.create({ updateMetadata: false });
+    for (let i = 0; i < 25; i++) doc.addPage([612, 792]).drawRectangle({ x: 2, y: 2, width: 608, height: 788, borderColor: rgb(0, 0, 0), borderWidth: 1 });
+    await fs.writeFile(path.join(dir, 'libro.pdf'), await doc.save());
+    const check = await hilvana('kdp', 'libro.pdf', '--trim', '6x9');
+    expect(check.code).toBe(1);
+    expect(check.out).toMatch(/el tamaño debe ser 6 × 9"/);
+    expect((await hilvana('kdp', 'libro.pdf')).err).toMatch(/Falta --trim/);
+    const fixed = await hilvana('kdp', 'libro.pdf', '--trim', '6x9', '--fix', '-o', 'libro-kdp.pdf');
+    expect(fixed.code).toBe(0);
+    expect(fixed.out).toMatch(/Se agregó una página en blanco al final/);
+    expect(fixed.out).toMatch(/✓ Cumple los requisitos de KDP para tapa blanda 6x9" sin sangrado/);
+    const json = JSON.parse((await hilvana('kdp', 'libro-kdp.pdf', '--trim', '6x9', '--json')).out);
+    expect(json).toMatchObject({ ok: true, pageCount: 26 });
+  });
+});
+
 describe('recipes that split', () => {
   it('write each part into the -o folder, creating it', async () => {
     await fs.writeFile(path.join(dir, 'dividir.json'), JSON.stringify({ version: 1, steps: [{ op: 'split', ranges: ['1', '2-last'] }] }));
