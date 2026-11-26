@@ -73,3 +73,15 @@ describe('split step', () => {
     expect(JSON.stringify(recipeJsonSchema())).toContain('Last step only: splits the document into several output files.');
   });
 });
+
+// Audit 2026-11-24, finding 15: repeated ranges used to produce the same file name twice.
+describe('split parts always get distinct names', () => {
+  it('numbers repeated ranges and ranges that read the same once cleaned', async () => {
+    const { makePdf } = await import('../../core/test/helpers.js');
+    const res = await run({ version: 1, steps: [{ op: 'split', ranges: ['1', '1', '1,2', '1, 2', '1', '2'] }] }, [{ name: 'muestra.pdf', bytes: await makePdf(2) }]);
+    const names = res.outputs.map((o) => o.filename);
+    expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(names.length);
+    expect(names).toEqual(['muestra-hilvana-1.pdf', 'muestra-hilvana-1 (2).pdf', 'muestra-hilvana-1_2.pdf', 'muestra-hilvana-1_2 (2).pdf', 'muestra-hilvana-1 (3).pdf', 'muestra-hilvana-2.pdf']);
+  });
+});
+

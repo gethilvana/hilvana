@@ -37,6 +37,14 @@ export interface ParagraphStyle {
   styleId?: string;
   shading?: string;
   borderBottom?: { width: number; color: string };
+  /** Custom tab stops, in points from the left margin, sorted. Past the last one, default tabs apply. */
+  tabs?: TabStop[];
+}
+
+export interface TabStop {
+  pos: number;
+  /** Decimal stops are treated as right-aligned. */
+  align: 'left' | 'center' | 'right';
 }
 
 export interface Paragraph {
@@ -75,7 +83,10 @@ export interface Table {
 }
 
 /** A page break; `section` is set when it ends a section, with that section's page setup. */
-export type Block = Paragraph | Table | { type: 'pageBreak'; section?: PageSetup };
+export type Block = Paragraph | Table | { type: 'pageBreak'; section?: PageSetup; hfRefs?: HeaderFooterRefs };
+
+/** Relationship ids of a section's default header and footer; an absent one is inherited from the section before. */
+export interface HeaderFooterRefs { header?: string; footer?: string }
 
 export interface PageSetup {
   width: number;
@@ -86,6 +97,9 @@ export interface PageSetup {
 export interface Section {
   page: PageSetup;
   blocks: Block[];
+  /** This section's header and footer (inherited from the section before when it sets none). */
+  header?: Block[];
+  footer?: Block[];
 }
 
 export interface DocModel {

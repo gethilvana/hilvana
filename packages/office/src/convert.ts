@@ -3,8 +3,14 @@ import { wordToPdf, type WordToPdfOptions, type WordToPdfResult, type WordWarnin
 
 export type WordEngine = 'auto' | 'native' | 'libreoffice';
 
-/** Warnings that mean the native engine left content out (not just approximated it). */
-const CONTENT_LOSS: WordWarning[] = ['TEXTBOX_SKIPPED', 'LEGACY_SHAPE_SKIPPED', 'NOTES_SKIPPED', 'UNSUPPORTED_IMAGE_FORMAT', 'FLOATING_IMAGE_INLINED'];
+/**
+ * Warnings that mean the native engine left content out or changed what it says (not just approximated
+ * its look): characters drawn as "?", columns run together, or a table row cut at the page bottom.
+ */
+export const CONTENT_LOSS: readonly WordWarning[] = [
+  'TEXTBOX_SKIPPED', 'LEGACY_SHAPE_SKIPPED', 'NOTES_SKIPPED', 'UNSUPPORTED_IMAGE_FORMAT', 'FLOATING_IMAGE_INLINED',
+  'MISSING_GLYPHS', 'COLUMNS_IGNORED', 'CONTENT_TALLER_THAN_PAGE',
+];
 
 /**
  * Word → PDF with engine selection, for Node surfaces (CLI, MCP):

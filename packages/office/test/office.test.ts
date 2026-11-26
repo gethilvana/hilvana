@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx';
 import { PDFDocument } from 'pdf-lib';
+import { strToU8, zipSync } from 'fflate';
 import { DocxError, convertWord, findLibreOffice, isDocx, wordToPdf } from '@hilvana/office';
 import { sampleContract } from './fixtures.js';
 
@@ -109,4 +110,22 @@ describe.skipIf(!hasLibreOffice)('convertWord with LibreOffice', () => {
     const res = await convertWord(await sampleContract(), { engine: 'auto' });
     expect(res.engine).toBe('native');
   });
+
+  // Audit 2026-11-24, finding 1: these losses used to stay on the native engine.
+  it.each([
+    ['characters with no font (Arabic)', '<w:p><w:r><w:t>مرحبا بك</w:t></w:r></w:p>'],
+    ['text in two columns', '<w:p><w:r><w:t>uno</w:t></w:r></w:p><w:sectPr><w:cols w:num="2"/></w:sectPr>'],
+    ['a table row taller than a page', `<w:tbl><w:tblGrid><w:gridCol w:w="9000"/></w:tblGrid><w:tr><w:tc>${Array.from({ length: 70 }, (_, i) => `<w:p><w:r><w:t>Linea ${i + 1}</w:t></w:r></w:p>`).join('')}</w:tc></w:tr></w:tbl>`],
+  ])('auto switches to LibreOffice for %s', async (_label, body) => {
+    const res = await convertWord(minimalDocx(body), { engine: 'auto' });
+    expect(res.engine).toBe('libreoffice');
+  }, 120_000);
 });
+
+function minimalDocx(body: string): Uint8Array {
+  return zipSync({
+    '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+    '_rels/.rels': strToU8('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'),
+    'word/document.xml': strToU8(`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`),
+  });
+}

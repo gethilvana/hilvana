@@ -379,6 +379,7 @@ export function App() {
                       {(Object.keys(s.metadataFields) as (keyof typeof s.metadataFields)[]).filter((k) => first.info!.metadata[k]).map((k) => (
                         <div key={k}><dt>{s.metadataFields[k]}</dt><dd>{first.info!.metadata[k]}</dd></div>
                       ))}
+                      {first.info.xmpStreams > 0 && <div><dt>{s.metadataXmp}</dt><dd>{s.metadataXmpCount(first.info.xmpStreams)}</dd></div>}
                     </dl>
                   </>
                 ) : <p>{s.metadataNone}</p>}

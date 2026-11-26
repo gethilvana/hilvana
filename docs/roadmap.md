@@ -41,6 +41,17 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [ ] Validador de interior KDP (P2, uso interno; decisión D14 del PRD v0.5)
 - [ ] Puerta de salida: medir recetas guardadas sin romper la privacidad (ver `docs/qa/fase-2.md`, 2.3; decisión D13 del PRD v0.5)
 
+## Motor de Word · Pendientes de la auditoría del 24 de noviembre
+
+Detalle y verificación en [`docs/qa/auditoria-2026-11-24.md`](qa/auditoria-2026-11-24.md). Corregidos en 0.11.0: respaldo `auto`, anchos de celda, tabulaciones, encabezados por sección y altos, metadatos XMP y en el MCP, imágenes horizontales y EXIF, nombres al dividir.
+
+- [ ] P1 · Partir filas de tabla entre páginas (respetando `cantSplit`)
+- [ ] P1 · Fuentes CJK y árabes cargadas bajo demanda desde el propio sitio
+- [ ] P2 · Reordenamiento bidireccional completo y párrafos `w:bidi`
+- [ ] P2 · Hipervínculos como enlaces y títulos como marcadores
+- [ ] P2 · Altura y sombreado de celdas combinadas verticalmente
+- [ ] P3 · Conflictos de bordes en tablas, EMF/WMF nativos, anchos en porcentaje, rellenos de tabulación, EXIF espejado
+
 ## Fase 3 · Uso pagado (semanas 15–18)
 
 - [ ] Créditos y plan Pro (Polar), MCP remoto con medición

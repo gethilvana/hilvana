@@ -493,9 +493,15 @@ export async function run(
   const goals: GoalResult[] = [];
   // A result protected with a password is opened with it, only to check it here.
   const openWith = last.op === 'protect' ? last.password : inPlace ? passwords.get(docs[0]!.name) : undefined;
+  // Repeated ranges ("1", "1") or ones that read the same once cleaned ("1,3" and "1_3") would share a
+  // name and overwrite each other: later ones get " (2)", " (3)", as in batches. Compared without case, as Windows and macOS do.
+  const used = new Set<string>();
   for (const part of parts) {
     const info = await core.inspect(openWith ? (await core.unlock(part.bytes, openWith)).bytes : part.bytes);
-    const filename = safeFilename(part.label ? `${base}-${part.label.replace(/[^\w-]+/g, '_')}` : base) + '.pdf';
+    const stem = safeFilename(part.label ? `${base}-${part.label.replace(/[^\w-]+/g, '_')}` : base);
+    let filename = `${stem}.pdf`;
+    for (let n = 2; used.has(filename.toLowerCase()); n++) filename = `${stem} (${n}).pdf`;
+    used.add(filename.toLowerCase());
     outputs.push({ bytes: part.bytes, filename, pageCount: info.pageCount, byteLength: part.bytes.byteLength });
     for (const g of verify(recipe.goals, part.bytes, info, lang)) goals.push(parts.length > 1 ? { ...g, message: `${filename}: ${g.message}` } : g);
   }

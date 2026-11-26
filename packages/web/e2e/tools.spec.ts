@@ -103,7 +103,8 @@ test('turns images into a PDF', async ({ page }) => {
   await page.getByLabel('Tamaño de página').selectOption('a4');
   await runTool(page);
   const p = (await download(page)).pdf.getPage(0);
-  expect(Math.round(p.getWidth())).toBe(595);
+  // foto.png is 800×600: a landscape image gets a landscape A4 page.
+  expect([Math.round(p.getWidth()), Math.round(p.getHeight())]).toEqual([842, 595]);
 });
 
 test('signs the last page with a drawn signature', async ({ page }) => {

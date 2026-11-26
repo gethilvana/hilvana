@@ -1,6 +1,6 @@
 import { unzipSync, strFromU8 } from 'fflate';
 import { DOMParser } from '@xmldom/xmldom';
-import type { Block, DocModel, Inline, PageSetup, Paragraph, ParagraphStyle, RunStyle, Section, Table, TableCell, TableRow } from './model.js';
+import type { Block, DocModel, HeaderFooterRefs, Inline, PageSetup, Paragraph, ParagraphStyle, RunStyle, Section, TabStop, Table, TableCell, TableRow } from './model.js';
 
 /* ------------------------------------------------------------------ XML helpers */
 
@@ -72,8 +72,10 @@ const twip = (v: string | undefined) => (v === undefined ? undefined : Number(v)
 /* ------------------------------------------------------------------ Props */
 
 type RunProps = Partial<RunStyle> & { charStyle?: string; fontTheme?: 'major' | 'minor' };
-type ParaProps = Partial<Omit<ParagraphStyle, 'line'>> & {
+type ParaProps = Partial<Omit<ParagraphStyle, 'line' | 'tabs'>> & {
   line?: ParagraphStyle['line'];
+  /** Tab stops this level sets or clears; they accumulate along the style chain (see paragraphStyle). */
+  tabs?: { pos: number; val: string }[];
   numId?: string;
   ilvl?: number;
   styleId?: string;
@@ -140,6 +142,10 @@ function readPPr(pPr: El | undefined): ParaProps {
     const first = twip(attr(ind, 'firstLine')); if (first !== undefined) p.firstLine = first;
     const hanging = twip(attr(ind, 'hanging')); if (hanging !== undefined) p.firstLine = -hanging;
   }
+  const tabs = kids(kid(pPr, 'tabs'), 'tab')
+    .map((t) => ({ pos: twip(attr(t, 'pos')) ?? NaN, val: attr(t, 'val') ?? 'left' }))
+    .filter((t) => Number.isFinite(t.pos));
+  if (tabs.length) p.tabs = tabs;
   const pb = toggle(kid(pPr, 'pageBreakBefore')); if (pb !== undefined) p.pageBreakBefore = pb;
   const kn = toggle(kid(pPr, 'keepNext')); if (kn !== undefined) p.keepNext = kn;
   const cs = toggle(kid(pPr, 'contextualSpacing')); if (cs !== undefined) p.contextualSpacing = cs;
@@ -409,6 +415,17 @@ function paragraphStyle(ctx: Context, pp: ParaProps, styleId: string | undefined
     runBase = { ...runBase, ...clean(ctx.cellStyle.rpr) };
   }
   Object.assign(merged, clean(pp));
+  // Unlike other properties, tab stops add up along the chain; a "clear" removes an inherited stop.
+  const stops = new Map<number, TabStop['align']>();
+  const levels = [ctx.docPPr, ...chain.map((s) => s.ppr), ...(ctx.cellStyle && (effectiveStyle === ctx.defaultParaStyle || effectiveStyle === undefined) ? [ctx.cellStyle.ppr] : []), pp];
+  for (const level of levels) {
+    for (const t of level.tabs ?? []) {
+      const key = Math.round(t.pos * 20);
+      if (t.val === 'clear') stops.delete(key);
+      else if (t.val !== 'bar' && t.val !== 'num') stops.set(key, t.val === 'center' ? 'center' : t.val === 'right' || t.val === 'end' || t.val === 'decimal' ? 'right' : 'left');
+    }
+  }
+  const tabs = [...stops.entries()].sort((a, b) => a[0] - b[0]).map(([k, align]) => ({ pos: k / 20, align }));
   const style: ParagraphStyle = {
     align: merged.align ?? 'left',
     spaceBefore: merged.spaceBefore ?? 0,
@@ -423,6 +440,7 @@ function paragraphStyle(ctx: Context, pp: ParaProps, styleId: string | undefined
     styleId: styleId ?? ctx.defaultParaStyle,
     shading: merged.shading,
     borderBottom: merged.borderBottom,
+    ...(tabs.length ? { tabs } : {}),
   };
   return { style, runBase };
 }
@@ -622,7 +640,9 @@ function readTable(ctx: Context, part: Part, tbl: El): Table {
   ctx.cellStyle = tableStyle;
   const direct = kid(tblPr, 'tblBorders');
   if (direct) borders = readBorders(direct);
-  const columns = kids(kid(tbl, 'tblGrid'), 'gridCol').map((g) => twip(attr(g, 'w')) ?? 0);
+  let columns = kids(kid(tbl, 'tblGrid'), 'gridCol').map((g) => twip(attr(g, 'w')) ?? 0);
+  // Widths each cell declares (dxa only), by grid position: used when the grid is missing or short.
+  const cellWidths: (number | undefined)[] = [];
   const mar = kid(tblPr, 'tblCellMar');
   const pad = (side: string, alt: string, d: number) => twip(attr(kid(mar, side) ?? kid(mar, alt), 'w')) ?? d;
   const rows: TableRow[] = [];
@@ -647,9 +667,16 @@ function readTable(ctx: Context, part: Part, tbl: El): Table {
         }
       }
       if (shading && /^[0-9a-f]{6}$/i.test(shading) && isDark(shading)) whitenAuto(cellBlocks);
+      const span = Number(attr(kid(tcPr, 'gridSpan'), 'val') ?? 1);
+      const tcW = kid(tcPr, 'tcW');
+      const grid = cells.reduce((n, c) => n + c.span, 0);
+      if (span === 1 && attr(tcW, 'type') === 'dxa') {
+        const w = twip(attr(tcW, 'w'));
+        if (w && w > 0) cellWidths[grid] = Math.max(cellWidths[grid] ?? 0, w);
+      }
       cells.push({
         blocks: cellBlocks,
-        span: Number(attr(kid(tcPr, 'gridSpan'), 'val') ?? 1),
+        span,
         vMerge: vm ? (attr(vm, 'val') === 'restart' ? 'restart' : 'continue') : undefined,
         shading: shading && /^[0-9a-f]{6}$/i.test(shading) ? shading.toUpperCase() : undefined,
         vAlign: (attr(kid(tcPr, 'vAlign'), 'val') as 'top' | 'center' | 'bottom') ?? 'top',
@@ -659,6 +686,12 @@ function readTable(ctx: Context, part: Part, tbl: El): Table {
     rows.push({ cells, minHeight: twip(attr(kid(trPr, 'trHeight'), 'val')) ?? 0, header: !!toggle(kid(trPr, 'tblHeader')) });
   }
   ctx.cellStyle = outerCellStyle;
+  // Google Docs and other generators often omit <w:tblGrid>: take the widths the cells declare.
+  const gridCount = Math.max(0, ...rows.map((r) => r.cells.reduce((n, c) => n + c.span, 0)));
+  if (columns.length < gridCount) {
+    const derived = Array.from({ length: gridCount }, (_, i) => columns[i] || cellWidths[i]);
+    if (derived.every((w) => w !== undefined && w > 0)) columns = derived as number[];
+  }
   return {
     type: 'table',
     columns,
@@ -668,6 +701,15 @@ function readTable(ctx: Context, part: Part, tbl: El): Table {
     indent: (twip(attr(kid(tblPr, 'tblInd'), 'w')) ?? 0) - (ctx.compatMode < 15 ? pad('left', 'start', 5.4) : 0),
     cellPadding: { top: pad('top', 'top', 0), bottom: pad('bottom', 'bottom', 0), left: pad('left', 'start', 5.4), right: pad('right', 'end', 5.4) },
   };
+}
+
+/** The default header and footer a section's properties point to. */
+function hfRefs(sect: El | undefined): HeaderFooterRefs {
+  const ref = (kind: 'header' | 'footer') => {
+    const r = kids(sect, `${kind}Reference`).find((x) => (attr(x, 'type') ?? 'default') === 'default');
+    return r ? rAttr(r, 'id') : undefined;
+  };
+  return { header: ref('header'), footer: ref('footer') };
 }
 
 function readBlocks(ctx: Context, part: Part, container: El): Block[] {
@@ -681,7 +723,7 @@ function readBlocks(ctx: Context, part: Part, container: El): Block[] {
         if (Number(attr(kid(sect, 'cols'), 'num') ?? 1) > 1) ctx.warnings.add('COLUMNS_IGNORED');
         if (attr(kid(sect, 'type'), 'val') !== 'continuous') {
           const { width, height, margin } = readPage(sect);
-          blocks.push({ type: 'pageBreak', section: { width, height, margin } });
+          blocks.push({ type: 'pageBreak', section: { width, height, margin }, hfRefs: hfRefs(sect) });
         }
       }
     } else if (c.localName === 'tbl') blocks.push(readTable(ctx, part, c));
@@ -806,18 +848,26 @@ function readDocx(files: Record<string, Uint8Array>): ParsedDocx {
   if (Number(attr(kid(sect, 'cols'), 'num') ?? 1) > 1) ctx.warnings.add('COLUMNS_IGNORED');
   // Each section break carries the setup of the section it closes; the body's sectPr is the last one's.
   const sections: Section[] = [];
+  const refs: HeaderFooterRefs[] = [];
   let current: Block[] = [];
   for (const b of blocks) {
     if (b.type === 'pageBreak' && b.section) {
       sections.push({ page: b.section, blocks: current });
+      refs.push(b.hfRefs ?? {});
       current = [];
     } else current.push(b);
   }
   sections.push({ page: { width: page.width, height: page.height, margin: page.margin }, blocks: current });
+  refs.push(hfRefs(sect));
 
-  const readHf = (kind: 'header' | 'footer'): Block[] | undefined => {
-    const ref = kids(sect, `${kind}Reference`).find((r) => (attr(r, 'type') ?? 'default') === 'default');
-    const target = ref ? docPart.rels.get(rAttr(ref, 'id') ?? '') : undefined;
+  const parts = new Map<string, Block[] | undefined>();
+  const readHfById = (id: string | undefined): Block[] | undefined => {
+    if (!id) return undefined;
+    if (!parts.has(id)) parts.set(id, readHfPart(id));
+    return parts.get(id);
+  };
+  const readHfPart = (id: string): Block[] | undefined => {
+    const target = docPart.rels.get(id);
     const xml = target ? ctx.text(target) : undefined;
     if (!target || !xml) return undefined;
     ctx.field = null;
@@ -826,6 +876,15 @@ function readDocx(files: Record<string, Uint8Array>): ParsedDocx {
     const hasText = content.some((b) => b.type !== 'paragraph' || b.inlines.some((i) => i.kind !== 'text' || i.text.trim()));
     return hasText ? content : undefined;
   };
+  // Like Word, a section that names no header or footer keeps the previous section's; the first has none.
+  let header: string | undefined;
+  let footer: string | undefined;
+  sections.forEach((section, i) => {
+    header = refs[i]!.header ?? header;
+    footer = refs[i]!.footer ?? footer;
+    section.header = readHfById(header);
+    section.footer = readHfById(footer);
+  });
   if (kid(sect, 'titlePg')) ctx.warnings.add('FIRST_PAGE_HEADER_IGNORED');
 
   return {
@@ -834,8 +893,8 @@ function readDocx(files: Record<string, Uint8Array>): ParsedDocx {
     sections,
     defaultTab: ctx.defaultTab,
     warnings: [...ctx.warnings],
-    header: readHf('header'),
-    footer: readHf('footer'),
+    header: sections.at(-1)!.header,
+    footer: sections.at(-1)!.footer,
     headerDistance: page.header,
     footerDistance: page.footer,
   };

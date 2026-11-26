@@ -25,8 +25,18 @@ export function familyFor(name: string): Family {
 /** Loads a font file such as ("carlito", "carlito-latin-400-normal.woff"). Return undefined if it does not exist. */
 export type FontLoader = (family: Family, file: string) => Promise<Uint8Array | undefined>;
 
-/** Default loader for Node: reads the files from the installed @fontsource packages. */
-export const nodeFontLoader: FontLoader = async (family, file) => {
+/** Font files already read in this process: every conversion embeds the same few, so each is read once. */
+const nodeFontCache = new Map<string, Promise<Uint8Array | undefined>>();
+
+/** Default loader for Node: reads the files from the installed @fontsource packages (once per process). */
+export const nodeFontLoader: FontLoader = (family, file) => {
+  const key = `${family}/${file}`;
+  let p = nodeFontCache.get(key);
+  if (!p) nodeFontCache.set(key, (p = readFontFile(family, file)));
+  return p;
+};
+
+async function readFontFile(family: Family, file: string): Promise<Uint8Array | undefined> {
   const { createRequire } = await import('node:module');
   const { readFile } = await import('node:fs/promises');
   const path = await import('node:path');
@@ -37,7 +47,7 @@ export const nodeFontLoader: FontLoader = async (family, file) => {
   } catch {
     return undefined;
   }
-};
+}
 
 interface Face {
   pdf: PDFFont;

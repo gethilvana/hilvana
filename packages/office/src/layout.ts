@@ -84,6 +84,7 @@ export class LayoutEngine {
     visit(this.model.blocks);
     visit(this.model.header);
     visit(this.model.footer);
+    for (const sec of this.model.sections) { if (sec.header !== this.model.header) visit(sec.header); if (sec.footer !== this.model.footer) visit(sec.footer); }
     // Paragraphs with no text (only an image, or empty) measure their line with this style.
     uses.push({ style: FALLBACK_STYLE, text: ' ' });
     await this.fonts.prepare(uses);
@@ -220,8 +221,23 @@ export class LayoutEngine {
       if (a.t === 'break') { finish(true, a.page); i++; continue; }
       if (a.t === 'tab') {
         const pos = line.start + line.width;
-        const next = (Math.floor((pos - s.indentLeft) / tab + 1e-6) + 1) * tab + s.indentLeft;
-        const w = Math.max(next - pos, 2);
+        let w = 0;
+        // A custom stop past this point wins; right and center stops align what follows, up to the next tab.
+        const stop = s.tabs?.find((t) => t.pos > pos + 0.5);
+        if (stop) {
+          let follow = 0;
+          for (let j = i + 1; j < atoms.length; j++) {
+            const b = atoms[j]!;
+            if (b.t === 'tab' || b.t === 'break') break;
+            if (b.t === 'text' || b.t === 'image') follow += b.width;
+          }
+          const target = stop.align === 'right' ? stop.pos - follow : stop.align === 'center' ? stop.pos - follow / 2 : stop.pos;
+          w = target - pos;
+        }
+        if (w < 2) {
+          const next = (Math.floor((pos - s.indentLeft) / tab + 1e-6) + 1) * tab + s.indentLeft;
+          w = Math.max(next - pos, 2);
+        }
         if (line.width + w > line.avail && line.items.length) finish(false);
         line.items.push({ kind: 'text', segs: [], style: a.style, size: a.style.size, x: line.width, width: w, space: false });
         line.width += w;
@@ -436,21 +452,28 @@ export class LayoutEngine {
 
   /** Lays out the whole document into new pages of `doc` and returns the page count. */
   render(): number {
-    const pages: { page: PDFPage; setup: ParsedDocx['page'] }[] = [];
+    const pages: { page: PDFPage; setup: ParsedDocx['page']; header?: Block[]; footer?: Block[] }[] = [];
     for (const section of this.model.sections) {
+      // Models built without per-section headers (older callers) use the document's.
+      const { header, footer } = 'header' in section || 'footer' in section ? section : this.model;
       const setup = section.page;
       const contentWidth = setup.width - setup.margin.left - setup.margin.right;
-      const top = setup.height - setup.margin.top;
-      const bottom = setup.margin.bottom;
+      // Like Word, a header or footer taller than its margin pushes the body down (or up) instead of
+      // printing over it. Page-number fields are measured with a stand-in; they do not change height.
+      const extent = (blocks: Block[] | undefined) => (blocks
+        ? this.measureBlocks(blocks, contentWidth, { page: 1, total: 1 }).filter((sl, i, arr) => !(sl.spacer && i === arr.length - 1)).reduce((a, sl) => a + sl.height, 0)
+        : 0);
+      const top = Math.min(setup.height - setup.margin.top, setup.height - this.model.headerDistance - extent(header));
+      const bottom = Math.max(setup.margin.bottom, this.model.footerDistance + extent(footer));
       const slices = this.measureBlocks(section.blocks, contentWidth);
 
       let page = this.doc.addPage([setup.width, setup.height]);
-      pages.push({ page, setup });
+      pages.push({ page, setup, header, footer });
       let y = top;
       const atTop = () => y === top;
       const newPage = () => {
         page = this.doc.addPage([setup.width, setup.height]);
-        pages.push({ page, setup });
+        pages.push({ page, setup, header, footer });
         y = top;
       };
       const drawSlice = (s: Slice) => {
@@ -487,15 +510,15 @@ export class LayoutEngine {
 
     // Headers and footers, now that the page count is known.
     const total = pages.length;
-    pages.forEach(({ page: pg, setup }, idx) => {
+    pages.forEach(({ page: pg, setup, header, footer }, idx) => {
       const contentWidth = setup.width - setup.margin.left - setup.margin.right;
       const fields = { page: idx + 1, total };
-      if (this.model.header) {
+      if (header) {
         let hy = setup.height - this.model.headerDistance;
-        for (const s of this.measureBlocks(this.model.header, contentWidth, fields)) { s.draw(pg, setup.margin.left, hy); hy -= s.height; }
+        for (const s of this.measureBlocks(header, contentWidth, fields)) { s.draw(pg, setup.margin.left, hy); hy -= s.height; }
       }
-      if (this.model.footer) {
-        const fs = this.measureBlocks(this.model.footer, contentWidth, fields).filter((s, i, arr) => !(s.spacer && i === arr.length - 1));
+      if (footer) {
+        const fs = this.measureBlocks(footer, contentWidth, fields).filter((s, i, arr) => !(s.spacer && i === arr.length - 1));
         let fy = this.model.footerDistance + fs.reduce((a, s) => a + s.height, 0);
         for (const s of fs) { s.draw(pg, setup.margin.left, fy); fy -= s.height; }
       }
