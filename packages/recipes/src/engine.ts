@@ -169,7 +169,7 @@ export function kindOf(bytes: Uint8Array): FileKind {
   return 'other';
 }
 
-const SOURCE_OPS = new Set<Step['op']>(['merge', 'fromImages']);
+const SOURCE_OPS = new Set<Step['op']>(['merge', 'unlock', 'fromImages']);
 
 function issueFromError(err: unknown, lang: Lang, step?: number): Issue {
   if (err instanceof HilvanaError) return { code: err.code, message: t(lang, err.code, err.details), step };
@@ -258,6 +258,16 @@ export async function plan(raw: unknown, files: InputFile[], langOrOpts: Lang | 
           else total += pageCounts.get(name) ?? 0;
         }
         pages = total || undefined;
+        break;
+      }
+      case 'unlock': {
+        const pdfNames = docNames.filter((name) => kinds.get(name) === 'pdf');
+        if (docNames.length !== 1 || pdfNames.length !== 1) issues.push({ code: 'UNLOCK_ONE_PDF', message: t(lang, 'UNLOCK_ONE_PDF'), step: n });
+        else {
+          const name = pdfNames[0]!;
+          if (!prepared.failed.has(name) && (prepared.protections.get(name) ?? 'none') === 'none') warnings.push(t(lang, 'NOT_PROTECTED', { name }));
+          pages = pageCounts.get(name);
+        }
         break;
       }
       case 'fromImages': {
@@ -512,6 +522,7 @@ async function apply(
   const need = () => doc as Uint8Array;
   switch (step.op) {
     case 'merge': return core.merge(step.files ? step.files.map((n) => ctx.byName.get(n)!) : ctx.pdfs.map((f) => f.bytes));
+    case 'unlock': return (await core.removeProtection(ctx.pdfs[0]!.bytes)).bytes; // inputs arrive unlocked
     case 'fromImages': return core.imagesToPdf(step.files ? step.files.map((n) => ctx.byName.get(n)!) : ctx.images.map((f) => f.bytes), { pageSize: step.pageSize });
     case 'select': return core.selectPages(need(), step.pages);
     case 'remove': return core.removePages(need(), step.pages);

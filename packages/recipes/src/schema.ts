@@ -10,6 +10,10 @@ export const MergeStep = z.object({
   files: z.array(z.string()).min(1).optional().describe('Input names to merge, in order. Defaults to every PDF input in the order given.'),
 }).strict();
 
+/** Source step for a single PDF: the document as it is, without its protection. */
+export const UnlockStep = z.object({ op: z.literal('unlock') }).strict()
+  .describe('First step, one PDF input: the document as it is, without encryption or usage restrictions. Files that need a password are opened with the password given with that input on the person\'s device, never in the recipe.');
+
 export const FromImagesStep = z.object({
   op: z.literal('fromImages'),
   files: z.array(z.string()).min(1).optional().describe('Image input names (PNG/JPEG). Defaults to every image input.'),
@@ -115,6 +119,7 @@ export const SignDigitalStep = z.object({
 
 export const Step = z.discriminatedUnion('op', [
   MergeStep,
+  UnlockStep,
   FromImagesStep,
   SelectStep,
   RemoveStep,

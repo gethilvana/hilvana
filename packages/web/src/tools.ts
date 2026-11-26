@@ -3,7 +3,7 @@ import type { ToolId } from './i18n';
 import type { Kind } from './protocol';
 
 export type Group = 'arrange' | 'convert' | 'mark' | 'reduce' | 'automate';
-export type Accept = 'docs' | 'word' | 'images';
+export type Accept = 'docs' | 'pdf' | 'word' | 'images';
 export type Anchor = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'center';
 export type PagesChoice = { mode: 'all' | 'first' | 'last' | 'custom'; custom: string };
 
@@ -32,6 +32,7 @@ export const TOOLS: Tool[] = [
   { id: 'metadata', group: 'reduce', accept: 'docs', single: true },
   { id: 'redact', group: 'reduce', accept: 'docs', single: true },
   { id: 'protect', group: 'reduce', accept: 'docs', single: true },
+  { id: 'unlock', group: 'reduce', accept: 'pdf', single: true },
   { id: 'recipes', group: 'automate', accept: 'docs', single: false },
 ];
 
@@ -39,12 +40,14 @@ export const GROUPS: Group[] = ['arrange', 'convert', 'mark', 'reduce', 'automat
 
 export function accepts(tool: Tool, kind: Kind): boolean {
   if (tool.accept === 'docs') return kind === 'pdf' || kind === 'word';
+  if (tool.accept === 'pdf') return kind === 'pdf';
   if (tool.accept === 'word') return kind === 'word';
   return kind === 'image';
 }
 
 export const FILE_INPUT_ACCEPT: Record<Accept, string> = {
   docs: '.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  pdf: '.pdf,application/pdf',
   word: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   images: 'image/png,image/jpeg,.png,.jpg,.jpeg',
 };
@@ -149,8 +152,8 @@ export function compactRange(pages: number[]): string {
 }
 
 const SUFFIX: Record<Lang, Partial<Record<ToolId, string>>> = {
-  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido', redact: 'tachado', ocr: 'buscable' },
-  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected', redact: 'redacted', ocr: 'searchable' },
+  es: { merge: 'unido', pages: 'paginas', rotate: 'girado', images: 'imagenes', sign: 'firmado', stamp: 'sellado', number: 'numerado', watermark: 'marca-de-agua', compress: 'comprimido', metadata: 'limpio', certify: 'firmado-digital', protect: 'protegido', unlock: 'desbloqueado', redact: 'tachado', ocr: 'buscable' },
+  en: { merge: 'merged', pages: 'pages', rotate: 'rotated', images: 'images', sign: 'signed', stamp: 'stamped', number: 'numbered', watermark: 'watermarked', compress: 'compressed', metadata: 'clean', certify: 'digitally-signed', protect: 'protected', unlock: 'unlocked', redact: 'redacted', ocr: 'searchable' },
 };
 
 /** Names of the extra inputs some tools use, and the new password for "protect" (never kept in Options). */
@@ -195,6 +198,7 @@ export function buildRecipe(tool: ToolId, o: Options, names: string[], lang: Lan
       ...(o.allowCopy ? {} : { allowCopy: false }),
       ...(o.allowModify ? {} : { allowModify: false }),
     }]);
+    case 'unlock': return base([{ op: 'unlock' }]);
     case 'redact': {
       const terms = redactTerms(o);
       const r = (n: number) => Math.round(n * 100) / 100;

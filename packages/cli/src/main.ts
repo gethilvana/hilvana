@@ -27,6 +27,7 @@ Uso:
   hilvana watermark <archivo.pdf> --text "CONFIDENCIAL" -o <salida.pdf>
   hilvana number <archivo.pdf> [--format "{n} / {total}"] -o <salida.pdf>
   hilvana strip <archivo.pdf> -o <salida.pdf>
+  hilvana unlock <archivo.pdf> [--password …] -o <salida.pdf>   (quita contraseña y restricciones)
   hilvana compress <archivo.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <salida.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <salida.pdf>
   hilvana ocr <escaneo.pdf> [--language spa|eng] [--force] -o <salida.pdf>
@@ -64,6 +65,7 @@ Usage:
   hilvana watermark <file.pdf> --text "CONFIDENTIAL" -o <out.pdf>
   hilvana number <file.pdf> [--format "{n} / {total}"] -o <out.pdf>
   hilvana strip <file.pdf> -o <out.pdf>
+  hilvana unlock <file.pdf> [--password …] -o <out.pdf>   (removes password and restrictions)
   hilvana compress <file.pdf> [--level lossless|balanced|strong|max] [--target 2MB] -o <out.pdf>
   hilvana images <a.png> <b.jpg> ... [--page-size image|a4|letter] -o <out.pdf>
   hilvana ocr <scan.pdf> [--language spa|eng] [--force] -o <out.pdf>
@@ -271,13 +273,14 @@ function printWarnings(name: string, warnings: string[], lang: Lang) {
   for (const w of warnings) process.stdout.write(`  ⚠ ${name}: ${t(lang, `word.${w}`)}\n`);
 }
 
-const SINGLE = ['pages', 'rotate', 'sign', 'stamp', 'watermark', 'number', 'strip', 'compress'];
+const SINGLE = ['pages', 'rotate', 'sign', 'stamp', 'watermark', 'number', 'strip', 'unlock', 'compress'];
 
 async function single(cmd: string, positionals: string[], v: Values, lang: Lang) {
   if (!SINGLE.includes(cmd)) throw new UsageError(`✗ ${lang === 'es' ? `Comando desconocido: "${cmd}". Usa hilvana --help.` : `Unknown command: "${cmd}". Run hilvana --help.`}`);
   const [input] = positionals;
   if (!input) throw new UsageError(HELP[lang]);
-  const src = await openPdf(input, await read(input), v, lang);
+  const raw = await read(input);
+  const src = await openPdf(input, raw, v, lang);
   await warnIfSigned(input, src, lang);
   const anchor = v.anchor as core.Anchor | undefined;
   let out: Uint8Array;
@@ -309,6 +312,11 @@ async function single(cmd: string, positionals: string[], v: Values, lang: Lang)
       break;
     case 'strip':
       out = await core.stripMetadata(src);
+      break;
+    case 'unlock':
+      // openPdf already said what was removed; an unprotected file comes back as the same bytes.
+      if (src === raw) process.stderr.write(`⚠ ${t(lang, 'NOT_PROTECTED', { name: path.basename(input) })}\n`);
+      out = (await core.removeProtection(src)).bytes;
       break;
     case 'compress': {
       const level = v.level as core.CompressionLevel | undefined;

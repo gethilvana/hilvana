@@ -141,6 +141,16 @@ describe('protected PDFs', () => {
     expect(ok.code).toBe(0);
     expect((await hilvana('inspect', 'p3.pdf')).out).toMatch(/Protegido: no/);
   });
+  it('unlock removes the password or restrictions and changes nothing else', async () => {
+    await fs.writeFile(path.join(dir, 'privado2.pdf'), await enc('contrasena-aes256.pdf'));
+    const ok = await hilvanaWith({ HILVANA_PDF_PASSWORD: 'abierto' }, 'unlock', 'privado2.pdf', '-o', 'privado2-libre.pdf');
+    expect(ok.code).toBe(0);
+    expect(ok.err).toMatch(/se abrió con su contraseña/);
+    expect((await hilvana('inspect', 'privado2-libre.pdf')).out).toMatch(/Páginas: 3[\s\S]*Protegido: no/);
+    const plain = await hilvana('unlock', 'a.pdf', '-o', 'a-libre.pdf');
+    expect(plain.code).toBe(0);
+    expect(plain.err).toMatch(/no tiene contraseña ni restricciones/);
+  });
 });
 
 describe('recipes that split', () => {

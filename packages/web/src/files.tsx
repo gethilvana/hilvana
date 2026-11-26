@@ -23,7 +23,7 @@ export interface Doc {
 export function DropZone({ s, tool, compact, onFiles }: { s: Strings; tool: Tool; compact: boolean; onFiles: (files: File[]) => void }) {
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  const accepts = { docs: s.accepts.pdfWord, word: s.accepts.word, images: s.accepts.images }[tool.accept];
+  const accepts = { docs: s.accepts.pdfWord, pdf: s.accepts.pdf, word: s.accepts.word, images: s.accepts.images }[tool.accept];
   return (
     <div
       class={`drop ${over ? 'is-over' : ''} ${compact ? 'is-compact' : ''}`}
@@ -45,7 +45,7 @@ export function DropZone({ s, tool, compact, onFiles }: { s: Strings; tool: Tool
             {s.drop.or}{' '}
             <button type="button" class="btn btn-thread" onClick={() => input.current?.click()}>{s.drop.choose}</button>
           </p>
-          <p class="drop-accepts">{tool.single ? (tool.accept === 'docs' ? s.accepts.one : accepts) : accepts}</p>
+          <p class="drop-accepts">{tool.single ? (tool.accept === 'docs' ? s.accepts.one : tool.accept === 'pdf' ? s.accepts.onePdf : accepts) : accepts}</p>
         </>
       )}
       <input

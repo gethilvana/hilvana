@@ -42,4 +42,18 @@ describe('hilvana-mcp binary', { timeout: 60_000 }, () => {
     await client.close();
     await fs.rm(dir, { recursive: true, force: true });
   });
+
+  it('reads saved recipes from --recipes, and fails clearly when that folder does not exist', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hilvana-mcp-bin-'));
+    const shelf = await fs.mkdtemp(path.join(os.tmpdir(), 'hilvana-recetas-bin-'));
+    await fs.writeFile(path.join(shelf, 'numerar.json'), JSON.stringify({ version: 1, name: 'Numerar', steps: [{ op: 'numberPages' }] }));
+    expect((await exec(['--root', dir, '--recipes', path.join(shelf, 'no-existe')])).err).toMatch(/Recipes folder not found/);
+    const client = new Client({ name: 'test', version: '0' });
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [BIN, '--root', dir, '--recipes', shelf], env: { ...process.env, HILVANA_ROOTS: '' } as Record<string, string>, stderr: 'pipe' }));
+    const listed = JSON.parse(((await client.callTool({ name: 'recipe_list', arguments: {} })) as { content: { text: string }[] }).content[0]!.text);
+    expect(listed.recipes.map((r: { id: string }) => r.id)).toEqual(['numerar']);
+    await client.close();
+    await fs.rm(dir, { recursive: true, force: true });
+    await fs.rm(shelf, { recursive: true, force: true });
+  });
 });

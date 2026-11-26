@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0 · 2026-11-26
+
+- **@hilvana/core**: `removeProtection(bytes, password?)` returns the document as it is, without encryption or usage restrictions: pages, bookmarks, forms and metadata stay. Signatures lose their cryptographic part, as with every change.
+- **@hilvana/recipes**: new `unlock` source step (first step, exactly one PDF). New codes `UNLOCK_ONE_PDF` and the warning `NOT_PROTECTED`.
+- **hilvana**: `unlock` command (`--password` or `HILVANA_PDF_PASSWORD` when the file needs one).
+- **hilvana-mcp**: saved recipes. Recipe `.json` files in `~/.hilvana/recetas`, or the folder given with `--recipes` / `HILVANA_RECIPES`, are listed with the new `recipe_list` tool and as `hilvana://recipes/{id}` resources, and run with `saved: "<id>"` in `recipe_plan` and `recipe_run`. The folder is only read; passwords in a recipe are never shown and recipes that need one are refused. The password hint now points to the new unlock tools.
+- **Web**: new *Quitar contraseña* tool (group *Reducir y proteger*). It takes one PDF, asks for its password in the file row when it needs one, and says when there is nothing to remove.
+
 ## 0.9.0 · 2026-11-22
 
 - **Public benchmark** (`npm run bench`, [docs/benchmark.md](docs/benchmark.md)). It runs on 130 Word documents from Apache POI and 200 real-world PDFs from pdf.js, both fetched at pinned commits with SHA-256 checksums. It adds 12 synthetic Spanish statements, invoices and letters scanned under 5 conditions, with their exact text. Native Tesseract, LibreOffice and qpdf serve as local references. It measures OCR, redaction, Word conversion, operations on real PDFs and compression.

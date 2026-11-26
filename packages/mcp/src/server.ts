@@ -1,13 +1,14 @@
 import { promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { HilvanaError, inspect } from '@hilvana/core';
 import { convertWord, type WordEngine } from '@hilvana/office';
-import { RecipeError, kindOf, plan, planBatch, recipeJsonSchema, run, runBatch, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
+import { RecipeError, describeStep, kindOf, plan, planBatch, recipeJsonSchema, run, runBatch, t, type InputFile, type Lang, type WordConverter } from '@hilvana/recipes';
 import { FolderGuard } from './fsguard.js';
 import { safeWrite } from './safewrite.js';
+import type { RecipeShelf } from './recipes.js';
 
 // Read from the package itself (dist/ sits next to package.json), so it never drifts from the release.
 export const VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
@@ -28,8 +29,8 @@ const fail = (message: string) => ({ isError: true, content: [{ type: 'text' as 
  * When a file needs one, tell the agent how the person can open it themselves.
  */
 const PASSWORD_HINT = {
-  es: 'El archivo necesita contraseña. No la pidas por el chat: la persona puede abrirlo en https://pdf.jorgegrajales.dev o con `npx hilvana ... --password`, guardar una copia sin protección en la carpeta autorizada y volver a intentarlo.',
-  en: 'The file needs a password. Do not ask for it in the chat: the person can open it at https://pdf.jorgegrajales.dev or with `npx hilvana ... --password`, save an unprotected copy in the allowed folder, and try again.',
+  es: 'El archivo necesita contraseña. No la pidas por el chat: la persona puede quitarla en https://pdf.jorgegrajales.dev (herramienta "Quitar contraseña") o con `npx hilvana unlock <archivo.pdf> --password …`, guardar la copia sin protección en la carpeta autorizada y volver a intentarlo.',
+  en: 'The file needs a password. Do not ask for it in the chat: the person can remove it at https://pdf.jorgegrajales.dev ("Remove password" tool) or with `npx hilvana unlock <file.pdf> --password …`, save the unprotected copy in the allowed folder, and try again.',
 };
 /**
  * Signing with a certificate and protecting with a password need a secret, which would pass through
@@ -71,17 +72,20 @@ function converter(engine: WordEngine | undefined): WordConverter {
   return (docx) => convertWord(docx, { engine: engine ?? 'auto' });
 }
 
-export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine?: WordEngine } = {}): McpServer {
+export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine?: WordEngine; recipes?: RecipeShelf } = {}): McpServer {
+  const shelf = defaults.recipes;
   const server = new McpServer(
     { name: 'hilvana', version: VERSION },
     {
       instructions: [
-        'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, compress, ocr, redact, split, protect, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
+        'Hilvana runs PDF workflows locally as recipes: a JSON list of steps (merge, unlock, select, remove, rotate, stampText, sign, watermark, numberPages, stripMetadata, setMetadata, optimize, compress, ocr, redact, split, protect, fromImages) plus optional goals (maxBytes, pageCount, maxPages, noMetadata).',
         'Scanned PDFs have no text until OCR: {"op":"ocr"} (language "spa" default, or "eng") adds an invisible text layer on this machine, after which pdf text can be searched and redacted by terms. OCR can misread: mention it when figures matter.',
         'To redact for real use the redact step: {"op":"redact","terms":["123456789"],"patterns":["email","number"]} removes the text, image pixels and shapes under each match from the file (not just covers them) and checks the result; "areas" (page, x, y, width, height in points from the bottom-left) covers scanned parts. It is destructive: show the plan and get the user\'s agreement first.',
         'To make files smaller use the compress step: {"op":"compress"} with goals.maxBytes aims for that size automatically; levels are lossless, balanced (150 dpi images, default), strong (110 dpi) and max (72 dpi). Text is never rasterized.',
         'Word documents (.docx) are accepted anywhere a PDF is: they are converted locally first. Use word_to_pdf for a plain conversion, or include .docx files in a recipe (e.g. merge a .docx with PDFs).',
         'Recipes can end with protect (allowPrint/allowCopy/allowModify false restricts use). Password protection and signDigital (certificate signatures) need a secret and are refused here: never ask for passwords in the chat; point the person to https://pdf.jorgegrajales.dev or `npx hilvana protect` / `npx hilvana certify`.',
+        'To remove usage restrictions from one PDF and change nothing else, use {"op":"unlock"} as the only step. Files that need a password to open cannot be unlocked here (see below).',
+        ...(shelf ? [`The person keeps saved recipes in ${shelf.folder}: call recipe_list to see them, and pass saved="<id>" to recipe_plan and recipe_run instead of writing the recipe again. Prefer a saved recipe when one fits the request.`] : []),
         'Workflow: 1) pdf_list or pdf_inspect to learn page counts; 2) recipe_plan to validate and show the user the steps; 3) recipe_run. Steps marked destructive (select, remove, stripMetadata, setMetadata) need confirm=true, and you should only set it after the user agrees.',
         'Inputs are never modified; results are written to a new file. ' + PRIVACY_NOTE,
         `Allowed folders: ${guard.roots.join(', ')}`,
@@ -95,6 +99,53 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     { title: 'Hilvana recipe JSON Schema', description: 'The schema every recipe must follow (version 1).', mimeType: 'application/schema+json' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'application/schema+json', text: JSON.stringify(recipeJsonSchema(), null, 2) }] }),
   );
+
+  if (shelf) {
+    server.registerResource(
+      'saved-recipe',
+      new ResourceTemplate('hilvana://recipes/{id}', {
+        list: async () => ({
+          resources: (await shelf.list()).filter((r) => r.recipe).map((r) => ({
+            uri: `hilvana://recipes/${encodeURIComponent(r.id)}`,
+            name: r.id,
+            title: r.name,
+            ...(r.description ? { description: r.description } : {}),
+            mimeType: 'application/json',
+          })),
+        }),
+      }),
+      { title: 'Saved recipe', description: `A recipe the person saved in ${shelf.folder}. Passwords are never shown.`, mimeType: 'application/json' },
+      async (uri, { id }) => {
+        const saved = await shelf.get(decodeURIComponent(String(id)));
+        if (!saved?.recipe) throw new Error(`No saved recipe "${String(id)}" in ${shelf.folder}.`);
+        return { contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(saved.recipe, null, 2) }] };
+      },
+    );
+
+    server.registerTool(
+      'recipe_list',
+      {
+        title: 'List saved recipes',
+        description: 'Lists the recipes the person saved (exported from the web app or written by hand), with their steps in plain language. Use one with saved="<id>" in recipe_plan and recipe_run. Reads recipe files only, never documents.',
+        inputSchema: { lang: z.enum(['es', 'en']).optional().describe('Language for the step descriptions.') },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ lang }) => {
+        const l = lang ?? defaults.lang ?? 'es';
+        try {
+          const list = await shelf.list();
+          return text({
+            folder: shelf.folder,
+            recipes: list.map((r) => r.recipe
+              ? { id: r.id, name: r.name, ...(r.description ? { description: r.description } : {}), steps: r.recipe.steps.map((st) => describeStep(st, l)), needsSecret: needsSecret(r.recipe) }
+              : { id: r.id, invalid: r.problem }),
+          });
+        } catch (err) {
+          return fail(String((err as Error).message));
+        }
+      },
+    );
+  }
 
   server.registerTool(
     'pdf_list',
@@ -148,8 +199,19 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     },
   );
 
-  const recipeInput = z.record(z.string(), z.unknown()).describe('A Hilvana recipe object (see resource hilvana://recipe-schema). Example: {"version":1,"steps":[{"op":"merge"},{"op":"sign","image":"firma.png"}],"goals":{"maxBytes":2000000}}');
+  const recipeInput = z.record(z.string(), z.unknown()).optional().describe('A Hilvana recipe object (see resource hilvana://recipe-schema). Example: {"version":1,"steps":[{"op":"merge"},{"op":"sign","image":"firma.png"}],"goals":{"maxBytes":2000000}}');
   const langInput = z.enum(['es', 'en']).optional().describe('Language for the step descriptions and messages.');
+  const savedInput = z.string().optional().describe(shelf ? 'Id of a saved recipe (see recipe_list), instead of recipe.' : 'Not available: no saved recipes folder is configured.');
+  /** The recipe given inline, or the saved one named by `saved`. Exactly one of them. */
+  async function chosenRecipe(recipe: Record<string, unknown> | undefined, saved: string | undefined): Promise<unknown> {
+    if (!!recipe === !!saved) throw new Error('Give either recipe or saved (one of the two).');
+    if (recipe) return recipe;
+    if (!shelf) throw new Error('No saved recipes folder is configured. Start hilvana-mcp with --recipes <folder>.');
+    const found = await shelf.get(saved!);
+    if (!found) throw new Error(`No saved recipe "${saved}" in ${shelf.folder}. Call recipe_list to see them.`);
+    if (!found.recipe) throw new Error(`The saved recipe "${saved}" is not valid: ${found.problem}`);
+    return found.recipe;
+  }
   const eachInput = z.boolean().optional().describe('Apply the recipe to each PDF/Word input separately (a batch). Other inputs, like a signature image, are shared. The recipe must not name documents. Results go to the output folder.');
 
   server.registerTool(
@@ -157,12 +219,13 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
     {
       title: 'Validate and explain a recipe',
       description: 'Checks a recipe against the actual files without changing anything: schema, file names, page ranges after each step, and which steps are destructive. Returns the steps in plain language to show the user before running.',
-      inputSchema: { recipe: recipeInput, files: z.array(fileRef).min(1), lang: langInput, engine: engineInput, each: eachInput },
+      inputSchema: { recipe: recipeInput, saved: savedInput, files: z.array(fileRef).min(1), lang: langInput, engine: engineInput, each: eachInput },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, lang, engine, each }) => {
+    async ({ recipe: inline, saved, files: refs, lang, engine, each }) => {
       try {
         const l = lang ?? defaults.lang ?? 'es';
+        const recipe = await chosenRecipe(inline, saved);
         if (needsSecret(recipe)) return refuseSecret(l);
         const { files } = await loadFiles(guard, refs);
         if (each) {
@@ -186,6 +249,7 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
         'Runs a recipe locally and writes the result to a NEW file (or, when the recipe ends with split, one new file per part in the output folder), then verifies the goals. Inputs are never modified. If the recipe has destructive steps it returns the plan and asks for confirmation instead of running; set confirm=true only after the user agreed.',
       inputSchema: {
         recipe: recipeInput,
+        saved: savedInput,
         files: z.array(fileRef).min(1),
         output: z.string().describe('Path of the new PDF, inside an allowed folder. Must not be an input. When the recipe ends with a split step, or with each=true, an existing folder for the results instead.'),
         confirm: z.boolean().optional().describe('Required when the recipe has destructive steps, after the user agreed.'),
@@ -196,10 +260,11 @@ export function createServer(guard: FolderGuard, defaults: { lang?: Lang; engine
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async ({ recipe, files: refs, output, confirm, overwrite, lang, engine, each }) => {
+    async ({ recipe: inline, saved, files: refs, output, confirm, overwrite, lang, engine, each }) => {
       const l = lang ?? defaults.lang ?? 'es';
       const word = converter(engine ?? defaults.engine);
       try {
+        const recipe = await chosenRecipe(inline, saved);
         if (needsSecret(recipe)) return refuseSecret(l);
         const { files, realPaths } = await loadFiles(guard, refs);
         if (each) {
