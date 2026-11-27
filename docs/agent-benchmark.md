@@ -79,5 +79,32 @@ Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con
 
 | Modelo | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| workers-gpt-oss-20b ✓ | A | 2026-11-27 | 150 × 3 | 90.0 % | 90.1 % | 89.9 % | 82.7 % | outcome 20, steps 10, invalid 6 | 4.9 s / 30.9 s | 3860 / 513 | USD 0.00093 |
 | reference ✓ | - | 2026-11-27 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
+
+### Acierto por categoría
+
+| Categoría | workers-gpt-oss-20b |
+|---|---|
+| combo | 76.9 % |
+| compress | 83.3 % |
+| fromImages | 100.0 % |
+| injection | 66.7 % |
+| kdp | 88.9 % |
+| merge | 91.7 % |
+| metadata | 100.0 % |
+| numberPages | 95.2 % |
+| ocr | 100.0 % |
+| protect | 95.2 % |
+| question | 91.7 % |
+| redact | 70.0 % |
+| remove | 100.0 % |
+| rotate | 94.4 % |
+| select | 95.8 % |
+| sign | 81.0 % |
+| split | 100.0 % |
+| stampText | 100.0 % |
+| unlock | 91.7 % |
+| unsupported | 83.3 % |
+| watermark | 100.0 % |
 <!-- agent-results:end -->
