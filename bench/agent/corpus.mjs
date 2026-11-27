@@ -285,8 +285,10 @@ export const corpus = [
     { steps: [{ op: 'merge', files: ['escaneo.pdf', 'contrato.pdf'] }, anyOrder({ op: 'ocr', language: oneOf(undefined, 'spa') }, { op: 'remove', pages: 'last' })] }),
   c('combo-14', 'en', 'combo', 'Turn the photos into a PDF and add my signature on the last page', [img('photo1.jpg'), img('photo2.jpg'), signature],
     { steps: [{ op: 'fromImages', files: ['photo1.jpg', 'photo2.jpg'] }, { op: 'sign', image: 'signature.png', pages: 'last' }] }),
+  // "numera desde la 2" can mean "from page 2" or "starting at number 2": a question is also right
+  // (changed after the first run, 2026-11-26).
   c('combo-15', 'es', 'combo', 'Quita las páginas 2 y 3, después numera desde la 2 en adelante', [pdf('acta.pdf', 10)],
-    { steps: [{ op: 'remove', pages: '2,3' }, { op: 'numberPages', pages: '2-8' }] }),
+    { outcome: oneOf('recipe', 'question'), steps: [{ op: 'remove', pages: '2,3' }, { op: 'numberPages', pages: '2-8' }] }),
 
   /* ------------------------------------------------------------ needs a question (8) */
   c('ask-01', 'es', 'question', 'Quita las páginas que sobran', [contrato], ask),

@@ -22,7 +22,7 @@ const flatten = (steps) => steps.flatMap((s) => (s.$anyOrder ? s.$anyOrder : [s]
 
 export function referenceAnswer(testCase) {
   const expect = testCase.expect.$either ? testCase.expect.$either[0] : testCase.expect;
-  if (expect.outcome) {
+  if (expect.outcome && value(expect.outcome) !== 'recipe') {
     const kind = value(expect.outcome);
     return JSON.stringify({ [kind]: kind === 'question' ? '¿Qué páginas o datos exactamente?' : 'Hilvana no hace eso.' });
   }

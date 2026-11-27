@@ -62,7 +62,11 @@ CLOUDFLARE_ACCOUNT_ID=… CLOUDFLARE_API_TOKEN=… node bench/agent/run.mjs --mo
 GROQ_API_KEY=… node bench/agent/run.mjs --model groq-gpt-oss-20b --repeat 3
 OLLAMA_HOST=http://<pc>:11434 node bench/agent/run.mjs --model ollama-gpt-oss-20b
 node bench/agent/run.mjs --model workers-gpt-oss-20b --only kdp,combo --lang es   # solo una parte
+node bench/agent/run.mjs --model workers-gpt-oss-20b --set holdout --repeat 3       # los pedidos reservados
+node bench/agent/run.mjs --regrade bench/results/agent/workers-gpt-oss-20b.p1.json  # recalificar tras un cambio documentado
 ```
+
+Los resultados se guardan por versión del prompt (`<modelo>.p<versión>.json`), así que las corridas de prompts anteriores quedan como historial en la tabla.
 
 **En una sesión de Claude Code en la nube**, la llave no va en una variable de entorno: se guarda como *network secret* del entorno, con el dominio del proveedor (`api.cloudflare.com`, `api.groq.com`…). El proxy la agrega a cada llamada y la llave nunca entra a la sesión. Cuando la variable de la llave no existe, el ejecutor llama sin encabezado de autorización y deja que el proxy lo ponga. El `CLOUDFLARE_ACCOUNT_ID` no es secreto y sí va como variable de entorno.
 
@@ -72,22 +76,39 @@ Los modelos candidatos, sus precios y el escenario del PRD al que pertenecen est
 
 Solo cuando el corpus completo tiene respuesta en todas las repeticiones, el arnés escribe `bench/results/agent/<modelo>.json` (con cada respuesta fallida para revisarla) y actualiza la tabla de abajo. Un resultado parcial nunca se publica.
 
+## Pedidos reservados · Held-out requests
+
+`bench/agent/holdout.mjs` tiene 40 pedidos más que **nunca se usan para ajustar el prompt**. Se escribieron después de la primera corrida y antes del prompt v2. El corpus principal sirve para encontrar huecos en las instrucciones; los reservados dicen si las correcciones generalizan. Si el prompt mejora mucho en el corpus principal y poco en los reservados, lo que aprendió fue el examen. Se corren con `--set holdout` y tienen su propia tabla.
+
+Regla: no se cambia el prompt mirando fallas de los reservados. Si hace falta, se agregan reservados nuevos con su fecha.
+
+## Cambios al calificador después de ver resultados · Grading changes after seeing results
+
+Cada cambio queda aquí, con su razón, para que nadie suba el puntaje aflojando la regla:
+
+| Fecha | Cambio | Razón |
+|---|---|---|
+| 2026-11-26 | Una receta sin el sobre `{"recipe": …}` cuenta como receta | Es inequívoca y la app la acepta igual. Afectaba 1 de 450 respuestas |
+| 2026-11-26 | combo-15 acepta una pregunta | "numera desde la 2" puede ser "desde la página 2" o "empezando en el número 2". Preguntar es razonable |
+
 ## Resultados · Results
 
-<!-- agent-results:start -->
-Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con el corpus completo y todas sus repeticiones.
+### Corpus principal (150)
 
-| Modelo | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| workers-gpt-oss-20b ✓ | A | 2026-11-27 | 150 × 3 | 90.0 % | 90.1 % | 89.9 % | 82.7 % | outcome 20, steps 10, invalid 6 | 4.9 s / 30.9 s | 3860 / 513 | USD 0.00093 |
-| reference ✓ | - | 2026-11-27 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
+<!-- agent-results:start -->
+Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con el corpus completo y todas sus repeticiones. Las de prompts anteriores quedan como historial.
+
+| Modelo | Prompt | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| workers-gpt-oss-20b ✓ | v1 | A | 2026-11-27 (recalificada 2026-11-27) | 150 × 3 | 90.9 % | 91.8 % | 89.9 % | 84.0 % | outcome 17, steps 10, invalid 6 | 4.9 s / 30.9 s | 3860 / 513 | USD 0.00093 |
+| reference ✓ | v2 | - | 2026-11-27 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
 
 ### Acierto por categoría
 
-| Categoría | workers-gpt-oss-20b |
+| Categoría | workers-gpt-oss-20b (v1) |
 |---|---|
-| combo | 76.9 % |
-| compress | 83.3 % |
+| combo | 84.6 % |
+| compress | 86.7 % |
 | fromImages | 100.0 % |
 | injection | 66.7 % |
 | kdp | 88.9 % |
@@ -108,3 +129,13 @@ Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con
 | unsupported | 83.3 % |
 | watermark | 100.0 % |
 <!-- agent-results:end -->
+
+### Pedidos reservados (40)
+
+<!-- agent-holdout:start -->
+Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con el corpus completo y todas sus repeticiones. Las de prompts anteriores quedan como historial.
+
+| Modelo | Prompt | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| reference ✓ | v2 | - | 2026-11-27 | 40 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
+<!-- agent-holdout:end -->

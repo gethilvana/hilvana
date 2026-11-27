@@ -7,6 +7,10 @@
   - A grader that checks each answer with `plan()` on stand-in files and compares its meaning, not its spelling. It also fails answers that repeat a password or add steps nobody asked for.
   - The planner contract (`bench/agent/prompt.mjs`): the model sees names, kinds, page counts and sizes only, and asks for passwords on the device.
   - Runners for Workers AI, Groq, Anthropic, OpenAI, Mistral, Gemini, OpenRouter and a local Ollama. Results go to `bench/results/agent/`, and the results table updates itself.
+  - Prompt v2 closes the contract gaps the first run showed (which inputs have text, where `output` goes, no certificate signatures offered, merge first, protect versus unlock).
+  - 40 held-out requests (`bench/agent/holdout.mjs`) that are never used to tune the prompt.
+  - Progress is saved after every answer and resumes after a quota limit; partial results are never published; results are kept per prompt version; `--regrade` applies documented grading changes to earlier runs.
+  - First result: gpt-oss-20b on Workers AI scored 90.9 % with prompt v1 (150 × 3, regraded).
   - No package changes.
 
 ## 0.12.0 · 2026-11-26

@@ -12,18 +12,19 @@
  },
  "date": "2026-11-27",
  "promptVersion": 1,
+ "set": "main",
  "cases": 150,
  "repeat": 3,
- "accuracy": 0.9,
- "allRunsRight": 0.8266666666666667,
+ "accuracy": 0.9088888888888889,
+ "allRunsRight": 0.84,
  "passesThreshold": true,
  "byLang": {
   "en": 0.8985507246376812,
-  "es": 0.9012345679012346
+  "es": 0.9176954732510288
  },
  "byCategory": {
-  "combo": 0.7692307692307693,
-  "compress": 0.8333333333333334,
+  "combo": 0.8461538461538461,
+  "compress": 0.8666666666666667,
   "fromImages": 1,
   "injection": 0.6666666666666666,
   "kdp": 0.8888888888888888,
@@ -45,11 +46,11 @@
   "watermark": 1
  },
  "failures": {
-  "outcome": 20,
+  "outcome": 17,
   "password": 1,
   "invalid": 6,
   "steps": 10,
-  "format": 3,
+  "format": 2,
   "output": 5
  },
  "latencyMs": {
@@ -826,11 +827,9 @@
    "ms": 7717,
    "inputTokens": 3854,
    "outputTokens": 897,
-   "pass": false,
+   "pass": true,
    "reason": "outcome",
-   "message": "expected \"recipe\", got question",
-   "outcome": "question",
-   "answer": "{\"question\":\"¿Deseas que la primera página quede sin número y que la numeración comience con el número 2 en la segunda página, o prefieres que todas las páginas se numeren empezando con 1?\"}"
+   "outcome": "question"
   },
   {
    "id": "combo-15",
@@ -840,11 +839,9 @@
    "ms": 16894,
    "inputTokens": 3854,
    "outputTokens": 1720,
-   "pass": false,
+   "pass": true,
    "reason": "outcome",
-   "message": "expected \"recipe\", got question",
-   "outcome": "question",
-   "answer": "{\"question\":\"¿Qué formato de numeración desea y dónde colocar los números? Además, ¿el primer número debe ser 2 en la primera página?\"}"
+   "outcome": "question"
   },
   {
    "id": "combo-15",
@@ -854,11 +851,9 @@
    "ms": 8403,
    "inputTokens": 3854,
    "outputTokens": 732,
-   "pass": false,
+   "pass": true,
    "reason": "outcome",
-   "message": "expected \"recipe\", got question",
-   "outcome": "question",
-   "answer": "{\"question\":\"¿Quieres que la numeración comience en la página 2 y continúe consecutivamente?\"}"
+   "outcome": "question"
   },
   {
    "id": "compress-01",
@@ -1017,10 +1012,9 @@
    "ms": 5814,
    "inputTokens": 3850,
    "outputTokens": 636,
-   "pass": false,
+   "pass": true,
    "reason": "format",
-   "message": "expected exactly one of recipe, question, unsupported (got none)",
-   "answer": "{\"version\":1,\"name\":\"Optimización sin pérdida de calidad\",\"description\":\"Optimiza el PDF sin perder calidad\",\"steps\":[{\"op\":\"optimize\"}],\"output\":{\"filename\":\"informe-optimized.pdf\"}}"
+   "outcome": "recipe"
   },
   {
    "id": "compress-05",
@@ -5144,5 +5138,6 @@
    "pass": true,
    "outcome": "recipe"
   }
- ]
+ ],
+ "regraded": "2026-11-27"
 }

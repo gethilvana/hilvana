@@ -74,6 +74,8 @@ export async function ask(model, { system, user, testCase }) {
     max_tokens: model.maxTokens ?? 4000, // reasoning models spend part of it thinking
     ...(model.temperature === null ? {} : { temperature: model.temperature ?? 0 }),
     ...(model.jsonMode === false ? {} : { response_format: { type: 'json_object' } }),
+    // Reasoning models (gpt-oss): "low" | "medium" | "high". Less reasoning answers faster.
+    ...(model.reasoningEffort ? { reasoning_effort: model.reasoningEffort } : {}),
   };
   const data = await post(url, bearer(key), body);
   const choice = data.choices?.[0]?.message ?? data.result?.choices?.[0]?.message;

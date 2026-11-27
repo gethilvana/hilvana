@@ -30,7 +30,16 @@ export function parseAnswer(text) {
   }
 }
 
-/** recipe | question | unsupported, or an error when the envelope is not one of them. */
+/**
+ * recipe | question | unsupported, or an error when the envelope is not one of them.
+ * A bare recipe ({"version": 1, "steps": [...]}) without the envelope is unambiguous and the app
+ * accepts it too, so it counts as {"recipe": ...} (rule added after the first run, 2026-11-26).
+ */
+export function unwrap(answer) {
+  if (answer && answer.recipe === undefined && answer.question === undefined && answer.unsupported === undefined && Array.isArray(answer.steps)) return { recipe: answer };
+  return answer;
+}
+
 export function outcomeOf(answer) {
   const kinds = ['recipe', 'question', 'unsupported'].filter((k) => answer[k] !== undefined && answer[k] !== null);
   if (kinds.length !== 1) return { error: `expected exactly one of recipe, question, unsupported (got ${kinds.join(', ') || 'none'})` };
@@ -171,11 +180,11 @@ export async function grade(testCase, text) {
   }
   const parsed = parseAnswer(text);
   if (parsed.error) return fail('format', parsed.error);
-  const answer = parsed.value;
+  const answer = unwrap(parsed.value);
   const outcome = outcomeOf(answer);
   if (outcome.error) return fail('format', outcome.error);
 
-  const wantOutcome = testCase.expect.outcome ?? (testCase.expect.$either ? 'recipe' : 'recipe');
+  const wantOutcome = testCase.expect.outcome ?? 'recipe';
   const outcomeOk = typeof wantOutcome === 'string' ? wantOutcome === outcome.kind : matchValue(wantOutcome, outcome.kind);
   if (!outcomeOk) return fail('outcome', `expected ${JSON.stringify(wantOutcome)}, got ${outcome.kind}`, { outcome: outcome.kind });
   if (outcome.kind !== 'recipe') return { pass: true, outcome: outcome.kind };

@@ -4,7 +4,8 @@
     { "id": "reference", "provider": "reference", "scenario": "-", "note": "The expected answers; must score 100 %." },
 
     { "id": "workers-gpt-oss-20b", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-20b", "scenario": "A", "price": [0.2, 0.3], "retention": "none" },
-    { "id": "workers-gpt-oss-120b", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-120b", "scenario": "A", "price": null, "retention": "none" },
+    { "id": "workers-gpt-oss-20b-low", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-20b", "reasoningEffort": "low", "scenario": "A", "price": [0.2, 0.3], "retention": "none", "note": "Same model with less reasoning: faster, maybe less accurate." },
+    { "id": "workers-gpt-oss-120b", "provider": "workers-ai", "model": "@cf/openai/gpt-oss-120b", "scenario": "A", "price": [0.35, 0.75], "retention": "none" },
 
     { "id": "groq-gpt-oss-20b", "provider": "groq", "model": "openai/gpt-oss-20b", "scenario": "B", "price": null, "retention": "ZDR (Data Controls)" },
     { "id": "groq-gpt-oss-120b", "provider": "groq", "model": "openai/gpt-oss-120b", "scenario": "B", "price": null, "retention": "ZDR (Data Controls)" },

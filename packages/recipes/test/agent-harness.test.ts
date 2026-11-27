@@ -5,6 +5,8 @@ import { corpus } from '../../../bench/agent/corpus.mjs';
 // @ts-expect-error untyped benchmark module
 import { grade, parseAnswer } from '../../../bench/agent/grade.mjs';
 // @ts-expect-error untyped benchmark module
+import { holdout } from '../../../bench/agent/holdout.mjs';
+// @ts-expect-error untyped benchmark module
 import { referenceAnswer } from '../../../bench/agent/reference.mjs';
 // @ts-expect-error untyped benchmark module
 import { systemPrompt, userMessage } from '../../../bench/agent/prompt.mjs';
@@ -29,6 +31,22 @@ describe('agent corpus', () => {
     }
     expect(failures).toEqual([]);
   }, 120_000);
+
+  it('keeps 40 held-out requests apart from the corpus', async () => {
+    expect(holdout).toHaveLength(40);
+    const ids = new Set((corpus as Case[]).map((c) => c.id));
+    const instructions = new Set((corpus as { instruction: string }[]).map((c) => c.instruction));
+    for (const c of holdout as (Case & { instruction: string })[]) {
+      expect(ids.has(c.id)).toBe(false);
+      expect(instructions.has(c.instruction)).toBe(false);
+      const r = await grade(c, referenceAnswer(c));
+      expect(r.pass, `${c.id}: ${r.message}`).toBe(true);
+    }
+  }, 60_000);
+
+  it('never offers the model steps it may not use', () => {
+    expect(systemPrompt()).not.toContain('signDigital');
+  });
 
   it('never shows the model anything but names, kinds, pages and sizes', () => {
     const msg = JSON.parse(userMessage(get('unlock-04')));
@@ -78,6 +96,13 @@ describe('agent grader', () => {
 ];
   it.each(cases)('%s: %s → %s', async (id, text, pass) => {
     expect((await grade(get(id), text)).pass).toBe(pass);
+  });
+
+  it('accepts a bare recipe and either answer where the request is ambiguous', async () => {
+    expect((await grade(get('compress-05'), JSON.stringify({ version: 1, steps: [{ op: 'optimize' }] }))).pass).toBe(true);
+    expect((await grade(get('combo-15'), JSON.stringify({ question: '¿Desde la página 2 o desde el número 2?' }))).pass).toBe(true);
+    expect((await grade(get('combo-15'), R([{ op: 'remove', pages: '2-3' }, { op: 'numberPages', pages: '2-last' }]))).pass).toBe(true);
+    expect((await grade(get('combo-15'), JSON.stringify({ unsupported: 'no' }))).pass).toBe(false);
   });
 
   it('reads JSON inside text or a code fence', () => {
