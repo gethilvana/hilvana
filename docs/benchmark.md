@@ -4,6 +4,8 @@ Qué tan bien funciona Hilvana con documentos que no hicimos nosotros, medido de
 
 *How well Hilvana does on documents we did not make, measured so anyone can repeat it. Everything runs on one machine; no file is sent to any service.*
 
+El acierto del agente (de pedido a receta) se mide aparte, en [agent-benchmark.md](agent-benchmark.md).
+
 ## Qué se mide · What is measured
 
 | Tarea | Corpus | Cómo se mide | Referencia local |

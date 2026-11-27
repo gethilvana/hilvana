@@ -1,5 +1,18 @@
 # Changelog
 
+## Sin publicar · Unreleased
+
+- **Agent harness** ([docs/agent-benchmark.md](docs/agent-benchmark.md)), the test that picks the integrated agent's model provider (PRD decision D9b):
+  - 150 requests in Spanish and English: every step, multi-step requests, file names that carry instructions, cases that need a question, and cases Hilvana cannot do.
+  - A grader that checks each answer with `plan()` on stand-in files and compares its meaning, not its spelling. It also fails answers that repeat a password or add steps nobody asked for.
+  - The planner contract (`bench/agent/prompt.mjs`): the model sees names, kinds, page counts and sizes only, and asks for passwords on the device.
+  - Runners for Workers AI, Groq, Anthropic, OpenAI, Mistral, Gemini, OpenRouter and a local Ollama. Results go to `bench/results/agent/`, and the results table updates itself.
+  - Prompt v2 closes the contract gaps the first run showed (which inputs have text, where `output` goes, no certificate signatures offered, merge first, protect versus unlock).
+  - 40 held-out requests (`bench/agent/holdout.mjs`) that are never used to tune the prompt.
+  - Progress is saved after every answer and resumes after a quota limit; partial results are never published; results are kept per prompt version; `--regrade` applies documented grading changes to earlier runs.
+  - Results (Workers AI, × 3): with prompt v2, gpt-oss-120b 96.4 % (held-out 95.8 %) and gpt-oss-20b 94.4 % (held-out 94.2 %), up from 90.9 % with v1. Low reasoning effort drops to 86.7 %. PRD decision D9b: 120b as the main model, 20b near the spending cap, Groq as fallback.
+  - No package changes.
+
 ## 0.12.0 · 2026-11-26
 
 - **Amazon KDP print books** ([docs/kdp.md](docs/kdp.md)), paperback and hardcover:
