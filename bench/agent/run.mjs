@@ -7,9 +7,23 @@
 //   GROQ_API_KEY=… node bench/agent/run.mjs --model groq-gpt-oss-20b --repeat 3
 //   node bench/agent/run.mjs --model ollama-gpt-oss-20b --only kdp,combo --lang es
 // Options: --model <id> (repeatable, or "all" for every model with its key set), --only <ids or
-// categories, comma-separated>, --lang es|en, --repeat <n>, --concurrency <n>, --no-docs.
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+// categories, comma-separated>, --lang es|en, --repeat <n>, --concurrency <n>, --fresh, --no-docs.
+//
+// Progress is saved after every answer in bench/results/agent/progress/<model>.json (not committed).
+// Running the same command again only asks what is missing, so a run cut short by a time limit or a
+// daily quota resumes where it stopped, and --only runs on different days add up. The result in
+// bench/results/agent/<model>.json and the docs table are written only once the whole corpus has an
+// answer for every repetition. --fresh discards the saved progress.
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+// Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY=1 (Node 22.21+ / 24). Sandboxes that
+// only reach the internet through a proxy need it, so restart once with it set.
+if ((process.env.HTTPS_PROXY || process.env.https_proxy) && process.env.NODE_USE_ENV_PROXY !== '1') {
+  const child = spawnSync(process.execPath, process.argv.slice(1), { stdio: 'inherit', env: { ...process.env, NODE_USE_ENV_PROXY: '1' } });
+  process.exit(child.status ?? 1);
+}
 import { corpus } from './corpus.mjs';
 import { grade } from './grade.mjs';
 import { systemPrompt, userMessage, PROMPT_VERSION } from './prompt.mjs';
@@ -18,11 +32,12 @@ import { ask } from './providers.mjs';
 const here = path.dirname(new URL(import.meta.url).pathname);
 const repo = path.resolve(here, '../..');
 const resultsDir = path.join(repo, 'bench/results/agent');
+const progressDir = path.join(resultsDir, 'progress');
 const docsFile = path.join(repo, 'docs/agent-benchmark.md');
 const THRESHOLD = 0.9; // PRD section 10.2: the planner must get at least 90 % of the corpus right
 
 function args(argv) {
-  const out = { models: [], only: [], lang: undefined, repeat: 1, concurrency: 4, docs: true };
+  const out = { models: [], only: [], lang: undefined, repeat: 1, concurrency: 4, docs: true, fresh: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--model') out.models.push(argv[++i]);
@@ -31,6 +46,7 @@ function args(argv) {
     else if (a === '--repeat') out.repeat = Number(argv[++i]);
     else if (a === '--concurrency') out.concurrency = Number(argv[++i]);
     else if (a === '--no-docs') out.docs = false;
+    else if (a === '--fresh') out.fresh = true;
     else throw new Error(`Unknown option ${a}`);
   }
   return out;
@@ -52,42 +68,73 @@ async function pool(items, n, fn) {
   return out;
 }
 
-async function runModel(model, cases, opts) {
+const key = (r) => `${r.id}#${r.run}`;
+/** A provider saying the account is out of quota or credit: asking again today will not help. */
+const isQuota = (message = '') => /\b429\b|quota|daily free allocation|rate limit|insufficient|billing|credit/i.test(message);
+
+function loadProgress(model, opts) {
+  const file = path.join(progressDir, `${model.id}.json`);
+  if (opts.fresh || !existsSync(file)) return new Map();
+  const saved = JSON.parse(readFileSync(file, 'utf8'));
+  // Answers to an older prompt or for repetitions beyond the current count no longer apply.
+  if (saved.promptVersion !== PROMPT_VERSION || saved.model !== model.model) return new Map();
+  return new Map(saved.rows.filter((r) => r.run < opts.repeat && corpus.some((c) => c.id === r.id)).map((r) => [key(r), r]));
+}
+
+function saveProgress(model, rows) {
+  mkdirSync(progressDir, { recursive: true });
+  writeFileSync(path.join(progressDir, `${model.id}.json`), JSON.stringify({ model: model.model, promptVersion: PROMPT_VERSION, rows: [...rows.values()] }));
+}
+
+/** Asks for every selected answer that is still missing. Stops early when the provider is out of quota or keeps failing. */
+async function collect(model, cases, opts) {
+  const rows = loadProgress(model, opts);
   const system = systemPrompt();
-  const jobs = cases.flatMap((tc) => Array.from({ length: opts.repeat }, (_, run) => ({ tc, run })));
+  const jobs = cases.flatMap((tc) => Array.from({ length: opts.repeat }, (_, run) => ({ tc, run }))).filter((j) => !rows.has(key({ id: j.tc.id, run: j.run })));
+  const already = cases.length * opts.repeat - jobs.length;
+  if (already) process.stderr.write(`  ${already} answers already saved; ${jobs.length} to go\n`);
   let done = 0;
-  const rows = await pool(jobs, model.provider === 'reference' ? 16 : opts.concurrency, async ({ tc, run }) => {
+  let failedInARow = 0;
+  let stop;
+  await pool(jobs, model.provider === 'reference' ? 16 : opts.concurrency, async ({ tc, run }) => {
+    if (stop) return;
     const started = performance.now();
     let answer;
     try {
       answer = await ask(model, { system, user: userMessage(tc), testCase: tc });
     } catch (err) {
-      answer = { text: '', error: err.message, inputTokens: 0, outputTokens: 0 };
+      failedInARow++;
+      if (isQuota(err.message)) stop ??= `the provider is out of quota or credit: ${err.message.slice(0, 200)}`;
+      else if (failedInARow >= 5) stop ??= `5 calls in a row failed: ${err.message.slice(0, 200)}`;
+      return; // not saved: it is asked again next time
     }
+    failedInARow = 0;
     const ms = Math.round(performance.now() - started);
-    const g = answer.error ? { pass: false, reason: 'error', message: answer.error } : await grade(tc, answer.text);
+    const g = await grade(tc, answer.text);
+    rows.set(key({ id: tc.id, run }), { id: tc.id, lang: tc.lang, category: tc.category, run, ms, inputTokens: answer.inputTokens, outputTokens: answer.outputTokens, ...g, answer: g.pass ? undefined : answer.text?.slice(0, 2000) });
+    if (model.provider !== 'reference') saveProgress(model, rows);
     done++;
-    if (done % 25 === 0 || done === jobs.length) process.stderr.write(`  ${model.id}: ${done}/${jobs.length}\n`);
-    return { id: tc.id, lang: tc.lang, category: tc.category, run, ms, inputTokens: answer.inputTokens, outputTokens: answer.outputTokens, ...g, answer: g.pass ? undefined : answer.text?.slice(0, 2000) };
+    if (done % 25 === 0) process.stderr.write(`  ${model.id}: ${done}/${jobs.length}\n`);
   });
+  if (model.provider !== 'reference') saveProgress(model, rows);
+  return { rows, stop };
+}
 
-  const group = (key) => Object.fromEntries([...new Set(rows.map((r) => r[key]))].sort().map((k) => [k, ratio(rows.filter((r) => r[key] === k))]));
+function summarize(model, rowsMap, opts) {
+  const rows = [...rowsMap.values()].sort((a, b) => a.id.localeCompare(b.id) || a.run - b.run);
+  const group = (k) => Object.fromEntries([...new Set(rows.map((r) => r[k]))].sort().map((v) => [v, ratio(rows.filter((r) => r[k] === v))]));
   const reasons = {};
-  for (const r of rows.filter((r) => !r.pass)) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
-  const timed = rows.filter((r) => r.reason !== 'error');
-  const avg = (k) => (timed.length ? Math.round(timed.reduce((s, r) => s + (r[k] ?? 0), 0) / timed.length) : undefined);
+  for (const r of rows.filter((x) => !x.pass)) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
+  const avg = (k) => (rows.length ? Math.round(rows.reduce((sum, r) => sum + (r[k] ?? 0), 0) / rows.length) : undefined);
   const inputTokens = avg('inputTokens');
   const outputTokens = avg('outputTokens');
-  const costPerPlan = model.price && inputTokens !== undefined ? (inputTokens * model.price[0] + outputTokens * model.price[1]) / 1e6 : undefined;
   const byCase = new Map();
   for (const r of rows) byCase.set(r.id, (byCase.get(r.id) ?? true) && r.pass);
-
   return {
     model: { ...model },
     date: new Date().toISOString().slice(0, 10),
     promptVersion: PROMPT_VERSION,
-    cases: cases.length,
-    fullCorpus: cases.length === corpus.length,
+    cases: byCase.size,
     repeat: opts.repeat,
     accuracy: ratio(rows),
     allRunsRight: [...byCase.values()].filter(Boolean).length / byCase.size,
@@ -95,9 +142,9 @@ async function runModel(model, cases, opts) {
     byLang: group('lang'),
     byCategory: group('category'),
     failures: reasons,
-    latencyMs: { p50: percentile(timed.map((r) => r.ms), 50), p95: percentile(timed.map((r) => r.ms), 95) },
+    latencyMs: { p50: percentile(rows.map((r) => r.ms), 50), p95: percentile(rows.map((r) => r.ms), 95) },
     tokens: { input: inputTokens, output: outputTokens },
-    costPerPlanUsd: costPerPlan,
+    costPerPlanUsd: model.price && inputTokens !== undefined ? (inputTokens * model.price[0] + outputTokens * model.price[1]) / 1e6 : undefined,
     rows,
   };
 }
@@ -109,7 +156,7 @@ const usd = (x) => (x === undefined ? '—' : `USD ${x.toFixed(5)}`);
 
 function table(results) {
   const lines = [
-    `Umbral: ${pct(THRESHOLD)} del corpus (sección 10.2 del PRD). Solo cuentan para la decisión las corridas con el corpus completo.`,
+    `Umbral: ${pct(THRESHOLD)} del corpus (sección 10.2 del PRD). Solo se publican corridas con el corpus completo y todas sus repeticiones.`,
     '',
     '| Modelo | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|',
@@ -117,7 +164,7 @@ function table(results) {
   for (const r of results) {
     const fails = Object.entries(r.failures).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', ') || '—';
     const lat = r.latencyMs.p50 === undefined ? '—' : `${(r.latencyMs.p50 / 1000).toFixed(1)} s / ${(r.latencyMs.p95 / 1000).toFixed(1)} s`;
-    lines.push(`| ${r.model.id}${r.passesThreshold ? ' ✓' : ''} | ${r.model.scenario ?? '—'} | ${r.date} | ${r.cases} × ${r.repeat}${r.fullCorpus ? '' : ' (parcial)'} | ${pct(r.accuracy)} | ${pct(r.byLang.es)} | ${pct(r.byLang.en)} | ${pct(r.allRunsRight)} | ${fails} | ${lat} | ${r.tokens.input ?? '—'} / ${r.tokens.output ?? '—'} | ${usd(r.costPerPlanUsd)} |`);
+    lines.push(`| ${r.model.id}${r.passesThreshold ? ' ✓' : ''} | ${r.model.scenario ?? '—'} | ${r.date} | ${r.cases} × ${r.repeat} | ${pct(r.accuracy)} | ${pct(r.byLang.es)} | ${pct(r.byLang.en)} | ${pct(r.allRunsRight)} | ${fails} | ${lat} | ${r.tokens.input ?? '—'} / ${r.tokens.output ?? '—'} | ${usd(r.costPerPlanUsd)} |`);
   }
   const models = results.filter((r) => r.model.id !== 'reference');
   const cats = [...new Set(models.flatMap((r) => Object.keys(r.byCategory)))].sort();
@@ -130,6 +177,7 @@ function table(results) {
 
 function updateDocs() {
   const results = readdirSync(resultsDir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(path.join(resultsDir, f), 'utf8')))
+    .filter((r) => r.cases === corpus.length && r.promptVersion === PROMPT_VERSION)
     .sort((a, b) => (a.model.id === 'reference') - (b.model.id === 'reference') || (b.accuracy ?? 0) - (a.accuracy ?? 0));
   const doc = readFileSync(docsFile, 'utf8');
   const start = '<!-- agent-results:start -->';
@@ -153,21 +201,33 @@ if (opts.lang) cases = cases.filter((tc) => tc.lang === opts.lang);
 if (!cases.length) throw new Error('No cases selected.');
 
 mkdirSync(resultsDir, { recursive: true });
+let published = false;
 for (const model of models) {
   process.stderr.write(`${model.id}: ${cases.length} cases × ${opts.repeat}\n`);
-  let result;
+  let collected;
   try {
-    result = await runModel(model, cases, opts);
+    collected = await collect(model, cases, opts);
   } catch (err) {
     process.stderr.write(`  skipped: ${err.message}\n`);
     continue;
   }
-  if (result.rows.every((r) => r.reason === 'error')) {
-    process.stderr.write(`  skipped: every call failed (${result.rows[0]?.message})\n`);
+  const { rows, stop } = collected;
+  const missing = corpus.length * opts.repeat - [...rows.values()].length;
+  const selected = [...rows.values()].filter((r) => cases.some((c) => c.id === r.id));
+  if (selected.length) {
+    const part = summarize(model, new Map(selected.map((r) => [key(r), r])), opts);
+    console.log(`${model.id}: ${pct(part.accuracy)} on ${selected.length} answers (es ${pct(part.byLang.es)}, en ${pct(part.byLang.en)})`, part.failures);
+    for (const r of selected.filter((x) => !x.pass).slice(0, 15)) console.log(`  ✗ ${r.id} [${r.reason}] ${r.message?.slice(0, 160)}`);
+  }
+  if (stop) console.log(`  stopped: ${stop}`);
+  if (missing > 0) {
+    console.log(`  ${missing} of ${corpus.length * opts.repeat} answers still missing for the full result. Run the same command again to continue${stop && isQuota(stop) ? ' once the quota resets' : ''}.`);
     continue;
   }
+  const result = summarize(model, rows, opts);
   writeFileSync(path.join(resultsDir, `${model.id}.json`), JSON.stringify(result, null, 1) + '\n');
-  console.log(`${model.id}: ${pct(result.accuracy)} (es ${pct(result.byLang.es)}, en ${pct(result.byLang.en)})`, result.failures);
-  for (const r of result.rows.filter((x) => !x.pass).slice(0, 15)) console.log(`  ✗ ${r.id} [${r.reason}] ${r.message?.slice(0, 160)}`);
+  if (model.provider !== 'reference') rmSync(path.join(progressDir, `${model.id}.json`), { force: true });
+  published = true;
+  console.log(`  full corpus done: ${pct(result.accuracy)}, written to bench/results/agent/${model.id}.json`);
 }
-if (opts.docs) updateDocs();
+if (opts.docs && published) updateDocs();

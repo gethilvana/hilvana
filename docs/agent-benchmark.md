@@ -66,14 +66,18 @@ node bench/agent/run.mjs --model workers-gpt-oss-20b --only kdp,combo --lang es 
 
 **En una sesión de Claude Code en la nube**, la llave no va en una variable de entorno: se guarda como *network secret* del entorno, con el dominio del proveedor (`api.cloudflare.com`, `api.groq.com`…). El proxy la agrega a cada llamada y la llave nunca entra a la sesión. Cuando la variable de la llave no existe, el ejecutor llama sin encabezado de autorización y deja que el proxy lo ponga. El `CLOUDFLARE_ACCOUNT_ID` no es secreto y sí va como variable de entorno.
 
-Los modelos candidatos, sus precios y el escenario del PRD al que pertenecen están en `bench/agent/models.json`. Las llaves van en variables de entorno y nunca se guardan en el repositorio. Cada corrida escribe `bench/results/agent/<modelo>.json`, con cada respuesta fallida para revisarla, y actualiza la tabla de abajo.
+Los modelos candidatos, sus precios y el escenario del PRD al que pertenecen están en `bench/agent/models.json`. Las llaves van en variables de entorno y nunca se guardan en el repositorio. **Cuotas y cortes.** El avance se guarda después de cada respuesta en `bench/results/agent/progress/<modelo>.json` (no entra al repositorio). Si el proveedor se queda sin cuota (por ejemplo, la asignación gratuita diaria de Workers AI) o la sesión se corta, el arnés se detiene y lo guarda. Volver a correr el mismo comando solo pide lo que falta, así que una corrida se puede repartir en varios días, también por partes con `--only`. `--fresh` empieza de cero. Si cambia el prompt (`PROMPT_VERSION`), el avance anterior se descarta.
+
+**Proxy.** Si la máquina sale a internet por un proxy (`HTTPS_PROXY`), el ejecutor se reinicia solo con `NODE_USE_ENV_PROXY=1`, porque sin eso el `fetch` de Node lo ignora.
+
+Solo cuando el corpus completo tiene respuesta en todas las repeticiones, el arnés escribe `bench/results/agent/<modelo>.json` (con cada respuesta fallida para revisarla) y actualiza la tabla de abajo. Un resultado parcial nunca se publica.
 
 ## Resultados · Results
 
 <!-- agent-results:start -->
-Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo cuentan para la decisión las corridas con el corpus completo.
+Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con el corpus completo y todas sus repeticiones.
 
 | Modelo | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| reference ✓ | - | 2026-11-26 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
+| reference ✓ | - | 2026-11-27 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
 <!-- agent-results:end -->
