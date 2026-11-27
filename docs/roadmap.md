@@ -22,7 +22,7 @@ Detalle completo en el PRD del producto (versión 0.4). · Full detail in the pr
 - [x] Web bilingüe con procesamiento en el navegador, PWA sin conexión y política de seguridad que solo permite el propio dominio (`docs/web.md`)
 - [x] QA por riesgos de la web y del motor: 7 defectos corregidos, 88 pruebas por navegador (`docs/qa/fase-1-web.md`)
 - [x] Publicación en pdf.jorgegrajales.dev (Cloudflare) y `v0.1.1` en npm
-- [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima)
+- [ ] Agente integrado con enrutador de modelos (solo instrucción y metadatos; proveedores con retención cero o mínima). Diseño en `docs/agente-integrado.md` (decisiones abiertas D19 a D22)
 - [x] Imágenes → PDF en la web (PNG y JPEG; falta HEIC)
 - [ ] PDF → Word, PDF → imágenes
 - [ ] Word → PDF: cuadros de texto, notas al pie, columnas, encabezado de primera página
