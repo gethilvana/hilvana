@@ -10,7 +10,7 @@
   - Prompt v2 closes the contract gaps the first run showed (which inputs have text, where `output` goes, no certificate signatures offered, merge first, protect versus unlock).
   - 40 held-out requests (`bench/agent/holdout.mjs`) that are never used to tune the prompt.
   - Progress is saved after every answer and resumes after a quota limit; partial results are never published; results are kept per prompt version; `--regrade` applies documented grading changes to earlier runs.
-  - First result: gpt-oss-20b on Workers AI scored 90.9 % with prompt v1 (150 × 3, regraded).
+  - Results (Workers AI, × 3): with prompt v2, gpt-oss-120b 96.4 % (held-out 95.8 %) and gpt-oss-20b 94.4 % (held-out 94.2 %), up from 90.9 % with v1. Low reasoning effort drops to 86.7 %. PRD decision D9b: 120b as the main model, 20b near the spending cap, Groq as fallback.
   - No package changes.
 
 ## 0.12.0 · 2026-11-26
