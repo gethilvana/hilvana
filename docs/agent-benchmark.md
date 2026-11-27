@@ -100,34 +100,37 @@ Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con
 
 | Modelo | Prompt | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| workers-gpt-oss-120b ✓ | v2 | A | 2026-11-27 | 150 × 3 | 96.4 % | 98.4 % | 94.2 % | 95.3 % | outcome 12, steps 4 | 4.1 s / 9.0 s | 3794 / 347 | USD 0.00159 |
+| workers-gpt-oss-20b ✓ | v2 | A | 2026-11-27 | 150 × 3 | 94.4 % | 95.9 % | 92.8 % | 89.3 % | outcome 10, invalid 10, steps 3 | 4.0 s / 28.4 s | 3800 / 448 | USD 0.00089 |
+| workers-gpt-oss-20b-low | v2 | A | 2026-11-27 | 150 × 3 | 86.7 % | 88.1 % | 85.0 % | 80.7 % | steps 24, outcome 19, invalid 9 | 1.0 s / 8.9 s | 3800 / 77 | USD 0.00078 |
 | workers-gpt-oss-20b ✓ | v1 | A | 2026-11-27 (recalificada 2026-11-27) | 150 × 3 | 90.9 % | 91.8 % | 89.9 % | 84.0 % | outcome 17, steps 10, invalid 6 | 4.9 s / 30.9 s | 3860 / 513 | USD 0.00093 |
 | reference ✓ | v2 | - | 2026-11-27 | 150 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
 
 ### Acierto por categoría
 
-| Categoría | workers-gpt-oss-20b (v1) |
-|---|---|
-| combo | 84.6 % |
-| compress | 86.7 % |
-| fromImages | 100.0 % |
-| injection | 66.7 % |
-| kdp | 88.9 % |
-| merge | 91.7 % |
-| metadata | 100.0 % |
-| numberPages | 95.2 % |
-| ocr | 100.0 % |
-| protect | 95.2 % |
-| question | 91.7 % |
-| redact | 70.0 % |
-| remove | 100.0 % |
-| rotate | 94.4 % |
-| select | 95.8 % |
-| sign | 81.0 % |
-| split | 100.0 % |
-| stampText | 100.0 % |
-| unlock | 91.7 % |
-| unsupported | 83.3 % |
-| watermark | 100.0 % |
+| Categoría | workers-gpt-oss-120b (v2) | workers-gpt-oss-20b (v2) | workers-gpt-oss-20b-low (v2) | workers-gpt-oss-20b (v1) |
+|---|---|---|---|---|
+| combo | 100.0 % | 84.6 % | 87.2 % | 84.6 % |
+| compress | 86.7 % | 93.3 % | 76.7 % | 86.7 % |
+| fromImages | 100.0 % | 100.0 % | 100.0 % | 100.0 % |
+| injection | 100.0 % | 66.7 % | 50.0 % | 66.7 % |
+| kdp | 100.0 % | 100.0 % | 61.1 % | 88.9 % |
+| merge | 95.8 % | 100.0 % | 95.8 % | 91.7 % |
+| metadata | 100.0 % | 100.0 % | 100.0 % | 100.0 % |
+| numberPages | 100.0 % | 100.0 % | 100.0 % | 95.2 % |
+| ocr | 100.0 % | 100.0 % | 94.4 % | 100.0 % |
+| protect | 100.0 % | 90.5 % | 85.7 % | 95.2 % |
+| question | 66.7 % | 83.3 % | 41.7 % | 91.7 % |
+| redact | 100.0 % | 93.3 % | 90.0 % | 70.0 % |
+| remove | 100.0 % | 100.0 % | 100.0 % | 100.0 % |
+| rotate | 100.0 % | 100.0 % | 77.8 % | 94.4 % |
+| select | 87.5 % | 87.5 % | 66.7 % | 95.8 % |
+| sign | 100.0 % | 95.2 % | 81.0 % | 81.0 % |
+| split | 100.0 % | 100.0 % | 100.0 % | 100.0 % |
+| stampText | 100.0 % | 100.0 % | 100.0 % | 100.0 % |
+| unlock | 100.0 % | 100.0 % | 100.0 % | 91.7 % |
+| unsupported | 100.0 % | 93.3 % | 100.0 % | 83.3 % |
+| watermark | 100.0 % | 94.4 % | 100.0 % | 100.0 % |
 <!-- agent-results:end -->
 
 ### Pedidos reservados (40)
@@ -137,5 +140,34 @@ Umbral: 90.0 % del corpus (sección 10.2 del PRD). Solo se publican corridas con
 
 | Modelo | Prompt | Escenario | Fecha | Casos × repeticiones | Acierto | Español | Inglés | Siempre bien | Fallos más comunes | Latencia p50 / p95 | Tokens entrada / salida | Costo por plan |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| workers-gpt-oss-120b ✓ | v2 | A | 2026-11-27 | 40 × 3 | 95.8 % | 93.7 % | 98.2 % | 92.5 % | outcome 3, steps 2 | 4.8 s / 9.7 s | 3791 / 347 | USD 0.00159 |
+| workers-gpt-oss-20b ✓ | v2 | A | 2026-11-27 | 40 × 3 | 94.2 % | 96.8 % | 91.2 % | 87.5 % | steps 6, invalid 1 | 4.1 s / 16.3 s | 3797 / 409 | USD 0.00088 |
+| workers-gpt-oss-20b-low ✓ | v2 | A | 2026-11-27 | 40 × 3 | 90.8 % | 93.7 % | 87.7 % | 85.0 % | steps 8, format 2, outcome 1 | 0.9 s / 7.5 s | 3797 / 73 | USD 0.00078 |
 | reference ✓ | v2 | - | 2026-11-27 | 40 × 1 | 100.0 % | 100.0 % | 100.0 % | 100.0 % | — | 0.0 s / 0.0 s | 0 / 0 | — |
+
+### Acierto por categoría
+
+| Categoría | workers-gpt-oss-120b (v2) | workers-gpt-oss-20b (v2) | workers-gpt-oss-20b-low (v2) |
+|---|---|---|---|
+| combo | 100.0 % | 100.0 % | 100.0 % |
+| compress | 66.7 % | 100.0 % | 100.0 % |
+| fromImages | 100.0 % | 83.3 % | 100.0 % |
+| injection | 100.0 % | 100.0 % | 100.0 % |
+| kdp | 100.0 % | 100.0 % | 33.3 % |
+| merge | 100.0 % | 100.0 % | 88.9 % |
+| metadata | 100.0 % | 100.0 % | 100.0 % |
+| numberPages | 100.0 % | 66.7 % | 50.0 % |
+| ocr | 0.0 % | 100.0 % | 66.7 % |
+| protect | 100.0 % | 83.3 % | 100.0 % |
+| question | 100.0 % | 100.0 % | 100.0 % |
+| redact | 100.0 % | 100.0 % | 100.0 % |
+| remove | 100.0 % | 100.0 % | 100.0 % |
+| rotate | 100.0 % | 100.0 % | 83.3 % |
+| select | 100.0 % | 100.0 % | 100.0 % |
+| sign | 100.0 % | 100.0 % | 100.0 % |
+| split | 100.0 % | 83.3 % | 50.0 % |
+| stampText | 100.0 % | 100.0 % | 100.0 % |
+| unlock | 100.0 % | 100.0 % | 100.0 % |
+| unsupported | 100.0 % | 100.0 % | 100.0 % |
+| watermark | 100.0 % | 33.3 % | 100.0 % |
 <!-- agent-holdout:end -->
